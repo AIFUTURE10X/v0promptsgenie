@@ -4,8 +4,11 @@ import { Home, ImageIcon, Film, Sparkles, ArrowRight, Check } from 'lucide-react
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
+import { redirect } from 'next/navigation'
 
 export default function LandingPage() {
+  redirect('/image-studio')
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}

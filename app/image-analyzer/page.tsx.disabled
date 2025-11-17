@@ -4166,18 +4166,9 @@ DO NOT create generic descriptions. Recreate THIS SPECIFIC CHARACTER accurately.
                     })),
                   )
                   setLightboxIndex(index)
-                  setLightboxOpen(true) // Open the lightbox when an image is clicked from history
+                  setLightboxOpen(true)
                 }}
                 refreshTrigger={historyRefreshTrigger}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-RefreshTrigger}
               />
             </div>
           </div>
