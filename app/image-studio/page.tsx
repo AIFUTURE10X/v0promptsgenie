@@ -1,0 +1,548 @@
+"use client"
+
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Sparkles, Wand2, Heart, X, Settings, ChevronLeft, ChevronRight, Download, Clock } from 'lucide-react'
+import { UploadPanel } from './components/UploadPanel'
+import { GeneratePanel } from './components/GeneratePanel'
+import { AIHelperSidebar } from './components/AIHelperSidebar'
+import { ImageStudioToolbar } from './components/ImageStudioToolbar'
+import { useImageUpload } from './hooks/useImageUpload'
+import { useImageAnalysis } from './hooks/useImageAnalysis'
+import { useParameters } from './hooks/useParameters'
+import { useFavorites, FavoritesModal } from './components/SimpleFavorites'
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { ParameterHistoryPanel } from './components/ParameterHistoryPanel'
+import { AnalysisCards } from './components/AnalysisCards/AnalysisCards'
+import { useStyleAutoDetection } from './hooks/useStyleAutoDetection'
+import { useCameraAutoDetection } from './hooks/useCameraAutoDetection'
+
+export default function ImageStudioPage() {
+  const uploadState = useImageUpload()
+  const { analyzeImage, analyzing } = useImageAnalysis()
+  const { saveParameters, loadParameters, hasStoredParams } = useParameters()
+  
+  const { favorites, toggleFavorite, isFavorite, clearAll } = useFavorites()
+  const [showFavorites, setShowFavorites] = useState(false)
+  const [showParameterHistory, setShowParameterHistory] = useState(false)
+
+  const [analysisResults, setAnalysisResults] = useState<{
+    subjects: any[]
+    scene: any | null
+    style: any | null
+  }>({
+    subjects: [],
+    scene: null,
+    style: null
+  })
+
+  const [showAIHelper, setShowAIHelper] = useState(false)
+  const [showUploadSection, setShowUploadSection] = useState(true)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+  const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; prompt?: string; timestamp?: number }>>([])
+  
+  const [aspectRatio, setAspectRatio] = useState('1:1')
+  const [selectedStylePreset, setSelectedStylePreset] = useState('Realistic')
+  const [stylePopoverOpen, setStylePopoverOpen] = useState(false)
+  const [ratiosPopoverOpen, setRatiosPopoverOpen] = useState(false)
+  const [imageCount, setImageCount] = useState(1)
+  const [negativePrompt, setNegativePrompt] = useState('')
+  const [mainPrompt, setMainPrompt] = useState('')
+  const [seed, setSeed] = useState<number | null>(null)
+
+  const stylePresets = [
+    { value: 'Realistic', label: 'Realistic', thumbnail: '/realistic-photograph.jpg', description: 'Photorealistic details, natural lighting' },
+    { value: 'Cartoon Style', label: 'Cartoon Style', thumbnail: '/cartoon-style.jpg', description: 'Bold outlines, simple colors' },
+    { value: 'Pixar', label: 'Pixar', thumbnail: '/pixar-3d-animation.jpg', description: '3D animated, vibrant colors' },
+    { value: 'PhotoReal', label: 'PhotoReal', thumbnail: '/photorealistic-cgi.jpg', description: 'Ultra-detailed CGI rendering' },
+    { value: 'Anime', label: 'Anime', thumbnail: '/anime-style-character.png', description: 'Japanese anime, expressive eyes' },
+    { value: 'Oil Painting', label: 'Oil Painting', thumbnail: '/abstract-oil-painting.png', description: 'Visible brush strokes, texture' },
+    { value: 'Watercolor', label: 'Watercolor', thumbnail: '/watercolor-painting-still-life.png', description: 'Soft textures, fluid transitions' },
+    { value: '3D Render', label: '3D Render', thumbnail: '/abstract-3d-render.png', description: 'Soft 3D realism, appealing shapes' },
+    { value: 'Sketch', label: 'Sketch', thumbnail: '/pencil-sketch.png', description: 'Hand-drawn pencil textures' },
+    { value: 'Pencil Sketch', label: 'Pencil Sketch', thumbnail: '/pencil-sketch-drawing.jpg', description: 'Detailed pencil drawing, cross-hatching, shading' },
+    { value: 'Comic Book', label: 'Comic Book', thumbnail: '/comic-book-art.png', description: 'Bold style, halftone patterns' },
+    { value: 'Studio Ghibli', label: 'Studio Ghibli', thumbnail: '/studio-ghibli-style.jpg', description: 'Hand-painted, pastoral nature' },
+    { value: 'Makoto Shinkai', label: 'Makoto Shinkai', thumbnail: '/makoto-shinkai-anime.jpg', description: 'Soft 3D, expressive lighting' },
+    { value: 'Disney Modern 3D', label: 'Disney Modern 3D', thumbnail: '/disney-3d-animation.jpg', description: 'High-finish animation, glossy' },
+    { value: 'Sony Spider-Verse', label: 'Sony Spider-Verse', thumbnail: '/spider-verse-style.jpg', description: 'Mixed media, comic book look' },
+    { value: 'Laika', label: 'Laika', thumbnail: '/laika-stop-motion.jpg', description: 'Handcrafted textures, moody' },
+    { value: 'Cartoon Saloon', label: 'Cartoon Saloon', thumbnail: '/cartoon-saloon-style.jpg', description: 'Flat decorative, Celtic motifs' },
+    { value: 'Studio Trigger', label: 'Studio Trigger', thumbnail: '/studio-trigger-anime.jpg', description: 'Neon palettes, explosive motion' },
+    { value: 'Ufotable', label: 'Ufotable', thumbnail: '/ufotable-anime.jpg', description: 'Hyper-polished, VFX glow trails' },
+    { value: 'Kyoto Animation', label: 'Kyoto Animation', thumbnail: '/kyoto-animation.jpg', description: 'Slice-of-life realism, delicate' },
+  ]
+
+  const [selectedCameraAngle, setSelectedCameraAngle] = useState('')
+  const [selectedCameraLens, setSelectedCameraLens] = useState('')
+  const [styleStrength, setStyleStrength] = useState<'subtle' | 'moderate' | 'strong'>('moderate')
+  const [referenceImage, setReferenceImage] = useState<any | null>(null)
+  const [analysisMode, setAnalysisMode] = useState<'fast' | 'quality'>('fast')
+  
+  const generatePanelRef = useRef<{ triggerGenerate: () => void; isGenerating: boolean }>(null)
+
+  const handleClearSubjectAnalysis = () => {
+    setAnalysisResults(prev => ({
+      ...prev,
+      subjects: []
+    }))
+  }
+
+  const handleClearSceneAnalysis = () => {
+    setAnalysisResults(prev => ({
+      ...prev,
+      scene: null
+    }))
+  }
+
+  const handleClearStyleAnalysis = () => {
+    setAnalysisResults(prev => ({
+      ...prev,
+      style: null
+    }))
+  }
+
+  const handleRestoreParameters = (params?: any) => {
+    const paramsToRestore = params || loadParameters()
+    if (paramsToRestore) {
+      if (paramsToRestore.mainPrompt) setMainPrompt(paramsToRestore.mainPrompt)
+      if (paramsToRestore.aspectRatio) setAspectRatio(paramsToRestore.aspectRatio)
+      if (paramsToRestore.selectedStylePreset) setSelectedStylePreset(paramsToRestore.selectedStylePreset)
+      if (paramsToRestore.imageCount) setImageCount(paramsToRestore.imageCount)
+      if (paramsToRestore.negativePrompt) setNegativePrompt(paramsToRestore.negativePrompt)
+      if (paramsToRestore.selectedCameraAngle) setSelectedCameraAngle(paramsToRestore.selectedCameraAngle)
+      if (paramsToRestore.selectedCameraLens) setSelectedCameraLens(paramsToRestore.selectedCameraLens)
+      if (paramsToRestore.styleStrength) setStyleStrength(paramsToRestore.styleStrength)
+      if (paramsToRestore.analysisMode) setAnalysisMode(paramsToRestore.analysisMode)
+      if (paramsToRestore.seed !== undefined) setSeed(paramsToRestore.seed)
+      
+      console.log('[v0] Restored parameters:', paramsToRestore)
+    }
+  }
+
+  const handleGenerate = () => {
+    if (generatePanelRef.current?.triggerGenerate) {
+      generatePanelRef.current.triggerGenerate()
+    }
+  }
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
+
+  const closeLightbox = () => {
+    setLightboxOpen(false)
+  }
+
+  const navigateLightbox = (direction: "prev" | "next") => {
+    if (direction === "prev") {
+      setLightboxIndex((prev) => (prev > 0 ? prev - 1 : generatedImages.length - 1))
+    } else {
+      setLightboxIndex((prev) => (prev < generatedImages.length - 1 ? prev + 1 : 0))
+    }
+  }
+
+  const handleDownloadFromLightbox = () => {
+    const imageUrl = generatedImages[lightboxIndex]?.url
+    if (!imageUrl) return
+
+    const link = document.createElement("a")
+    link.href = imageUrl
+    link.download = `generated-image-${lightboxIndex + 1}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleResetAll = useCallback(() => {
+    setMainPrompt('')
+    setNegativePrompt('')
+    setAspectRatio('1:1')
+    setSelectedStylePreset('Realistic')
+    setImageCount(1)
+    setSelectedCameraAngle('')
+    setSelectedCameraLens('')
+    setStyleStrength('moderate')
+    setSeed(null)
+    setAnalysisResults({
+      subjects: [],
+      scene: null,
+      style: null
+    })
+    setGeneratedImages([])
+    console.log('[v0] Reset all parameters to defaults')
+  }, [])
+
+  useEffect(() => {
+    const autoAnalyze = async () => {
+      console.log('[v0] Auto-analyze triggered')
+      
+      // Analyze subject images
+      for (const img of uploadState.subjectImages) {
+        if (img.file) {
+          const existingAnalysis = analysisResults.subjects.find(s => s.id === img.id)
+          if (!existingAnalysis || existingAnalysis.mode !== analysisMode) {
+            try {
+              console.log(`[v0] Analyzing subject ${img.id} in ${analysisMode} mode`)
+              const analysis = await analyzeImage(img.file, 'subject', analysisMode)
+              setAnalysisResults(prev => ({
+                ...prev,
+                subjects: [
+                  ...prev.subjects.filter(s => s.id !== img.id),
+                  { id: img.id, analysis, mode: analysisMode }
+                ]
+              }))
+            } catch (error) {
+              console.error('[v0] Auto-analyze subject failed:', error)
+            }
+          }
+        }
+      }
+
+      if (uploadState.sceneImage?.file) {
+        if (!analysisResults.scene || analysisResults.scene.mode !== analysisMode) {
+          try {
+            console.log(`[v0] Analyzing scene in ${analysisMode} mode`)
+            const analysis = await analyzeImage(uploadState.sceneImage.file, 'scene', analysisMode)
+            setAnalysisResults(prev => ({ 
+              ...prev, 
+              scene: { analysis, mode: analysisMode } 
+            }))
+          } catch (error) {
+            console.error('[v0] Auto-analyze scene failed:', error)
+          }
+        }
+      }
+
+      if (uploadState.styleImage?.file) {
+        if (!analysisResults.style || analysisResults.style.mode !== analysisMode) {
+          try {
+            console.log(`[v0] Analyzing style in ${analysisMode} mode`)
+            const analysis = await analyzeImage(uploadState.styleImage.file, 'style', analysisMode, selectedStylePreset)
+            setAnalysisResults(prev => ({ 
+              ...prev, 
+              style: { analysis, mode: analysisMode } 
+            }))
+          } catch (error) {
+            console.error('[v0] Auto-analyze style failed:', error)
+          }
+        }
+      }
+      
+      if (uploadState.subjectImages.length === 0 && !uploadState.sceneImage && !uploadState.styleImage) {
+        handleResetAll()
+      }
+    }
+
+    autoAnalyze()
+  }, [uploadState.subjectImages, uploadState.sceneImage, uploadState.styleImage, analysisMode, selectedStylePreset, handleResetAll])
+
+  const detectedStyle = useStyleAutoDetection(
+    analysisResults.style?.analysis || null,
+    stylePresets
+  )
+
+  useEffect(() => {
+    if (detectedStyle) {
+      setSelectedStylePreset(detectedStyle)
+    }
+  }, [detectedStyle])
+
+  const { detectedAngle, detectedLens, detectedRatio } = useCameraAutoDetection(
+    analysisResults.scene?.analysis || null
+  )
+
+  useEffect(() => {
+    if (detectedRatio) setAspectRatio(detectedRatio)
+    if (detectedAngle) setSelectedCameraAngle(detectedAngle)
+    if (detectedLens) setSelectedCameraLens(detectedLens)
+  }, [detectedRatio, detectedAngle, detectedLens])
+
+  const combinedPrompt = `${mainPrompt} ${negativePrompt}`
+  const hasPrompt = mainPrompt.trim() !== ''
+
+  const handleApplyAISuggestions = (suggestions: any) => {
+    if (suggestions.prompt) setMainPrompt(suggestions.prompt)
+    if (suggestions.negativePrompt) setNegativePrompt(suggestions.negativePrompt)
+    if (suggestions.style) setSelectedStylePreset(suggestions.style)
+    if (suggestions.aspectRatio) setAspectRatio(suggestions.aspectRatio)
+    if (suggestions.cameraAngle) setSelectedCameraAngle(suggestions.cameraAngle)
+    if (suggestions.cameraLens) setSelectedCameraLens(suggestions.cameraLens)
+    if (suggestions.styleStrength) setStyleStrength(suggestions.styleStrength)
+    console.log('[v0] Applied AI suggestions:', suggestions)
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-black to-zinc-950">
+      {/* Header */}
+      <header className="border-b border-zinc-800 px-6 py-4 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Welcome Card in Header */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
+              <div
+                className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
+                }}
+              >
+                <Wand2 className="w-3.5 h-3.5 text-black" />
+              </div>
+              <span className="text-sm font-medium text-white">Image Studio</span>
+            </div>
+            <Button
+              onClick={() => setShowParameterHistory(true)}
+              variant="ghost"
+              className="text-zinc-400 hover:text-white flex items-center gap-2"
+            >
+              <Clock className="w-4 h-4" />
+              <span className="text-sm">History</span>
+            </Button>
+            {hasStoredParams && (
+              <Button
+                onClick={() => handleRestoreParameters()}
+                className="px-4 py-2 bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] font-medium flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                Restore Parameters
+              </Button>
+            )}
+            <Button
+              onClick={() => setShowFavorites(true)}
+              variant="ghost"
+              className="text-zinc-400 hover:text-white flex items-center gap-2"
+            >
+              <Heart className="w-4 h-4" />
+              <span className="text-sm">Favorites ({favorites.length})</span>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-6 py-2">
+        {/* ImageStudioToolbar Component */}
+        <ImageStudioToolbar
+          showUploadSection={showUploadSection}
+          onToggleUpload={() => setShowUploadSection(!showUploadSection)}
+          analysisMode={analysisMode}
+          onAnalysisModeChange={setAnalysisMode}
+          imageCount={imageCount}
+          onImageCountChange={setImageCount}
+          aspectRatio={aspectRatio}
+          onAspectRatioChange={setAspectRatio}
+          ratiosPopoverOpen={ratiosPopoverOpen}
+          onRatiosPopoverOpenChange={setRatiosPopoverOpen}
+          selectedStylePreset={selectedStylePreset}
+          onStylePresetChange={setSelectedStylePreset}
+          stylePopoverOpen={stylePopoverOpen}
+          onStylePopoverOpenChange={setStylePopoverOpen}
+          stylePresets={stylePresets}
+          onGenerate={handleGenerate}
+          isGenerating={generatePanelRef.current?.isGenerating || false}
+          selectedCameraAngle={selectedCameraAngle}
+          onCameraAngleChange={setSelectedCameraAngle}
+          selectedCameraLens={selectedCameraLens}
+          onCameraLensChange={setSelectedCameraLens}
+          styleStrength={styleStrength}
+          onStyleStrengthChange={setStyleStrength}
+        />
+
+        {/* Upload Section (Collapsible) */}
+        {showUploadSection && (
+          <div className="mb-8">
+            <UploadPanel
+              subjectImages={uploadState.subjectImages}
+              sceneImage={uploadState.sceneImage}
+              styleImage={uploadState.styleImage}
+              isDragging={uploadState.isDragging}
+              setIsDragging={uploadState.setIsDragging}
+              addSubjectImages={uploadState.addSubjectImages}
+              setSceneImageFile={uploadState.setSceneImageFile}
+              setStyleImageFile={uploadState.setStyleImageFile}
+              removeSubjectImage={uploadState.removeSubjectImage}
+              toggleSubjectSelection={uploadState.toggleSubjectSelection}
+              clearSceneImage={uploadState.clearSceneImage}
+              clearStyleImage={uploadState.clearStyleImage}
+              clearAllImages={uploadState.clearAllImages}
+              onClearAll={handleResetAll}
+            />
+          </div>
+        )}
+
+        {analyzing && (
+          <Card className="bg-zinc-900 border-zinc-800 p-4 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 border-2 border-[#c99850] border-t-transparent rounded-full animate-spin" />
+              <p className="text-zinc-300">Analyzing uploaded images...</p>
+            </div>
+          </Card>
+        )}
+
+        {/* Generate Section (Always visible) */}
+        <div id="generate-section">
+          <GeneratePanel
+            ref={generatePanelRef}
+            subjectImages={uploadState.subjectImages}
+            sceneAnalysis={analysisResults.scene}
+            styleAnalysis={analysisResults.style}
+            analysisResults={analysisResults}
+            onClearSubjectAnalysis={handleClearSubjectAnalysis}
+            onClearSceneAnalysis={handleClearSceneAnalysis}
+            onClearStyleAnalysis={handleClearStyleAnalysis}
+            aspectRatio={aspectRatio}
+            setAspectRatio={setAspectRatio}
+            selectedStylePreset={selectedStylePreset}
+            setSelectedStylePreset={setSelectedStylePreset}
+            imageCount={imageCount}
+            setImageCount={setImageCount}
+            selectedCameraAngle={selectedCameraAngle}
+            selectedCameraLens={selectedCameraLens}
+            styleStrength={styleStrength}
+            negativePrompt={negativePrompt}
+            setNegativePrompt={setNegativePrompt}
+            referenceImage={referenceImage}
+            setReferenceImage={setReferenceImage}
+            mainPrompt={mainPrompt}
+            setMainPrompt={setMainPrompt}
+            isFavorite={isFavorite}
+            toggleFavorite={toggleFavorite}
+            onParametersSave={(params) => saveParameters({ ...params, analysisMode, seed })}
+            onClearPrompt={() => setMainPrompt('')}
+            onRestoreParameters={handleRestoreParameters}
+            generatedImages={generatedImages}
+            setGeneratedImages={(images) => {
+              console.log('[v0] page.tsx setGeneratedImages called with', images.length, 'images')
+              setGeneratedImages(images)
+            }}
+            onOpenLightbox={openLightbox}
+            seed={seed}
+            setSeed={setSeed}
+          />
+        </div>
+      </main>
+
+      {/* AI Helper floating button and sidebar */}
+      {!showAIHelper && (
+        <button
+          onClick={() => setShowAIHelper(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#FFD700] via-[#FFA500] to-[#FFD700] hover:from-[#FFED4E] hover:via-[#FFD700] hover:to-[#FFA500] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 group"
+          title="AI Prompt Helper"
+        >
+          <Sparkles className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
+        </button>
+      )}
+
+      <AIHelperSidebar
+        isOpen={showAIHelper}
+        onClose={() => setShowAIHelper(false)}
+        currentPromptSettings={{
+          currentPrompt: mainPrompt,
+          currentNegativePrompt: negativePrompt,
+          currentStyle: selectedStylePreset,
+          currentCameraAngle: selectedCameraAngle,
+          currentCameraLens: selectedCameraLens,
+          currentAspectRatio: aspectRatio,
+          styleStrength,
+        }}
+        onApplySuggestions={handleApplyAISuggestions}
+      />
+
+      {/* Favorites modal overlay */}
+      {showFavorites && (
+        <FavoritesModal
+          favorites={favorites}
+          onClose={() => setShowFavorites(false)}
+          onRemove={toggleFavorite}
+          onClearAll={clearAll}
+          onRestoreParameters={handleRestoreParameters}
+        />
+      )}
+
+      {/* Parameter History Panel */}
+      {showParameterHistory && (
+        <ParameterHistoryPanel
+          isOpen={showParameterHistory}
+          onClose={() => setShowParameterHistory(false)}
+          onRestoreParameters={handleRestoreParameters}
+        />
+      )}
+
+      {/* Lightbox Dialog */}
+      <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+        <DialogContent className="!max-w-[95vw] !max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-black border-zinc-800 flex items-center justify-center">
+          {!generatedImages || generatedImages.length === 0 ? (
+            <div className="text-white text-center p-8">
+              <p>No images to display</p>
+            </div>
+          ) : (
+            <div className="relative w-full h-full flex items-center justify-center p-8">
+              {/* Close button */}
+              <button
+                onClick={closeLightbox}
+                className="absolute top-4 right-4 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                aria-label="Close lightbox"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Download button */}
+              <button
+                onClick={handleDownloadFromLightbox}
+                className="absolute top-4 right-16 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                aria-label="Download image"
+              >
+                <Download className="w-6 h-6" />
+              </button>
+
+              {/* Previous button */}
+              {generatedImages.length > 1 && (
+                <button
+                  onClick={() => navigateLightbox("prev")}
+                  className="absolute left-4 z-50 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-8 h-8" />
+                </button>
+              )}
+
+              {/* Image */}
+              <div className="w-full h-full flex items-center justify-center p-8">
+                {generatedImages[lightboxIndex] ? (
+                  <img
+                    src={generatedImages[lightboxIndex].url || "/placeholder.svg"}
+                    alt={`Generated image ${lightboxIndex + 1}`}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                ) : (
+                  <p className="text-white">No image selected</p>
+                )}
+              </div>
+
+              {/* Next button */}
+              {generatedImages.length > 1 && (
+                <button
+                  onClick={() => navigateLightbox("next")}
+                  className="absolute right-4 z-50 p-3 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-8 h-8" />
+                </button>
+              )}
+
+              {/* Image counter */}
+              {generatedImages.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-black/50 text-white text-sm">
+                  {lightboxIndex + 1} / {generatedImages.length}
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
