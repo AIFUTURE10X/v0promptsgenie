@@ -1,14 +1,11 @@
 "use client"
 
-import { Home, ImageIcon, Film, Sparkles, ArrowRight, Check } from 'lucide-react'
+import { Home, Film, Sparkles, ArrowRight, Check } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
-import { redirect } from 'next/navigation'
 
 export default function LandingPage() {
-  redirect('/image-studio')
-
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Navigation */}
@@ -46,18 +43,6 @@ export default function LandingPage() {
               </button>
             </Link>
 
-            <Link href="/image-analyzer">
-              <button
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-black font-medium relative overflow-hidden"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
-                }}
-              >
-                <ImageIcon className="w-4 h-4 relative z-10 text-black" />
-                <span className="text-sm relative z-10">Image Analyzer</span>
-              </button>
-            </Link>
 
             <Link href="/storyboard">
               <button
@@ -86,8 +71,6 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative px-6 py-24 overflow-hidden">
-        {/* Background pattern */}
-
         <div className="max-w-5xl mx-auto text-center relative z-10">
           <div
             className="inline-block mb-4 px-4 py-1.5 rounded-full border border-zinc-700"
@@ -112,12 +95,12 @@ export default function LandingPage() {
           </h2>
 
           <p className="text-xl text-zinc-400 mb-8 max-w-3xl mx-auto text-pretty">
-            Transform your creative workflow with AI-powered image analysis, prompt generation, and visual planning
+            Transform your creative workflow with AI-powered image generation, prompt creation, and visual planning
             tools. Build better content faster.
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <Link href="/image-analyzer">
+            <Link href="/image-studio">
               <Button
                 className="font-bold px-8 py-6 text-lg text-black"
                 style={{
@@ -148,8 +131,8 @@ export default function LandingPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Image Analyzer Card */}
-            <Link href="/image-analyzer">
+            {/* Image Studio Card */}
+            <Link href="/image-studio">
               <div className="group bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-[#c99850] transition-all cursor-pointer">
                 <div
                   className="w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:opacity-90 transition-opacity"
@@ -158,36 +141,35 @@ export default function LandingPage() {
                       "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
                   }}
                 >
-                  <ImageIcon className="w-8 h-8 text-black" />
+                  <Sparkles className="w-8 h-8 text-black" />
                 </div>
-                <h4 className="text-2xl font-bold mb-3">Image Analyzer</h4>
+                <h4 className="text-2xl font-bold mb-3">Image Studio</h4>
                 <p className="text-zinc-400 mb-6">
-                  Upload images to analyze subjects, scenes, and artistic styles. Generate detailed prompts for AI image
-                  generation with advanced controls.
+                  Create stunning AI-generated images with advanced prompt engineering tools. Save favorites, manage history, and iterate on your creative vision.
                 </p>
                 <ul className="space-y-2 mb-6">
                   <li className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    Subject, scene, and style analysis
+                    AI-powered image generation
                   </li>
                   <li className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    AI-powered prompt generation
+                    Smart prompt suggestions
                   </li>
                   <li className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    Image-to-image generation
+                    Favorites and history tracking
                   </li>
                   <li className="flex items-center gap-2 text-sm text-zinc-300">
                     <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    History tracking and reuse
+                    Download and share
                   </li>
                 </ul>
                 <div
                   className="flex items-center gap-2 font-medium group-hover:gap-3 transition-all"
                   style={{ color: "#c99850" }}
                 >
-                  Try Image Analyzer
+                  Try Image Studio
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>
@@ -256,7 +238,7 @@ export default function LandingPage() {
             <p className="text-xl text-zinc-400 mb-8">
               Join thousands of designers and creators using PromptsGenie Pro
             </p>
-            <Link href="/image-analyzer">
+            <Link href="/image-studio">
               <Button
                 className="font-bold px-8 py-6 text-lg text-black"
                 style={{
