@@ -1,3 +1,30 @@
+/**
+ * ΓòöΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòù
+ * Γòæ                    ≡ƒöÆ PROTECTED: AI HELPER HOOK                      Γòæ
+ * ΓòáΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòú
+ * Γòæ  Core hook for AI Helper functionality. DO NOT MODIFY without        Γòæ
+ * Γòæ  explicit approval.                                                  Γòæ
+ * Γòæ                                                                      Γòæ
+ * Γòæ  Related Files:                                                      Γòæ
+ * Γòæ  - app/image-studio/components/AIHelperSidebar.tsx                  Γòæ
+ * Γòæ  - app/api/ai-helper/save/route.ts                                  Γòæ
+ * Γòæ  - app/api/ai-helper/list/route.ts                                  Γòæ
+ * Γòæ  - app/api/ai-helper/delete/route.ts                                Γòæ
+ * Γòæ                                                                      Γòæ
+ * Γòæ  Key Features:                                                       Γòæ
+ * Γòæ  Γ£à Message management with suggestions                             Γòæ
+ * Γòæ  Γ£à Image upload and compression                                    Γòæ
+ * Γòæ  Γ£à Image analysis integration                                      Γòæ
+ * Γòæ  Γ£à updateMessageSuggestions - persists edits to messages           Γòæ
+ * Γòæ  Γ£à Session-based conversation tracking                             Γòæ
+ * Γòæ                                                                      Γòæ
+ * Γòæ  CRITICAL: updateMessageSuggestions ensures edited values           Γòæ
+ * Γòæ  persist when clicking "Apply All" after editing settings           Γòæ
+ * Γòæ                                                                      Γòæ
+ * Γòæ  APPROVAL REQUIRED: Use phrase "APPROVE SIGNIFICANT CHANGE"         Γòæ
+ * ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
+ */
+
 import { useState } from 'react'
 
 export interface AIMessage {
@@ -87,7 +114,7 @@ export function useAIHelper() {
   }
 
   const sendMessage = async (userInput: string, currentPromptSettings: any) => {
-    const displayMessage = userInput.trim() || '📷 [Image uploaded]'
+    const displayMessage = userInput.trim() || '≡ƒô╖ [Image uploaded]'
     const userMessage: AIMessage = { role: 'user', content: displayMessage }
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
@@ -97,9 +124,8 @@ export function useAIHelper() {
 
     let imageAnalysisContext = ''
     
-    // Analyze uploaded images if any
     if (currentImages.length > 0) {
-      const analyses: Array<{ index: number; analysis: string; error?: boolean }> = []
+      const analyses: Array<{ index: number; analysis: string; error?: boolean; type?: string }> = []
 
       for (let index = 0; index < currentImages.length; index++) {
         try {
@@ -111,7 +137,7 @@ export function useAIHelper() {
 
           const formData = new FormData()
           formData.append('image', file)
-          formData.append('type', 'subject')
+          formData.append('type', 'style')
           formData.append('mode', 'quality')
 
           const analysisResponse = await fetch('/api/analyze-image', {
@@ -125,6 +151,7 @@ export function useAIHelper() {
               analyses.push({
                 index: index + 1,
                 analysis: data.analysis,
+                type: 'style',
                 error: false
               })
             }
@@ -138,8 +165,12 @@ export function useAIHelper() {
         const successfulAnalyses = analyses.filter(a => !a.error)
         if (successfulAnalyses.length > 0) {
           imageAnalysisContext = `\n\n=== REFERENCE IMAGES ANALYSIS ===\n${successfulAnalyses
-            .map(a => `\n[IMAGE ${a.index}] - DETAILED CHARACTER/SUBJECT DESCRIPTION:\n${a.analysis}`)
-            .join('\n\n')}\n\nCRITICAL INSTRUCTIONS: The user has uploaded ${successfulAnalyses.length} reference image(s). When they mention "this character", "the image", etc., they want you to REPLICATE THE EXACT CHARACTER/SUBJECT from the analysis above.`
+            .map(a => `\n[IMAGE ${a.index}] - STYLE AND SUBJECT ANALYSIS:\n${a.analysis}`)
+            .join('\n\n')}\n\nCRITICAL INSTRUCTIONS: 
+1. The user has uploaded ${successfulAnalyses.length} reference image(s).
+2. EXTRACT THE DETECTED STYLE from the analysis and recommend it in your suggestions.
+3. When they mention "this character", "the image", etc., replicate the exact character/subject from the analysis.
+4. Include the detected artistic style in your style recommendation.`
         }
       }
 
@@ -216,6 +247,20 @@ export function useAIHelper() {
     */
   }
 
+  const updateMessageSuggestions = (index: number, newSuggestions: any) => {
+    console.log('[v0] Updating message', index, 'with new suggestions:', newSuggestions)
+    setMessages(prev => {
+      const updated = [...prev]
+      if (updated[index] && updated[index].suggestions) {
+        updated[index] = {
+          ...updated[index],
+          suggestions: { ...updated[index].suggestions, ...newSuggestions }
+        }
+      }
+      return updated
+    })
+  }
+
   return {
     messages,
     uploadedImages,
@@ -223,6 +268,7 @@ export function useAIHelper() {
     sendMessage,
     addImage,
     removeImage,
-    clearHistory
+    clearHistory,
+    updateMessageSuggestions
   }
 }

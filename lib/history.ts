@@ -42,6 +42,9 @@ export async function saveToHistory(
     // Also save to Neon for persistence
     try {
       const userId = getUserId()
+      console.log('[v0] Saving to Neon API for userId:', userId)
+      console.log('[v0] POST /api/history with:', { userId, prompt: prompt.substring(0, 50) + '...', aspectRatio, imageUrls: imageUrls.length + ' images' })
+
       const response = await fetch('/api/history', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,13 +57,15 @@ export async function saveToHistory(
         })
       })
 
+      const responseData = await response.json()
+
       if (response.ok) {
-        console.log('[v0] History saved to Neon database')
+        console.log('[v0] ✅ History saved to Neon database:', responseData)
       } else {
-        console.error('[v0] Failed to save history to Neon:', await response.text())
+        console.error('[v0] ❌ Failed to save history to Neon:', response.status, responseData)
       }
     } catch (error) {
-      console.error('[v0] API save failed, using localStorage only:', error)
+      console.error('[v0] ❌ API save failed, using localStorage only:', error)
     }
   } catch (error) {
     console.error("[v0] Error saving to history:", error)
@@ -83,29 +88,50 @@ export function getHistory(): HistoryItem[] {
   }
 }
 
-export async function syncHistoryFromNeon(): Promise<HistoryItem[]> {
+export type SyncResult = {
+  success: boolean
+  data: HistoryItem[]
+  error?: string
+  syncedCount: number
+}
+
+export async function syncHistoryFromNeon(): Promise<SyncResult> {
   try {
     const userId = getUserId()
+    console.log('[v0] Syncing history from Neon for user:', userId)
+
     const response = await fetch(`/api/history?userId=${userId}`)
-    
+
     if (!response.ok) {
-      throw new Error('Failed to fetch history from Neon')
+      const errorText = await response.text()
+      console.error('[v0] Neon API error:', response.status, errorText)
+      throw new Error(`API error (${response.status}): ${errorText}`)
     }
-    
+
     const data = await response.json()
     const neonHistory = data.history as HistoryItem[]
-    
+
     console.log('[v0] Synced history from Neon:', neonHistory.length, 'items')
-    
+
     // Merge with localStorage and update
     const localHistory = getHistory()
     const mergedHistory = mergeHistories(neonHistory, localHistory)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(mergedHistory))
-    
-    return mergedHistory
+
+    return {
+      success: true,
+      data: mergedHistory,
+      syncedCount: neonHistory.length
+    }
   } catch (error) {
-    console.error('[v0] Failed to sync from Neon:', error)
-    return getHistory()
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    console.error('[v0] Failed to sync from Neon:', errorMessage)
+    return {
+      success: false,
+      data: getHistory(),
+      error: errorMessage,
+      syncedCount: 0
+    }
   }
 }
 

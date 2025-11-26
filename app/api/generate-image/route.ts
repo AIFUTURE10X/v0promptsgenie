@@ -1,15 +1,32 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateImageWithRetry } from "@/lib/gemini-client"
+import { generateImageWithRetry, type ImageSize, type GenerationModel } from "@/lib/gemini-client"
 
-type AllowedRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3"
+type AllowedRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3" | "21:9" | "5:4" | "4:5"
 
 function normalizeAspectRatio(input: string): AllowedRatio {
-  const allowed = new Set<AllowedRatio>(["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"])
+  const allowed = new Set<AllowedRatio>(["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9", "5:4", "4:5"])
   const trimmed = input.replace(/\s+/g, "") as AllowedRatio
   if (!allowed.has(trimmed)) {
     throw new Error(`Unsupported aspect ratio: ${input}`)
   }
   return trimmed
+}
+
+function normalizeImageSize(input: string | null): ImageSize {
+  const allowed = new Set<ImageSize>(["1K", "2K", "4K"])
+  const normalized = (input?.toUpperCase() || "1K") as ImageSize
+  if (!allowed.has(normalized)) {
+    return "1K"
+  }
+  return normalized
+}
+
+function normalizeModel(input: string | null): GenerationModel {
+  const allowed: GenerationModel[] = ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"]
+  if (input && allowed.includes(input as GenerationModel)) {
+    return input as GenerationModel
+  }
+  return "gemini-2.5-flash-image"
 }
 
 export async function POST(request: NextRequest) {
@@ -21,7 +38,9 @@ export async function POST(request: NextRequest) {
     const referenceImageFile = formData.get('referenceImage') as File | null
     const seedParam = formData.get('seed') as string | null
     const seed = seedParam ? parseInt(seedParam) : undefined
-    
+    const imageSize = normalizeImageSize(formData.get('imageSize') as string | null)
+    const model = normalizeModel(formData.get('model') as string | null)
+
     // Convert File to base64 if present
     let referenceImage: string | undefined
     if (referenceImageFile && referenceImageFile.size > 0) {
@@ -34,6 +53,8 @@ export async function POST(request: NextRequest) {
       prompt: prompt?.substring(0, 100),
       count,
       aspectRatio: rawAspectRatio,
+      model,
+      imageSize,
       hasRef: !!referenceImage,
       seed,
     })
@@ -54,6 +75,8 @@ export async function POST(request: NextRequest) {
           aspectRatio,
           referenceImage,
           seed,
+          model,
+          imageSize,
         })
 
         if (result.success && result.imageBase64) {

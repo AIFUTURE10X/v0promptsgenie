@@ -1,6 +1,6 @@
 "use client"
 
-import { Home, Film, Sparkles, ArrowRight, Check } from 'lucide-react'
+import { Home, Sparkles, ArrowRight, Check } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
@@ -44,19 +44,7 @@ export default function LandingPage() {
             </Link>
 
 
-            <Link href="/storyboard">
-              <button
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-black font-medium relative overflow-hidden"
-                style={{
-                  background:
-                    "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
-                }}
-              >
-                <Film className="w-4 h-4 relative z-10 text-black" />
-                <span className="text-sm relative z-10">Storyboard Creator</span>
-              </button>
-            </Link>
-          </nav>
+                      </nav>
 
           <Button
             className="font-bold px-6 text-black"
@@ -130,7 +118,7 @@ export default function LandingPage() {
             <p className="text-xl text-zinc-400">Everything you need to bring your visual ideas to life</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="max-w-2xl mx-auto">
             {/* Image Studio Card */}
             <Link href="/image-studio">
               <div className="group bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-[#c99850] transition-all cursor-pointer">
@@ -170,51 +158,6 @@ export default function LandingPage() {
                   style={{ color: "#c99850" }}
                 >
                   Try Image Studio
-                  <ArrowRight className="w-4 h-4" />
-                </div>
-              </div>
-            </Link>
-
-            {/* Storyboard Creator Card */}
-            <Link href="/storyboard">
-              <div className="group bg-zinc-900 rounded-2xl p-8 border border-zinc-800 hover:border-[#c99850] transition-all cursor-pointer">
-                <div
-                  className="w-16 h-16 rounded-xl flex items-center justify-center mb-6 group-hover:opacity-90 transition-opacity"
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
-                  }}
-                >
-                  <Film className="w-8 h-8 text-black" />
-                </div>
-                <h4 className="text-2xl font-bold mb-3">Storyboard Creator</h4>
-                <p className="text-zinc-400 mb-6">
-                  Plan and visualize your creative projects with AI-assisted storyboarding. Perfect for video
-                  production, marketing campaigns, and content planning.
-                </p>
-                <ul className="space-y-2 mb-6">
-                  <li className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    Visual scene planning
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    Shot composition guides
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    Multiple view modes
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-zinc-300">
-                    <Check className="w-4 h-4" style={{ color: "#c99850" }} />
-                    Export and share
-                  </li>
-                </ul>
-                <div
-                  className="flex items-center gap-2 font-medium group-hover:gap-3 transition-all"
-                  style={{ color: "#c99850" }}
-                >
-                  Try Storyboard Creator
                   <ArrowRight className="w-4 h-4" />
                 </div>
               </div>

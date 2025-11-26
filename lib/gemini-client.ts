@@ -18,6 +18,9 @@ function getClient() {
   return client
 }
 
+export type ImageSize = "1K" | "2K" | "4K"
+export type GenerationModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview"
+
 export interface GenerateImageOptions {
   prompt: string
   aspect_ratio?: string
@@ -39,19 +42,28 @@ export async function generateImageWithRetry({
   aspectRatio = "1:1",
   referenceImage,
   seed,
+  model = "gemini-2.5-flash-image",
+  imageSize = "1K",
 }: {
   prompt: string
   aspectRatio?: string
   referenceImage?: string
   seed?: number
+  model?: GenerationModel
+  imageSize?: ImageSize
 }) {
   const maxAttempts = Number(process.env.GEMINI_MAX_ATTEMPTS || 3)
   let delay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
 
+  // Force 1K for Gemini 2.5 Flash (doesn't support higher resolutions)
+  const effectiveImageSize = model === "gemini-2.5-flash-image" ? "1K" : imageSize
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`[v0 SERVER] Gemini attempt ${attempt}/${maxAttempts}`)
+      console.log(`[v0 SERVER] Model: ${model}`)
       console.log(`[v0 SERVER] Aspect Ratio: ${aspectRatio}`)
+      console.log(`[v0 SERVER] Image Size: ${effectiveImageSize}`)
       console.log(`[v0 SERVER] Has reference image: ${!!referenceImage}`)
       console.log(`[v0 SERVER] Seed: ${seed !== undefined ? seed : 'random'}`)
 
@@ -68,25 +80,51 @@ export async function generateImageWithRetry({
         })
       }
 
+      const imageConfig: any = {
+        aspectRatio: aspectRatio,
+      }
+
+      // Add imageSize for Gemini 3 Pro Image model
+      if (model === "gemini-3-pro-image-preview") {
+        imageConfig.imageSize = effectiveImageSize
+      }
+
       const config: any = {
-        responseModalities: ["IMAGE"],
-        imageConfig: {
-          aspectRatio: aspectRatio,
-        },
+        // Enable TEXT + IMAGE for Gemini 3 Pro to allow reasoning output for complex compositions
+        responseModalities: model === "gemini-3-pro-image-preview"
+          ? ["TEXT", "IMAGE"]
+          : ["IMAGE"],
+        imageConfig,
       }
 
       if (seed !== undefined) {
         config.seed = seed
       }
 
+      // Add Google Search Grounding for Gemini 3 Pro to enable internet context for complex infographics
+      const tools = model === "gemini-3-pro-image-preview"
+        ? [{ googleSearch: {} }]
+        : undefined
+
       const response = await geminiClient.models.generateContent({
-        model: "gemini-2.5-flash-image",
+        model: model,
         contents: contentParts,
         config,
+        tools,
       })
 
       console.log(`[v0 SERVER] API response received`)
       console.log(`[v0 SERVER] Response object keys:`, Object.keys(response))
+
+      // Check if Google Search grounding was used
+      const groundingMetadata = (response.candidates?.[0] as any)?.groundingMetadata
+      if (groundingMetadata) {
+        console.log(`[v0 SERVER] Google Search grounding WAS USED`)
+        console.log(`[v0 SERVER] Search queries:`, groundingMetadata.webSearchQueries)
+        console.log(`[v0 SERVER] Grounding chunks:`, groundingMetadata.groundingChunks?.length || 0)
+      } else {
+        console.log(`[v0 SERVER] Google Search grounding was NOT used (model used its own knowledge)`)
+      }
 
       let imageBase64 = null
 

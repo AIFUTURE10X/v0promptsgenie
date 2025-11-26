@@ -8,10 +8,13 @@ import { UploadedImage, AnalysisResult } from '../types'
 import { usePromptBuilder } from '../hooks/usePromptBuilder'
 import { useImageGeneration } from '../hooks/useImageGeneration'
 import { GeneratedImageCard } from './GeneratedImageCard'
-import { saveToHistory } from '@/lib/history'
+import { useGenerationHistory } from '../hooks/useGenerationHistory'
 import { SeedControlDropdown } from './SeedControlDropdown'
 
 const GOLD_GRADIENT = "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)"
+
+type ImageSize = '1K' | '2K' | '4K'
+type GenerationModel = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
 
 interface GeneratePanelProps {
   subjectImages: UploadedImage[]
@@ -48,6 +51,12 @@ interface GeneratePanelProps {
   generatedImages: Array<{ url: string; prompt?: string; timestamp?: number }>
   setGeneratedImages: (images: Array<{ url: string; prompt?: string; timestamp?: number }>) => void
   onOpenLightbox: (index: number) => void
+  seed?: number | null
+  setSeed?: (seed: number | null) => void
+  imageSize?: ImageSize
+  setImageSize?: (size: ImageSize) => void
+  selectedModel?: GenerationModel
+  setSelectedModel?: (model: GenerationModel) => void
 }
 
 const STYLE_PRESETS = [
@@ -167,9 +176,9 @@ const STYLE_PRESETS = [
   },
 ]
 
-export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerating: boolean }, GeneratePanelProps>(function GeneratePanel({ 
-  subjectImages, 
-  sceneAnalysis, 
+export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerating: boolean }, GeneratePanelProps>(function GeneratePanel({
+  subjectImages,
+  sceneAnalysis,
   styleAnalysis,
   analysisResults,
   onClearSubjectAnalysis,
@@ -197,10 +206,17 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
   onRestoreParameters,
   generatedImages,
   setGeneratedImages,
-  onOpenLightbox
+  onOpenLightbox,
+  seed: controlledSeedProp,
+  setSeed: setControlledSeedProp,
+  imageSize: controlledImageSize = '1K',
+  setImageSize: setControlledImageSize,
+  selectedModel: controlledSelectedModel = 'gemini-2.5-flash-image',
+  setSelectedModel: setControlledSelectedModel,
 }, ref) {
   const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)
   const { isGenerating, error, generateImages, clearImages } = useImageGeneration(setGeneratedImages)
+  const { saveToHistory } = useGenerationHistory()
   
   const [manualPrompt, setManualPrompt] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(true)
@@ -221,7 +237,16 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
   const [editedCombined, setEditedCombined] = useState('')
   const [copiedCombined, setCopiedCombined] = useState(false)
   
-  const [seed, setSeed] = useState<number | null>(null)
+  const [internalSeed, setInternalSeed] = useState<number | null>(controlledSeedProp ?? null)
+
+  useEffect(() => {
+    if (controlledSeedProp !== undefined) {
+      setInternalSeed(controlledSeedProp)
+    }
+  }, [controlledSeedProp])
+
+  const seed = controlledSeedProp !== undefined ? controlledSeedProp : internalSeed
+  const setSeed = setControlledSeedProp ?? setInternalSeed
 
   const referenceInputRef = useRef<HTMLInputElement>(null)
   const generatedImagesRef = useRef<HTMLDivElement>(null)
@@ -348,9 +373,14 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
         count: imageCount,
         aspectRatio,
         seed,
-        referenceImage: referenceImage?.file
+        referenceImage: referenceImage?.file,
+        model: controlledSelectedModel,
+        imageSize: controlledImageSize,
       })
-      
+
+      console.log('[v0] ⭐ generateImages returned:', newImages?.length || 0, 'images')
+      console.log('[v0] ⭐ newImages data:', newImages ? JSON.stringify(newImages.map(img => ({ url: img.url?.substring(0, 50) + '...', prompt: img.prompt?.substring(0, 30) }))) : 'null')
+
       if (newImages && newImages.length > 0) {
         const imageUrls = newImages.map(img => img.url)
         
@@ -362,23 +392,34 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
           '3:4': '896×1152',
         }
 
+        console.log('[v0] ⭐ Starting getImageMetadata for', imageUrls.length, 'images')
         const metadataPromises = imageUrls.map(url => getImageMetadata(url))
         const metadataResults = await Promise.all(metadataPromises)
+        console.log('[v0] ⭐ getImageMetadata completed:', JSON.stringify(metadataResults))
 
+        console.log('[v0] About to save history for', imageUrls.length, 'images')
+
+        // Save all images to history with proper await
         for (let i = 0; i < imageUrls.length; i++) {
           const url = imageUrls[i]
           const metadata = metadataResults[i]
-          
-          saveToHistory(
-            finalPrompt,
-            aspectRatio,
-            [url],
-            {
-              style: selectedStylePreset || 'Realistic',
-              dimensions: metadata.dimensions,
-              fileSize: metadata.fileSize,
-            }
-          )
+
+          console.log('[v0] Calling saveToHistory for image', i + 1)
+          try {
+            await saveToHistory(
+              finalPrompt,
+              aspectRatio,
+              [url],
+              {
+                style: selectedStylePreset || 'Realistic',
+                dimensions: metadata.dimensions,
+                fileSize: metadata.fileSize,
+              }
+            )
+            console.log('[v0] saveToHistory completed for image', i + 1)
+          } catch (saveError) {
+            console.error('[v0] saveToHistory failed for image', i + 1, saveError)
+          }
         }
       }
     } catch (err) {
@@ -429,19 +470,22 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
   const handleReferenceImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     if (!file.type.startsWith('image/')) {
       alert('Please upload a valid image file')
+      e.target.value = ''  // Reset input to allow re-selecting
       return
     }
-    
+
     if (file.size > 10 * 1024 * 1024) {
       alert('Image size must be less than 10MB')
+      e.target.value = ''  // Reset input to allow re-selecting
       return
     }
-    
+
     const preview = URL.createObjectURL(file)
     setReferenceImage({ file, preview })
+    e.target.value = ''  // Reset input to allow re-selecting same file
   }
   
   const handleRemoveReferenceImage = () => {
@@ -449,6 +493,10 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
       URL.revokeObjectURL(referenceImage.preview)
     }
     setReferenceImage(null)
+    // Reset file input to allow re-selecting the same file
+    if (referenceInputRef.current) {
+      referenceInputRef.current.value = ''
+    }
   }
   
   const getImageMetadata = async (url: string) => {
@@ -456,21 +504,32 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
       const img = new Image()
       img.onload = async () => {
         const dimensions = `${img.width}×${img.height}`
-        
-        // Calculate actual file size using HEAD request
+
+        // Calculate file size - handle data URLs vs HTTP URLs differently
         let fileSize = '~2 MB'
         try {
-          const response = await fetch(url, { method: 'HEAD' })
-          const contentLength = response.headers.get('content-length')
-          if (contentLength) {
-            const bytes = parseInt(contentLength, 10)
-            const mb = bytes / (1024 * 1024)
-            fileSize = `~${mb.toFixed(1)} MB`
+          if (url.startsWith('data:')) {
+            // For data URLs, calculate from base64 length
+            const base64Data = url.split(',')[1]
+            if (base64Data) {
+              const bytes = Math.ceil((base64Data.length * 3) / 4)
+              const mb = bytes / (1024 * 1024)
+              fileSize = `~${mb.toFixed(1)} MB`
+            }
+          } else {
+            // For HTTP URLs, use HEAD request
+            const response = await fetch(url, { method: 'HEAD' })
+            const contentLength = response.headers.get('content-length')
+            if (contentLength) {
+              const bytes = parseInt(contentLength, 10)
+              const mb = bytes / (1024 * 1024)
+              fileSize = `~${mb.toFixed(1)} MB`
+            }
           }
         } catch (error) {
           console.error('[v0] Failed to get file size:', error)
         }
-        
+
         resolve({ dimensions, fileSize })
       }
       img.onerror = () => {
@@ -496,9 +555,17 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
     <div className="space-y-6">
       {/* Analysis Cards Row - Collapsible */}
       <Card className="bg-zinc-900 border-[#c99850]/30">
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="w-full flex items-center justify-between p-3 hover:bg-zinc-800/50 transition-colors rounded-t-lg"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              setShowAdvanced(!showAdvanced)
+            }
+          }}
+          className="w-full flex items-center justify-between p-3 hover:bg-zinc-800/50 transition-colors rounded-t-lg cursor-pointer"
         >
           <div className="flex items-center gap-3">
             <span className="text-xs font-bold text-[#c99850]">Analysis Cards</span>
@@ -532,7 +599,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
               showAdvanced ? 'rotate-180' : 'rotate-0'
             }`}
           />
-        </button>
+        </div>
         
         {showAdvanced && (
           <div className="p-4 pt-0">
@@ -761,9 +828,17 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
       
       {/* Generator Controls - Collapsible */}
       <Card className="bg-zinc-900 border-[#c99850]/30">
-        <button
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="w-full flex items-center justify-between p-3 hover:bg-zinc-800/50 transition-colors rounded-t-lg"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              setShowAdvanced(!showAdvanced)
+            }
+          }}
+          className="w-full flex items-center justify-between p-3 hover:bg-zinc-800/50 transition-colors rounded-t-lg cursor-pointer"
         >
           <span className="text-xs font-bold text-[#c99850]">Generation Controls</span>
           <ChevronDown
@@ -771,7 +846,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
               showAdvanced ? 'rotate-180' : 'rotate-0'
             }`}
           />
-        </button>
+        </div>
         
         {showAdvanced && (
           <div className="p-4 pt-0 space-y-4">
@@ -802,9 +877,102 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
               </div>
             </div>
 
+            {/* Model and Resolution Controls */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Model Selector */}
+              <div className="bg-zinc-800 rounded-lg p-3 border-2 border-[#c99850]/50">
+                <label className="text-xs font-bold text-white mb-2 block">
+                  AI Model
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setControlledSelectedModel?.('gemini-2.5-flash-image')
+                      // Reset to 1K when switching to Flash (doesn't support higher)
+                      if (controlledImageSize !== '1K') {
+                        setControlledImageSize?.('1K')
+                      }
+                    }}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      controlledSelectedModel === 'gemini-2.5-flash-image'
+                        ? 'bg-[#c99850] text-black'
+                        : 'bg-zinc-900 text-white/70 hover:bg-zinc-700 border border-[#c99850]/30'
+                    }`}
+                  >
+                    <div className="font-bold">Gemini 2.5 Flash</div>
+                    <div className="text-[10px] opacity-70">Fast, 1K only</div>
+                  </button>
+                  <button
+                    onClick={() => setControlledSelectedModel?.('gemini-3-pro-image-preview')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      controlledSelectedModel === 'gemini-3-pro-image-preview'
+                        ? 'bg-[#c99850] text-black'
+                        : 'bg-zinc-900 text-white/70 hover:bg-zinc-700 border border-[#c99850]/30'
+                    }`}
+                  >
+                    <div className="font-bold">Gemini 3 Pro</div>
+                    <div className="text-[10px] opacity-70">Quality, 2K/4K</div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Resolution Selector */}
+              <div className="bg-zinc-800 rounded-lg p-3 border-2 border-[#c99850]/50">
+                <label className="text-xs font-bold text-white mb-2 block">
+                  Resolution
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setControlledImageSize?.('1K')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      controlledImageSize === '1K'
+                        ? 'bg-[#c99850] text-black'
+                        : 'bg-zinc-900 text-white/70 hover:bg-zinc-700 border border-[#c99850]/30'
+                    }`}
+                  >
+                    <div className="font-bold">1K</div>
+                    <div className="text-[10px] opacity-70">~1024px</div>
+                  </button>
+                  <button
+                    onClick={() => setControlledImageSize?.('2K')}
+                    disabled={controlledSelectedModel === 'gemini-2.5-flash-image'}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      controlledImageSize === '2K'
+                        ? 'bg-[#c99850] text-black'
+                        : controlledSelectedModel === 'gemini-2.5-flash-image'
+                          ? 'bg-zinc-900/50 text-white/30 cursor-not-allowed border border-zinc-700'
+                          : 'bg-zinc-900 text-white/70 hover:bg-zinc-700 border border-[#c99850]/30'
+                    }`}
+                  >
+                    <div className="font-bold">2K</div>
+                    <div className="text-[10px] opacity-70">~2048px</div>
+                  </button>
+                  <button
+                    onClick={() => setControlledImageSize?.('4K')}
+                    disabled={controlledSelectedModel === 'gemini-2.5-flash-image'}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      controlledImageSize === '4K'
+                        ? 'bg-[#c99850] text-black'
+                        : controlledSelectedModel === 'gemini-2.5-flash-image'
+                          ? 'bg-zinc-900/50 text-white/30 cursor-not-allowed border border-zinc-700'
+                          : 'bg-zinc-900 text-white/70 hover:bg-zinc-700 border border-[#c99850]/30'
+                    }`}
+                  >
+                    <div className="font-bold">4K</div>
+                    <div className="text-[10px] opacity-70">~4096px</div>
+                  </button>
+                </div>
+                {controlledSelectedModel === 'gemini-2.5-flash-image' && (
+                  <p className="text-[10px] text-white/50 mt-2">
+                    Switch to Gemini 3 Pro for 2K/4K resolution
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* SeedControlDropdown */}
             <SeedControlDropdown seed={seed} onSeedChange={setSeed} />
-            
+
             {/* Reference Image */}
             <div className="bg-zinc-800 rounded-lg p-3 border-2 border-[#c99850]/50">
               <label className="text-xs font-bold text-white mb-2 block">
@@ -837,7 +1005,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void, isGenerat
                   onClick={() => referenceInputRef.current?.click()}
                   className="w-full border-2 border-dashed border-[#c99850]/50 hover:border-[#c99850] rounded-lg p-3 bg-zinc-900 hover:bg-zinc-800 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#c99850] to-[#dbb56e] border-2 border-[#f4d698] flex items-center justify-center mx-auto mb-2">
+                  <div className="w-12 h-12 rounded-full bg-linear-to-br from-[#c99850] to-[#dbb56e] border-2 border-[#f4d698] flex items-center justify-center mx-auto mb-2">
                     <Upload className="w-6 h-6 text-black" />
                   </div>
                   <p className="text-[10px] text-white/70">Click to upload reference image</p>

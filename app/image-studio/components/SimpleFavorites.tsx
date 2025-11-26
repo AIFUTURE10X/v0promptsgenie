@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Heart, X, Download, RotateCcw, Trash2, Check } from 'lucide-react'
+import { NeonStatusBadge } from './NeonStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -168,13 +169,16 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
       <Card className="bg-zinc-900 border-[#c99850]/30 max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-zinc-800">
           <div className="flex items-center gap-4">
-            <div>
-              <h2 className="text-xl font-bold text-white">Favorites</h2>
-              <p className="text-xs text-zinc-400">
-                {selectedItems.size > 0 
-                  ? `${selectedItems.size} selected` 
-                  : `${favorites.length} saved images`}
-              </p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Favorites</h2>
+                <p className="text-xs text-zinc-400">
+                  {selectedItems.size > 0
+                    ? `${selectedItems.size} selected`
+                    : `${favorites.length} saved images`}
+                </p>
+              </div>
+              <NeonStatusBadge endpoint="/api/favorites/test-connection" />
             </div>
             {favorites.length > 0 && (
               <div className="flex items-center gap-2">
@@ -231,7 +235,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
             <div className="grid grid-cols-3 gap-4">
               {favorites.map((fav, idx) => (
                 <div key={idx} className="relative group">
-                  <div className="absolute top-2 left-2 z-10">
+                  <div className="absolute top-2 left-2 z-20">
                     <div className="relative">
                       <Checkbox
                         checked={selectedItems.has(fav.url)}
@@ -281,7 +285,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                     </div>
                   )}
                   
-                  <div className="absolute top-2 right-2 flex gap-1 transition-opacity">
+                  <div className="absolute top-2 right-2 flex gap-1 transition-opacity z-20">
                     {fav.metadata?.parameters && onRestoreParameters && (
                       <Button
                         onClick={(e) => {
@@ -318,8 +322,8 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                     </Button>
                   </div>
                   
-                  <div 
-                    className="absolute inset-0 cursor-pointer"
+                  <div
+                    className="absolute inset-0 cursor-pointer z-10"
                     onClick={() => {
                       if (fav.metadata?.parameters) {
                         handleRestore(fav)

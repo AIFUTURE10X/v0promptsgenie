@@ -1,11 +1,16 @@
 import { useState } from 'react'
 
+export type ImageSize = "1K" | "2K" | "4K"
+export type GenerationModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview"
+
 export interface GenerationOptions {
   prompt: string
   count: number
   aspectRatio: string
   seed?: number | null
   referenceImage?: File
+  imageSize?: ImageSize
+  model?: GenerationModel
 }
 
 export interface GeneratedImage {
@@ -35,7 +40,15 @@ export function useImageGeneration(onImagesUpdate?: (images: GeneratedImage[]) =
       if (options.referenceImage) {
         formData.append('referenceImage', options.referenceImage)
       }
-      
+
+      if (options.imageSize) {
+        formData.append('imageSize', options.imageSize)
+      }
+
+      if (options.model) {
+        formData.append('model', options.model)
+      }
+
       const response = await fetch('/api/generate-image', {
         method: 'POST',
         body: formData

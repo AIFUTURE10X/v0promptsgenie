@@ -5,7 +5,9 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { X, Clock, Trash2, RotateCcw, RefreshCw, Download, Check } from 'lucide-react'
+import { NeonStatusBadge } from './NeonStatusBadge'
 import { getHistory, deleteHistoryItem, clearHistory, syncHistoryFromNeon, type HistoryItem } from '@/lib/history'
+import { toast } from 'sonner'
 
 interface ParameterHistoryPanelProps {
   isOpen: boolean
@@ -72,10 +74,23 @@ export function ParameterHistoryPanel({ isOpen, onClose, onRestoreParameters }: 
     setLoading(true)
     try {
       console.log('[v0] Syncing history from Neon...')
-      const syncedHistory = await syncHistoryFromNeon()
-      setHistory(syncedHistory)
-      console.log('[v0] Synced', syncedHistory.length, 'items from Neon')
+      const result = await syncHistoryFromNeon()
+      setHistory(result.data)
+
+      if (result.success) {
+        if (result.syncedCount === 0) {
+          toast.info('No history found in cloud database')
+        } else {
+          toast.success(`Synced ${result.syncedCount} items from cloud`)
+        }
+        console.log('[v0] Synced', result.syncedCount, 'items from Neon')
+      } else {
+        toast.error(`Sync failed: ${result.error}`)
+        console.error('[v0] Sync failed:', result.error)
+      }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Sync failed: ${errorMessage}`)
       console.error('[v0] Failed to sync history:', error)
     } finally {
       setLoading(false)
@@ -162,13 +177,16 @@ export function ParameterHistoryPanel({ isOpen, onClose, onRestoreParameters }: 
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#c99850] to-[#dbb56e] flex items-center justify-center">
               <Clock className="w-5 h-5 text-black" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Parameter History</h2>
-              <p className="text-sm text-zinc-400">
-                {selectedItems.size > 0 
-                  ? `${selectedItems.size} selected`
-                  : `${history.length} ${history.length === 1 ? 'item' : 'items'} saved`}
-              </p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Parameter History</h2>
+                <p className="text-sm text-zinc-400">
+                  {selectedItems.size > 0
+                    ? `${selectedItems.size} selected`
+                    : `${history.length} ${history.length === 1 ? 'item' : 'items'} saved`}
+                </p>
+              </div>
+              <NeonStatusBadge endpoint="/api/history/test-connection" />
             </div>
             {history.length > 0 && (
               <div className="flex items-center gap-2 ml-4">

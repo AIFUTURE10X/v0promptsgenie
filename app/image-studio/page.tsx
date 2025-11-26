@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Wand2, Heart, X, Settings, ChevronLeft, ChevronRight, Download, Clock } from 'lucide-react'
+import { Sparkles, Wand2, Heart, X, Settings, ChevronLeft, ChevronRight, Download, Clock, Home } from 'lucide-react'
+import Link from 'next/link'
 import { UploadPanel } from './components/UploadPanel'
 import { GeneratePanel } from './components/GeneratePanel'
 import { AIHelperSidebar } from './components/AIHelperSidebar'
@@ -51,6 +52,8 @@ export default function ImageStudioPage() {
   const [negativePrompt, setNegativePrompt] = useState('')
   const [mainPrompt, setMainPrompt] = useState('')
   const [seed, setSeed] = useState<number | null>(null)
+  const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K')
+  const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'>('gemini-2.5-flash-image')
 
   const stylePresets = [
     { value: 'Realistic', label: 'Realistic', thumbnail: '/realistic-photograph.jpg', description: 'Photorealistic details, natural lighting' },
@@ -117,7 +120,9 @@ export default function ImageStudioPage() {
       if (paramsToRestore.styleStrength) setStyleStrength(paramsToRestore.styleStrength)
       if (paramsToRestore.analysisMode) setAnalysisMode(paramsToRestore.analysisMode)
       if (paramsToRestore.seed !== undefined) setSeed(paramsToRestore.seed)
-      
+      if (paramsToRestore.imageSize) setImageSize(paramsToRestore.imageSize)
+      if (paramsToRestore.selectedModel) setSelectedModel(paramsToRestore.selectedModel)
+
       console.log('[v0] Restored parameters:', paramsToRestore)
     }
   }
@@ -167,6 +172,8 @@ export default function ImageStudioPage() {
     setSelectedCameraLens('')
     setStyleStrength('moderate')
     setSeed(null)
+    setImageSize('1K')
+    setSelectedModel('gemini-2.5-flash-image')
     setAnalysisResults({
       subjects: [],
       scene: null,
@@ -264,15 +271,199 @@ export default function ImageStudioPage() {
   const combinedPrompt = `${mainPrompt} ${negativePrompt}`
   const hasPrompt = mainPrompt.trim() !== ''
 
+  const styleValues = stylePresets.map(p => p.value)
+  const aspectRatioOptions = ['1:1', '16:9', '9:16', '4:3', '3:4', '3:2', '2:3', '21:9']
+  const cameraAngleOptions = [
+    'Eye-level shot',
+    'Low-angle shot',
+    'High-angle shot',
+    'Aerial view',
+    'Dutch angle',
+    'Over-the-shoulder shot',
+    'Point-of-view shot',
+    "Bird's-eye view",
+    "Worm's-eye view",
+  ]
+  const cameraLensOptions = [
+    '14mm ultra-wide',
+    '16mm fisheye',
+    '24mm wide-angle',
+    '35mm standard',
+    '50mm prime',
+    '85mm portrait',
+    '135mm telephoto',
+    '200mm super-telephoto',
+    'Macro lens',
+  ]
+
+  const normalizeValue = (
+    value: string | undefined,
+    options: string[],
+    synonyms: Record<string, string> = {}
+  ) => {
+    if (!value) return undefined
+    const trimmed = value.trim()
+    if (!trimmed) return undefined
+
+    const lower = trimmed.toLowerCase()
+    const direct = options.find(option => option.toLowerCase() === lower)
+    if (direct) return direct
+
+    if (synonyms[lower]) return synonyms[lower]
+
+    const simplified = lower.replace(/[^a-z0-9]/g, '')
+    const simplifiedMatch = options.find(option => option.toLowerCase().replace(/[^a-z0-9]/g, '') === simplified)
+    if (simplifiedMatch) return simplifiedMatch
+
+    const partial = options.find(option => option.toLowerCase().includes(lower))
+    if (partial) return partial
+
+    return undefined
+  }
+
+  const styleSynonyms: Record<string, string> = {
+    'laika stop-motion': 'Laika',
+    'laika stop motion': 'Laika',
+    'sony spiderverse': 'Sony Spider-Verse',
+    'sony spider verse': 'Sony Spider-Verse',
+    'photo real': 'PhotoReal',
+    'photoreal': 'PhotoReal',
+    'photo realistic': 'PhotoReal',
+    'photo-realistic': 'PhotoReal',
+    'pixar style': 'Pixar',
+    'studio ghibli style': 'Studio Ghibli',
+    'studio trigger style': 'Studio Trigger',
+    'kyoto animation style': 'Kyoto Animation',
+    'cartoon style art': 'Cartoon Style',
+    'cartoon-style': 'Cartoon Style',
+    'anime style': 'Anime',
+    '3d render style': '3D Render',
+    'comic book style': 'Comic Book',
+    'pencil sketch style': 'Pencil Sketch',
+    'watercolor style': 'Watercolor',
+  }
+
+  const cameraAngleSynonyms: Record<string, string> = {
+    'eye level': 'Eye-level shot',
+    'eye-level': 'Eye-level shot',
+    'eye level shot': 'Eye-level shot',
+    'eyelevel shot': 'Eye-level shot',
+    'eyelevel': 'Eye-level shot',
+    'low angle': 'Low-angle shot',
+    'low-angle': 'Low-angle shot',
+    'low angle shot': 'Low-angle shot',
+    'high angle': 'High-angle shot',
+    'high-angle': 'High-angle shot',
+    'high angle shot': 'High-angle shot',
+    'birdseye': "Bird's-eye view",
+    'birds eye': "Bird's-eye view",
+    'bird eye': "Bird's-eye view",
+    'bird-eye': "Bird's-eye view",
+    'aerial': 'Aerial view',
+    'over the shoulder': 'Over-the-shoulder shot',
+    'over-the-shoulder': 'Over-the-shoulder shot',
+    'point of view': 'Point-of-view shot',
+    'pov': 'Point-of-view shot',
+    'worms eye': "Worm's-eye view",
+    'worm eye': "Worm's-eye view",
+    'dutch': 'Dutch angle',
+  }
+
+  const cameraLensSynonyms: Record<string, string> = {
+    '14mm': '14mm ultra-wide',
+    '14 mm': '14mm ultra-wide',
+    'ultra wide': '14mm ultra-wide',
+    'ultra-wide': '14mm ultra-wide',
+    '16mm': '16mm fisheye',
+    '16 mm': '16mm fisheye',
+    'fisheye': '16mm fisheye',
+    '24mm': '24mm wide-angle',
+    'wide angle': '24mm wide-angle',
+    'wide-angle': '24mm wide-angle',
+    '35mm': '35mm standard',
+    'standard lens': '35mm standard',
+    '50mm': '50mm prime',
+    '50 mm': '50mm prime',
+    'prime lens': '50mm prime',
+    '85mm': '85mm portrait',
+    'portrait lens': '85mm portrait',
+    'telephoto lens': '135mm telephoto',
+    'telephoto': '135mm telephoto',
+    '135mm': '135mm telephoto',
+    '200mm': '200mm super-telephoto',
+    '200 mm': '200mm super-telephoto',
+    'super telephoto': '200mm super-telephoto',
+    'macro': 'Macro lens',
+  }
+
+  const styleStrengthSynonyms: Record<string, 'subtle' | 'moderate' | 'strong'> = {
+    subtle: 'subtle',
+    soft: 'subtle',
+    light: 'subtle',
+    gentle: 'subtle',
+    moderate: 'moderate',
+    balanced: 'moderate',
+    natural: 'moderate',
+    standard: 'moderate',
+    strong: 'strong',
+    bold: 'strong',
+    intense: 'strong',
+    dramatic: 'strong',
+  }
+
   const handleApplyAISuggestions = (suggestions: any) => {
+    if (!suggestions) return
+
     if (suggestions.prompt) setMainPrompt(suggestions.prompt)
     if (suggestions.negativePrompt) setNegativePrompt(suggestions.negativePrompt)
-    if (suggestions.style) setSelectedStylePreset(suggestions.style)
-    if (suggestions.aspectRatio) setAspectRatio(suggestions.aspectRatio)
-    if (suggestions.cameraAngle) setSelectedCameraAngle(suggestions.cameraAngle)
-    if (suggestions.cameraLens) setSelectedCameraLens(suggestions.cameraLens)
-    if (suggestions.styleStrength) setStyleStrength(suggestions.styleStrength)
-    console.log('[v0] Applied AI suggestions:', suggestions)
+
+    const normalizedStyle = normalizeValue(suggestions.style, styleValues, styleSynonyms)
+    if (normalizedStyle) {
+      setSelectedStylePreset(normalizedStyle)
+    } else if (suggestions.style) {
+      console.warn('[v0] Unrecognized style suggestion:', suggestions.style)
+    }
+
+    const normalizedAspectRatio = normalizeValue(suggestions.aspectRatio, aspectRatioOptions)
+    if (normalizedAspectRatio) {
+      setAspectRatio(normalizedAspectRatio)
+    } else if (suggestions.aspectRatio) {
+      console.warn('[v0] Unrecognized aspect ratio suggestion:', suggestions.aspectRatio)
+    }
+
+    const normalizedCameraAngle = normalizeValue(suggestions.cameraAngle, cameraAngleOptions, cameraAngleSynonyms)
+    if (normalizedCameraAngle) {
+      setSelectedCameraAngle(normalizedCameraAngle)
+    } else if (suggestions.cameraAngle) {
+      console.warn('[v0] Unrecognized camera angle suggestion:', suggestions.cameraAngle)
+      setSelectedCameraAngle('')
+    }
+
+    const normalizedCameraLens = normalizeValue(suggestions.cameraLens, cameraLensOptions, cameraLensSynonyms)
+    if (normalizedCameraLens) {
+      setSelectedCameraLens(normalizedCameraLens)
+    } else if (suggestions.cameraLens) {
+      console.warn('[v0] Unrecognized camera lens suggestion:', suggestions.cameraLens)
+      setSelectedCameraLens('')
+    }
+
+    if (suggestions.styleStrength) {
+      const strengthKey = suggestions.styleStrength.toLowerCase()
+      const normalizedStrength = styleStrengthSynonyms[strengthKey]
+      if (normalizedStrength) {
+        setStyleStrength(normalizedStrength)
+      } else {
+        console.warn('[v0] Unrecognized style strength suggestion:', suggestions.styleStrength)
+      }
+    }
+
+    console.log('[v0] Applied AI suggestions (normalized):', {
+      original: suggestions,
+      normalizedStyle,
+      normalizedAspectRatio,
+      normalizedCameraAngle,
+      normalizedCameraLens,
+    })
   }
 
   return (
@@ -293,6 +484,15 @@ export default function ImageStudioPage() {
               </div>
               <span className="text-sm font-medium text-white">Image Studio</span>
             </div>
+            <Link href="/">
+              <Button
+                variant="ghost"
+                className="text-zinc-400 hover:text-white flex items-center gap-2"
+              >
+                <Home className="w-4 h-4" />
+                <span className="text-sm">Home</span>
+              </Button>
+            </Link>
             <Button
               onClick={() => setShowParameterHistory(true)}
               variant="ghost"
@@ -410,10 +610,14 @@ export default function ImageStudioPage() {
             setMainPrompt={setMainPrompt}
             isFavorite={isFavorite}
             toggleFavorite={toggleFavorite}
-            onParametersSave={(params) => saveParameters({ ...params, analysisMode, seed })}
+            onParametersSave={(params) => saveParameters({ ...params, analysisMode, seed, imageSize, selectedModel })}
             onClearPrompt={() => setMainPrompt('')}
             onRestoreParameters={handleRestoreParameters}
             generatedImages={generatedImages}
+            imageSize={imageSize}
+            setImageSize={setImageSize}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
             setGeneratedImages={(images) => {
               console.log('[v0] page.tsx setGeneratedImages called with', images.length, 'images')
               setGeneratedImages(images)

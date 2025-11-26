@@ -157,6 +157,9 @@ export function ImageStudioToolbar({
                   { value: '3:4', label: '3:4', description: 'Portrait' },
                   { value: '3:2', label: '3:2', description: 'Photo' },
                   { value: '2:3', label: '2:3', description: 'Portrait' },
+                  { value: '21:9', label: '21:9', description: 'Cinematic' },
+                  { value: '5:4', label: '5:4', description: 'Classic' },
+                  { value: '4:5', label: '4:5', description: 'Instagram' },
                 ].map((ratio) => (
                   <button
                     key={ratio.value}
@@ -178,8 +181,8 @@ export function ImageStudioToolbar({
                             : 'border-white/30'
                         }`}
                         style={{
-                          width: ratio.value.includes('9:16') || ratio.value.includes('3:4') || ratio.value.includes('2:3') ? '20px' : '34px',
-                          height: ratio.value.includes('16:9') || ratio.value.includes('4:3') || ratio.value.includes('3:2') ? '20px' : '34px',
+                          width: ratio.value === '9:16' || ratio.value === '3:4' || ratio.value === '2:3' || ratio.value === '4:5' ? '20px' : ratio.value === '21:9' ? '42px' : '34px',
+                          height: ratio.value === '16:9' || ratio.value === '4:3' || ratio.value === '3:2' || ratio.value === '5:4' ? '20px' : ratio.value === '21:9' ? '18px' : '34px',
                         }}
                       />
                     </div>
