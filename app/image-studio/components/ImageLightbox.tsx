@@ -44,7 +44,7 @@ export function ImageLightbox({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="!max-w-[90vw] !max-h-[90vh] w-[90vw] h-[90vh] p-0 bg-black border-zinc-800 flex items-center justify-center">
+      <DialogContent className="max-w-[90vw]! max-h-[90vh]! w-[90vw] h-[90vh] p-0 bg-black border-zinc-800 flex items-center justify-center">
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Close button */}
           <button

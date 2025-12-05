@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Sparkles, Wand2, Heart, X, Settings, ChevronLeft, ChevronRight, Download, Clock, Home } from 'lucide-react'
+import { Sparkles, Wand2, Heart, X, Settings, ChevronLeft, ChevronRight, Download, Clock, Home, ImageIcon, Layers } from 'lucide-react'
 import Link from 'next/link'
 import { UploadPanel } from './components/UploadPanel'
 import { GeneratePanel } from './components/GeneratePanel'
+import { LogoPanel } from './components/LogoPanel'
 import { AIHelperSidebar } from './components/AIHelperSidebar'
 import { ImageStudioToolbar } from './components/ImageStudioToolbar'
 import { useImageUpload } from './hooks/useImageUpload'
@@ -40,6 +41,7 @@ export default function ImageStudioPage() {
 
   const [showAIHelper, setShowAIHelper] = useState(false)
   const [showUploadSection, setShowUploadSection] = useState(true)
+  const [activeTab, setActiveTab] = useState<'generate' | 'logo'>('generate')
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
   const [generatedImages, setGeneratedImages] = useState<Array<{ url: string; prompt?: string; timestamp?: number }>>([])
@@ -50,10 +52,26 @@ export default function ImageStudioPage() {
   const [ratiosPopoverOpen, setRatiosPopoverOpen] = useState(false)
   const [imageCount, setImageCount] = useState(1)
   const [negativePrompt, setNegativePrompt] = useState('')
-  const [mainPrompt, setMainPrompt] = useState('')
+  const [mainPrompt, setMainPromptState] = useState('')
+
+  // Wrapper to debug state changes
+  const setMainPrompt = (value: string) => {
+    console.log('[v0] setMainPrompt called with:', value?.substring(0, 50) + '...')
+    console.log('[v0] Current mainPrompt before update:', mainPrompt?.substring(0, 50) + '...')
+    setMainPromptState(value)
+    // Force log after setState
+    setTimeout(() => {
+      console.log('[v0] mainPrompt should now be updated')
+    }, 100)
+  }
   const [seed, setSeed] = useState<number | null>(null)
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K')
   const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'>('gemini-2.5-flash-image')
+
+  // Debug: Log whenever mainPrompt changes
+  useEffect(() => {
+    console.log('[v0] *** mainPrompt STATE CHANGED to:', mainPrompt?.substring(0, 50) + '...')
+  }, [mainPrompt])
 
   const stylePresets = [
     { value: 'Realistic', label: 'Realistic', thumbnail: '/realistic-photograph.jpg', description: 'Photorealistic details, natural lighting' },
@@ -85,6 +103,17 @@ export default function ImageStudioPage() {
   const [analysisMode, setAnalysisMode] = useState<'fast' | 'quality'>('fast')
   
   const generatePanelRef = useRef<{ triggerGenerate: () => void; isGenerating: boolean }>(null)
+
+  // Ref to track which images are currently being analyzed
+  const analyzingRef = useRef<Set<string>>(new Set())
+  const analysisResultsRef = useRef(analysisResults)
+  // Track if we've ever had images uploaded (to only reset when images are removed, not on initial load)
+  const hadImagesRef = useRef(false)
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    analysisResultsRef.current = analysisResults
+  }, [analysisResults])
 
   const handleClearSubjectAnalysis = () => {
     setAnalysisResults(prev => ({
@@ -185,16 +214,29 @@ export default function ImageStudioPage() {
 
   useEffect(() => {
     const autoAnalyze = async () => {
-      console.log('[v0] Auto-analyze triggered')
-      
+      console.log('[v0] Auto-analyze triggered', {
+        subjectCount: uploadState.subjectImages.length,
+        hasScene: !!uploadState.sceneImage,
+        hasStyle: !!uploadState.styleImage
+      })
+
       // Analyze subject images
       for (const img of uploadState.subjectImages) {
         if (img.file) {
-          const existingAnalysis = analysisResults.subjects.find(s => s.id === img.id)
-          if (!existingAnalysis || existingAnalysis.mode !== analysisMode) {
+          const analyzeKey = `subject-${img.id}-${analysisMode}`
+
+          // Check using ref to avoid stale closure
+          const currentResults = analysisResultsRef.current
+          const existingAnalysis = currentResults.subjects.find(s => s.id === img.id)
+          const needsAnalysis = !existingAnalysis || existingAnalysis.mode !== analysisMode
+          const isCurrentlyAnalyzing = analyzingRef.current.has(analyzeKey)
+
+          if (needsAnalysis && !isCurrentlyAnalyzing) {
             try {
+              analyzingRef.current.add(analyzeKey)
               console.log(`[v0] Analyzing subject ${img.id} in ${analysisMode} mode`)
               const analysis = await analyzeImage(img.file, 'subject', analysisMode)
+              console.log(`[v0] Subject analysis complete for ${img.id}:`, analysis?.substring(0, 100))
               setAnalysisResults(prev => ({
                 ...prev,
                 subjects: [
@@ -204,48 +246,77 @@ export default function ImageStudioPage() {
               }))
             } catch (error) {
               console.error('[v0] Auto-analyze subject failed:', error)
+            } finally {
+              analyzingRef.current.delete(analyzeKey)
             }
           }
         }
       }
 
       if (uploadState.sceneImage?.file) {
-        if (!analysisResults.scene || analysisResults.scene.mode !== analysisMode) {
+        const analyzeKey = `scene-${analysisMode}`
+        const currentResults = analysisResultsRef.current
+        const needsAnalysis = !currentResults.scene || currentResults.scene.mode !== analysisMode
+        const isCurrentlyAnalyzing = analyzingRef.current.has(analyzeKey)
+
+        if (needsAnalysis && !isCurrentlyAnalyzing) {
           try {
+            analyzingRef.current.add(analyzeKey)
             console.log(`[v0] Analyzing scene in ${analysisMode} mode`)
             const analysis = await analyzeImage(uploadState.sceneImage.file, 'scene', analysisMode)
-            setAnalysisResults(prev => ({ 
-              ...prev, 
-              scene: { analysis, mode: analysisMode } 
+            console.log(`[v0] Scene analysis complete:`, analysis?.substring(0, 100))
+            setAnalysisResults(prev => ({
+              ...prev,
+              scene: { analysis, mode: analysisMode }
             }))
           } catch (error) {
             console.error('[v0] Auto-analyze scene failed:', error)
+          } finally {
+            analyzingRef.current.delete(analyzeKey)
           }
         }
       }
 
       if (uploadState.styleImage?.file) {
-        if (!analysisResults.style || analysisResults.style.mode !== analysisMode) {
+        const analyzeKey = `style-${analysisMode}-${selectedStylePreset}`
+        const currentResults = analysisResultsRef.current
+        const needsAnalysis = !currentResults.style || currentResults.style.mode !== analysisMode
+        const isCurrentlyAnalyzing = analyzingRef.current.has(analyzeKey)
+
+        if (needsAnalysis && !isCurrentlyAnalyzing) {
           try {
+            analyzingRef.current.add(analyzeKey)
             console.log(`[v0] Analyzing style in ${analysisMode} mode`)
             const analysis = await analyzeImage(uploadState.styleImage.file, 'style', analysisMode, selectedStylePreset)
-            setAnalysisResults(prev => ({ 
-              ...prev, 
-              style: { analysis, mode: analysisMode } 
+            console.log(`[v0] Style analysis complete:`, analysis?.substring(0, 100))
+            setAnalysisResults(prev => ({
+              ...prev,
+              style: { analysis, mode: analysisMode }
             }))
           } catch (error) {
             console.error('[v0] Auto-analyze style failed:', error)
+          } finally {
+            analyzingRef.current.delete(analyzeKey)
           }
         }
       }
-      
-      if (uploadState.subjectImages.length === 0 && !uploadState.sceneImage && !uploadState.styleImage) {
+
+      const hasImages = uploadState.subjectImages.length > 0 || !!uploadState.sceneImage || !!uploadState.styleImage
+
+      // Track if we've had images
+      if (hasImages) {
+        hadImagesRef.current = true
+      }
+
+      // Only reset when images are explicitly removed (not on initial load with no images)
+      if (!hasImages && hadImagesRef.current) {
         handleResetAll()
+        hadImagesRef.current = false
       }
     }
 
     autoAnalyze()
-  }, [uploadState.subjectImages, uploadState.sceneImage, uploadState.styleImage, analysisMode, selectedStylePreset, handleResetAll])
+  }, [uploadState.subjectImages, uploadState.sceneImage, uploadState.styleImage, analysisMode, selectedStylePreset, handleResetAll, analyzeImage])
 
   const detectedStyle = useStyleAutoDetection(
     analysisResults.style?.analysis || null,
@@ -381,11 +452,14 @@ export default function ImageStudioPage() {
     'wide angle': '24mm wide-angle',
     'wide-angle': '24mm wide-angle',
     '35mm': '35mm standard',
+    'standard': '35mm standard',
     'standard lens': '35mm standard',
     '50mm': '50mm prime',
     '50 mm': '50mm prime',
+    'prime': '50mm prime',
     'prime lens': '50mm prime',
     '85mm': '85mm portrait',
+    'portrait': '85mm portrait',
     'portrait lens': '85mm portrait',
     'telephoto lens': '135mm telephoto',
     'telephoto': '135mm telephoto',
@@ -393,7 +467,10 @@ export default function ImageStudioPage() {
     '200mm': '200mm super-telephoto',
     '200 mm': '200mm super-telephoto',
     'super telephoto': '200mm super-telephoto',
+    'super-telephoto': '200mm super-telephoto',
     'macro': 'Macro lens',
+    'tilt-shift': '50mm prime',
+    'tilt shift': '50mm prime',
   }
 
   const styleStrengthSynonyms: Record<string, 'subtle' | 'moderate' | 'strong'> = {
@@ -412,70 +489,109 @@ export default function ImageStudioPage() {
   }
 
   const handleApplyAISuggestions = (suggestions: any) => {
-    if (!suggestions) return
+    console.log('[v0] ===== handleApplyAISuggestions CALLED =====')
+    console.log('[v0] Received suggestions:', JSON.stringify(suggestions, null, 2))
 
-    if (suggestions.prompt) setMainPrompt(suggestions.prompt)
-    if (suggestions.negativePrompt) setNegativePrompt(suggestions.negativePrompt)
+    if (!suggestions) {
+      console.warn('[v0] No suggestions provided, returning early')
+      return
+    }
 
+    // Apply prompt - always set even if empty to allow clearing
+    if (suggestions.prompt !== undefined) {
+      console.log('[v0] Setting mainPrompt to:', suggestions.prompt?.substring(0, 50) + '...')
+      setMainPrompt(suggestions.prompt)
+    }
+
+    // Apply negative prompt
+    if (suggestions.negativePrompt !== undefined) {
+      console.log('[v0] Setting negativePrompt to:', suggestions.negativePrompt?.substring(0, 50) + '...')
+      setNegativePrompt(suggestions.negativePrompt)
+    }
+
+    // Apply style
     const normalizedStyle = normalizeValue(suggestions.style, styleValues, styleSynonyms)
     if (normalizedStyle) {
+      console.log('[v0] Setting style to:', normalizedStyle)
       setSelectedStylePreset(normalizedStyle)
-    } else if (suggestions.style) {
+    } else if (suggestions.style && suggestions.style !== 'None') {
       console.warn('[v0] Unrecognized style suggestion:', suggestions.style)
     }
 
+    // Apply aspect ratio
     const normalizedAspectRatio = normalizeValue(suggestions.aspectRatio, aspectRatioOptions)
     if (normalizedAspectRatio) {
+      console.log('[v0] Setting aspectRatio to:', normalizedAspectRatio)
       setAspectRatio(normalizedAspectRatio)
     } else if (suggestions.aspectRatio) {
       console.warn('[v0] Unrecognized aspect ratio suggestion:', suggestions.aspectRatio)
     }
 
+    // Apply camera angle
     const normalizedCameraAngle = normalizeValue(suggestions.cameraAngle, cameraAngleOptions, cameraAngleSynonyms)
     if (normalizedCameraAngle) {
+      console.log('[v0] Setting cameraAngle to:', normalizedCameraAngle)
       setSelectedCameraAngle(normalizedCameraAngle)
-    } else if (suggestions.cameraAngle) {
-      console.warn('[v0] Unrecognized camera angle suggestion:', suggestions.cameraAngle)
+    } else if (suggestions.cameraAngle && suggestions.cameraAngle !== 'None') {
+      console.warn('[v0] Unrecognized camera angle suggestion:', suggestions.cameraAngle, '- clearing')
       setSelectedCameraAngle('')
     }
 
+    // Apply camera lens
     const normalizedCameraLens = normalizeValue(suggestions.cameraLens, cameraLensOptions, cameraLensSynonyms)
     if (normalizedCameraLens) {
+      console.log('[v0] Setting cameraLens to:', normalizedCameraLens)
       setSelectedCameraLens(normalizedCameraLens)
-    } else if (suggestions.cameraLens) {
-      console.warn('[v0] Unrecognized camera lens suggestion:', suggestions.cameraLens)
+    } else if (suggestions.cameraLens && suggestions.cameraLens !== 'None') {
+      console.warn('[v0] Unrecognized camera lens suggestion:', suggestions.cameraLens, '- clearing')
       setSelectedCameraLens('')
     }
 
+    // Apply style strength
     if (suggestions.styleStrength) {
       const strengthKey = suggestions.styleStrength.toLowerCase()
       const normalizedStrength = styleStrengthSynonyms[strengthKey]
       if (normalizedStrength) {
+        console.log('[v0] Setting styleStrength to:', normalizedStrength)
         setStyleStrength(normalizedStrength)
       } else {
         console.warn('[v0] Unrecognized style strength suggestion:', suggestions.styleStrength)
       }
     }
 
-    console.log('[v0] Applied AI suggestions (normalized):', {
-      original: suggestions,
-      normalizedStyle,
-      normalizedAspectRatio,
-      normalizedCameraAngle,
-      normalizedCameraLens,
+    // Apply resolution/image size
+    if (suggestions.resolution) {
+      const validResolutions = ['1K', '2K', '4K']
+      const upperRes = suggestions.resolution.toUpperCase()
+      if (validResolutions.includes(upperRes)) {
+        console.log('[v0] Setting imageSize to:', upperRes)
+        setImageSize(upperRes as '1K' | '2K' | '4K')
+      } else {
+        console.warn('[v0] Unrecognized resolution suggestion:', suggestions.resolution)
+      }
+    }
+
+    console.log('[v0] ===== AI suggestions applied successfully =====')
+    console.log('[v0] Applied values:', {
+      prompt: suggestions.prompt?.substring(0, 30) + '...',
+      negativePrompt: suggestions.negativePrompt?.substring(0, 30) + '...',
+      style: normalizedStyle,
+      aspectRatio: normalizedAspectRatio,
+      cameraAngle: normalizedCameraAngle,
+      cameraLens: normalizedCameraLens,
     })
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-black to-zinc-950">
+    <div className="min-h-screen bg-linear-to-br from-zinc-950 via-black to-zinc-950">
       {/* Header */}
-      <header className="border-b border-zinc-800 px-6 py-4 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b border-zinc-800 px-6 py-2 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             {/* Welcome Card in Header */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-linear-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
               <div
-                className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
                 style={{
                   background: "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
                 }}
@@ -484,6 +600,34 @@ export default function ImageStudioPage() {
               </div>
               <span className="text-sm font-medium text-white">Image Studio</span>
             </div>
+
+            {/* Tab Navigation in Header */}
+            <div className="flex gap-1 p-1 bg-zinc-900/50 rounded-lg border border-zinc-800">
+              <button
+                onClick={() => setActiveTab('generate')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
+                  activeTab === 'generate'
+                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
+                    : 'bg-transparent text-zinc-400 hover:text-white hover:bg-zinc-800'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                Image Generator
+              </button>
+              <button
+                onClick={() => setActiveTab('logo')}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-all ${
+                  activeTab === 'logo'
+                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
+                    : 'bg-transparent text-zinc-400 hover:text-white hover:bg-zinc-800'
+                }`}
+              >
+                <Layers className="w-3.5 h-3.5" />
+                Logo Generator
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/20">PNG</span>
+              </button>
+            </div>
+
             <Link href="/">
               <Button
                 variant="ghost"
@@ -504,7 +648,7 @@ export default function ImageStudioPage() {
             {hasStoredParams && (
               <Button
                 onClick={() => handleRestoreParameters()}
-                className="px-4 py-2 bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] font-medium flex items-center gap-2"
               >
                 <Settings className="w-4 h-4" />
                 Restore Parameters
@@ -523,8 +667,9 @@ export default function ImageStudioPage() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-2">
-        {/* ImageStudioToolbar Component */}
+      <main className="max-w-7xl mx-auto px-6 pt-3 pb-2">
+        {/* ImageStudioToolbar Component - Only show for generate tab */}
+        {activeTab === 'generate' && (
         <ImageStudioToolbar
           showUploadSection={showUploadSection}
           onToggleUpload={() => setShowUploadSection(!showUploadSection)}
@@ -550,9 +695,10 @@ export default function ImageStudioPage() {
           styleStrength={styleStrength}
           onStyleStrengthChange={setStyleStrength}
         />
+        )}
 
-        {/* Upload Section (Collapsible) */}
-        {showUploadSection && (
+        {/* Upload Section (Collapsible) - Only show for generate tab */}
+        {activeTab === 'generate' && showUploadSection && (
           <div className="mb-8">
             <UploadPanel
               subjectImages={uploadState.subjectImages}
@@ -573,7 +719,7 @@ export default function ImageStudioPage() {
           </div>
         )}
 
-        {analyzing && (
+        {activeTab === 'generate' && analyzing && (
           <Card className="bg-zinc-900 border-zinc-800 p-4 mb-8">
             <div className="flex items-center gap-3">
               <div className="w-6 h-6 border-2 border-[#c99850] border-t-transparent rounded-full animate-spin" />
@@ -582,7 +728,8 @@ export default function ImageStudioPage() {
           </Card>
         )}
 
-        {/* Generate Section (Always visible) */}
+        {/* Generate Section - Only show for generate tab */}
+        {activeTab === 'generate' && (
         <div id="generate-section">
           <GeneratePanel
             ref={generatePanelRef}
@@ -627,13 +774,22 @@ export default function ImageStudioPage() {
             setSeed={setSeed}
           />
         </div>
+        )}
+
+        {/* Logo Generator Section - Only show for logo tab */}
+        {activeTab === 'logo' && (
+          <LogoPanel
+            externalPrompt={mainPrompt}
+            externalNegativePrompt={negativePrompt}
+          />
+        )}
       </main>
 
       {/* AI Helper floating button and sidebar */}
       {!showAIHelper && (
         <button
           onClick={() => setShowAIHelper(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#FFD700] via-[#FFA500] to-[#FFD700] hover:from-[#FFED4E] hover:via-[#FFD700] hover:to-[#FFA500] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 group"
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-linear-to-br from-[#FFD700] via-[#FFA500] to-[#FFD700] hover:from-[#FFED4E] hover:via-[#FFD700] hover:to-[#FFA500] shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40 group"
           title="AI Prompt Helper"
         >
           <Sparkles className="w-6 h-6 text-black group-hover:scale-110 transition-transform" />
@@ -677,7 +833,7 @@ export default function ImageStudioPage() {
 
       {/* Lightbox Dialog */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="!max-w-[95vw] !max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-black border-zinc-800 flex items-center justify-center">
+        <DialogContent className="max-w-[95vw]! max-h-[95vh]! w-[95vw] h-[95vh] p-0 bg-black border-zinc-800 flex items-center justify-center">
           {!generatedImages || generatedImages.length === 0 ? (
             <div className="text-white text-center p-8">
               <p>No images to display</p>

@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { AnalysisResult } from '../types'
 
 export function useImageAnalysis() {
   const [analyzing, setAnalyzing] = useState(false)
 
-  const analyzeImage = async (
+  const analyzeImage = useCallback(async (
     file: File,
     type: 'subject' | 'scene' | 'style',
     mode: 'fast' | 'quality' = 'quality',
@@ -44,7 +44,7 @@ export function useImageAnalysis() {
     } finally {
       setAnalyzing(false)
     }
-  }
+  }, [])
 
   return {
     analyzeImage,

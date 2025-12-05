@@ -25,11 +25,15 @@
  * ΓòÜΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓò¥
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+
+const STORAGE_KEY = 'ai-helper-chat-history'
+const MAX_STORED_MESSAGES = 100 // Limit to prevent localStorage from getting too large
 
 export interface AIMessage {
   role: 'user' | 'assistant'
   content: string
+  timestamp?: number
   suggestions?: {
     prompt: string
     negativePrompt?: string
@@ -38,6 +42,34 @@ export interface AIMessage {
     style: string
     styleStrength?: 'subtle' | 'moderate' | 'strong'
     aspectRatio?: string
+    resolution?: string
+  }
+}
+
+// Load messages from localStorage
+const loadStoredMessages = (): AIMessage[] => {
+  if (typeof window === 'undefined') return []
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return Array.isArray(parsed) ? parsed : []
+    }
+  } catch (error) {
+    console.error('[AI Helper] Failed to load chat history:', error)
+  }
+  return []
+}
+
+// Save messages to localStorage
+const saveMessages = (messages: AIMessage[]) => {
+  if (typeof window === 'undefined') return
+  try {
+    // Only keep the most recent messages to prevent storage overflow
+    const messagesToStore = messages.slice(-MAX_STORED_MESSAGES)
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messagesToStore))
+  } catch (error) {
+    console.error('[AI Helper] Failed to save chat history:', error)
   }
 }
 
@@ -45,7 +77,25 @@ export function useAIHelper() {
   const [messages, setMessages] = useState<AIMessage[]>([])
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`)
+
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    const storedMessages = loadStoredMessages()
+    if (storedMessages.length > 0) {
+      console.log(`[AI Helper] Loaded ${storedMessages.length} messages from history`)
+      setMessages(storedMessages)
+    }
+    setIsInitialized(true)
+  }, [])
+
+  // Save messages to localStorage whenever they change (but only after initial load)
+  useEffect(() => {
+    if (isInitialized && messages.length > 0) {
+      saveMessages(messages)
+    }
+  }, [messages, isInitialized])
 
   const compressImageIfNeeded = async (blob: Blob): Promise<Blob> => {
     if (blob.size <= 4 * 1024 * 1024) return blob
@@ -114,8 +164,8 @@ export function useAIHelper() {
   }
 
   const sendMessage = async (userInput: string, currentPromptSettings: any) => {
-    const displayMessage = userInput.trim() || '≡ƒô╖ [Image uploaded]'
-    const userMessage: AIMessage = { role: 'user', content: displayMessage }
+    const displayMessage = userInput.trim() || '📷 [Image uploaded]'
+    const userMessage: AIMessage = { role: 'user', content: displayMessage, timestamp: Date.now() }
     setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
 
@@ -195,6 +245,7 @@ export function useAIHelper() {
         const assistantMessage: AIMessage = {
           role: 'assistant',
           content: data.message,
+          timestamp: Date.now(),
           suggestions: data.suggestions
         }
         setMessages(prev => [...prev, assistantMessage])
@@ -203,7 +254,8 @@ export function useAIHelper() {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
         const errorMessage: AIMessage = {
           role: 'assistant',
-          content: `Error: ${errorData.error}. Please try again.`
+          content: `Error: ${errorData.error}. Please try again.`,
+          timestamp: Date.now()
         }
         setMessages(prev => [...prev, errorMessage])
         await saveMessage('assistant', errorMessage.content)
@@ -212,7 +264,8 @@ export function useAIHelper() {
       console.error('[v0] AI Helper error:', error)
       const errorMessage: AIMessage = {
         role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.'
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: Date.now()
       }
       setMessages(prev => [...prev, errorMessage])
       await saveMessage('assistant', errorMessage.content)
@@ -230,21 +283,19 @@ export function useAIHelper() {
   }
 
   const clearHistory = async () => {
-    console.log('[v0] Clearing local history only')
+    console.log('[AI Helper] Clearing chat history')
     setMessages([])
     setUploadedImages([])
-    
-    /* ORIGINAL CODE - commented out to save Neon bandwidth
-    try {
-      await fetch(`/api/ai-helper/delete?session_id=${sessionId}`, {
-        method: 'DELETE'
-      })
-      setMessages([])
-      setUploadedImages([])
-    } catch (error) {
-      console.error('[v0] Failed to clear history:', error)
+
+    // Clear localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(STORAGE_KEY)
+        console.log('[AI Helper] Chat history cleared from localStorage')
+      } catch (error) {
+        console.error('[AI Helper] Failed to clear localStorage:', error)
+      }
     }
-    */
   }
 
   const updateMessageSuggestions = (index: number, newSuggestions: any) => {

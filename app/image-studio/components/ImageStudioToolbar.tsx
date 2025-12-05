@@ -80,13 +80,13 @@ export function ImageStudioToolbar({
       <ToolbarHintBar hoveredButton={hoveredButton} onHoverChange={setHoveredButton} />
       
       <TooltipProvider>
-        <div className="flex gap-2 mb-6 p-1 bg-zinc-900 rounded-lg border border-zinc-800 flex-wrap">
+        <div className="flex gap-2 mb-3 p-1 bg-zinc-900 rounded-lg border border-zinc-800 flex-wrap">
           {/* 1. Upload Button */}
           <Button
             onClick={onToggleUpload}
             className={`px-6 py-3 font-medium flex items-center gap-2 ${
               showUploadSection
-                ? 'bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black'
+                ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
                 : 'bg-transparent text-zinc-400 hover:text-white'
             }`}
           >
@@ -108,7 +108,7 @@ export function ImageStudioToolbar({
                 onClick={() => onImageCountChange(1)}
                 className={`w-8 h-8 rounded-md text-sm font-bold transition-colors ${
                   imageCount === 1
-                    ? 'bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black'
+                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
                     : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
                 }`}
               >
@@ -118,7 +118,7 @@ export function ImageStudioToolbar({
                 onClick={() => onImageCountChange(2)}
                 className={`w-8 h-8 rounded-md text-sm font-bold transition-colors ${
                   imageCount === 2
-                    ? 'bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black'
+                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
                     : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
                 }`}
               >
@@ -250,7 +250,7 @@ export function ImageStudioToolbar({
                         }}
                         className={`relative rounded-lg overflow-hidden transition-all min-h-[75px] ${
                           selectedStylePreset === preset.value
-                            ? 'bg-gradient-to-br from-[#c99850] to-[#b8923d] ring-2 ring-[#c99850]'
+                            ? 'bg-linear-to-br from-[#c99850] to-[#b8923d] ring-2 ring-[#c99850]'
                             : 'bg-zinc-900 hover:bg-zinc-800 border border-zinc-800'
                         }`}
                       >
@@ -259,7 +259,7 @@ export function ImageStudioToolbar({
                             ? 'text-black'
                             : 'text-[#c99850]'
                         }`}>
-                          <div className="text-sm font-semibold leading-tight break-words">
+                          <div className="text-sm font-semibold leading-tight wrap-break-word">
                             {preset.label}
                           </div>
                         </div>
@@ -304,7 +304,7 @@ export function ImageStudioToolbar({
           <Button
             onClick={onGenerate}
             disabled={isGenerating}
-            className={`px-6 py-3 font-medium flex items-center gap-2 bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] transition-all ${
+            className={`px-6 py-3 font-medium flex items-center gap-2 bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] transition-all ${
               isGenerating ? 'animate-pulse cursor-not-allowed opacity-80' : ''
             }`}
           >

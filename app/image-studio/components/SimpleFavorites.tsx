@@ -69,7 +69,7 @@ export function FavoriteButton({ imageUrl, isFavorite, onToggle, size = 'sm' }: 
       {showSuccess && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-success-pop">
           <div className="bg-green-500 rounded-full p-2 shadow-lg">
-            <Check className="w-6 h-6 text-white stroke-[3]" />
+            <Check className="w-6 h-6 text-white stroke-3" />
           </div>
         </div>
       )}
@@ -153,11 +153,11 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
 
   const handleRestore = (fav: FavoriteImage) => {
     console.log('[v0] Favorite metadata:', fav.metadata)
-    console.log('[v0] Has parameters?', !!fav.metadata?.parameters)
-    
-    if (fav.metadata?.parameters && onRestoreParameters) {
-      console.log('[v0] Restoring parameters from favorite:', fav.id)
-      onRestoreParameters(fav.metadata.parameters)
+    console.log('[v0] Has params?', !!fav.metadata?.params)
+
+    if (fav.metadata?.params && onRestoreParameters) {
+      console.log('[v0] Restoring params from favorite:', fav.id)
+      onRestoreParameters(fav.metadata.params)
       onClose()
     } else {
       console.log('[v0] No parameters to restore or no restore handler')
@@ -244,7 +244,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                       />
                       {selectedItems.has(fav.url) && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <Check className="w-3 h-3 text-black stroke-[3]" />
+                          <Check className="w-3 h-3 text-black stroke-3" />
                         </div>
                       )}
                     </div>
@@ -259,7 +259,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                   />
                   
                   {fav.metadata && (
-                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-linear-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="flex flex-wrap gap-1">
                         {fav.metadata.ratio && (
                           <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">
@@ -276,7 +276,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                             {fav.metadata.dimensions}
                           </span>
                         )}
-                        {fav.metadata.parameters && (
+                        {fav.metadata.params && (
                           <span className="text-xs px-2 py-0.5 bg-green-600 text-white font-medium rounded">
                             Has Parameters
                           </span>
@@ -286,7 +286,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                   )}
                   
                   <div className="absolute top-2 right-2 flex gap-1 transition-opacity z-20">
-                    {fav.metadata?.parameters && onRestoreParameters && (
+                    {fav.metadata?.params && onRestoreParameters && (
                       <Button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -325,7 +325,7 @@ export function FavoritesModal({ favorites, onClose, onRemove, onClearAll, onRes
                   <div
                     className="absolute inset-0 cursor-pointer z-10"
                     onClick={() => {
-                      if (fav.metadata?.parameters) {
+                      if (fav.metadata?.params) {
                         handleRestore(fav)
                       }
                     }}

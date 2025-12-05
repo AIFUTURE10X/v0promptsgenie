@@ -44,6 +44,7 @@ export async function generateImageWithRetry({
   seed,
   model = "gemini-2.5-flash-image",
   imageSize = "1K",
+  disableSearch = false,
 }: {
   prompt: string
   aspectRatio?: string
@@ -51,6 +52,8 @@ export async function generateImageWithRetry({
   seed?: number
   model?: GenerationModel
   imageSize?: ImageSize
+  /** Disable Google Search grounding for creative generation (logos, art) */
+  disableSearch?: boolean
 }) {
   const maxAttempts = Number(process.env.GEMINI_MAX_ATTEMPTS || 3)
   let delay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
@@ -90,10 +93,8 @@ export async function generateImageWithRetry({
       }
 
       const config: any = {
-        // Enable TEXT + IMAGE for Gemini 3 Pro to allow reasoning output for complex compositions
-        responseModalities: model === "gemini-3-pro-image-preview"
-          ? ["TEXT", "IMAGE"]
-          : ["IMAGE"],
+        // Use IMAGE-only response for better quality (no text reasoning to split attention)
+        responseModalities: ["IMAGE"],
         imageConfig,
       }
 
@@ -101,8 +102,9 @@ export async function generateImageWithRetry({
         config.seed = seed
       }
 
-      // Add Google Search Grounding for Gemini 3 Pro to enable internet context for complex infographics
-      const tools = model === "gemini-3-pro-image-preview"
+      // Add Google Search Grounding for Gemini 3 Pro (disabled for creative generation like logos)
+      // When disableSearch=true, model uses pure creative synthesis without web influence
+      const tools = (model === "gemini-3-pro-image-preview" && !disableSearch)
         ? [{ googleSearch: {} }]
         : undefined
 
@@ -167,6 +169,7 @@ export async function generateImageWithRetry({
       return {
         success: true,
         imageBase64,
+        seed, // Return the seed that was used (undefined if random)
       }
     } catch (err: any) {
       console.error(`[v0 SERVER] Attempt ${attempt} error:`, err.message)
