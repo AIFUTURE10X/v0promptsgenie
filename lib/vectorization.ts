@@ -4,7 +4,15 @@
  */
 
 import sharp from 'sharp'
-import { vectorize, ColorMode, Hierarchical, PathSimplifyMode } from '@neplex/vectorizer'
+
+// Dynamic import to avoid Turbopack ESM issues
+let vectorizerModule: any = null
+async function getVectorizer() {
+  if (!vectorizerModule) {
+    vectorizerModule = await import('@neplex/vectorizer')
+  }
+  return vectorizerModule
+}
 
 export type VectorizationMode = 'auto' | 'color' | 'monochrome'
 
@@ -121,7 +129,8 @@ export async function vectorizeLogo(
     colorCount,
   })
 
-  // Vectorize using @neplex/vectorizer
+  // Vectorize using @neplex/vectorizer (dynamic import)
+  const { vectorize, ColorMode, Hierarchical, PathSimplifyMode } = await getVectorizer()
   const svg = await vectorize(processedBuffer, {
     colorMode: effectiveMode === 'monochrome' ? ColorMode.Binary : ColorMode.Color,
     colorPrecision,

@@ -17,6 +17,14 @@ const nextConfig = {
       },
     ],
   },
+  // Required for native Node.js modules like ONNX Runtime used by @imgly/background-removal-node
+  serverExternalPackages: [
+    '@imgly/background-removal-node',
+    'onnxruntime-node',
+    'onnxruntime-common',
+    'sharp',
+    '@neplex/vectorizer',
+  ],
 }
 
 export default nextConfig
