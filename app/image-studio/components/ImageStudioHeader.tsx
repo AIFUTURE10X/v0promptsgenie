@@ -1,9 +1,18 @@
 "use client"
 
+/**
+ * ImageStudioHeader Component
+ *
+ * Main header with:
+ * - Home button (always first)
+ * - Image Studio mega menu dropdown
+ * - Context-specific buttons (only when Image Generator active)
+ */
+
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Wand2, Heart, Settings, Clock, Home } from 'lucide-react'
-import { NavigationMegaMenu } from './Navigation'
+import { Home } from 'lucide-react'
+import { ImageStudioMegaMenu } from './Navigation'
+import { HeaderContextButtons } from './HeaderContextButtons'
 
 interface ImageStudioHeaderProps {
   activeTab: 'generate' | 'logo' | 'mockups'
@@ -13,8 +22,6 @@ interface ImageStudioHeaderProps {
   onShowHistory: () => void
   onRestoreParameters: () => void
   onShowFavorites: () => void
-  /** Optional callback for sub-menu actions */
-  onMenuAction?: (action: string) => void
 }
 
 export function ImageStudioHeader({
@@ -25,66 +32,44 @@ export function ImageStudioHeader({
   onShowHistory,
   onRestoreParameters,
   onShowFavorites,
-  onMenuAction,
 }: ImageStudioHeaderProps) {
   return (
     <header className="border-b border-zinc-800 px-6 py-2 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <div className="max-w-7xl mx-auto flex items-center justify-center">
+        {/* Centered: Home + Image Studio Mega Menu */}
         <div className="flex items-center gap-3">
-          {/* Welcome Card in Header */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-linear-to-br from-zinc-900 to-zinc-950 border border-zinc-800">
+          {/* Home Button - Always First (Gold Style) */}
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all bg-zinc-900/80 text-zinc-200 hover:bg-zinc-800 hover:text-white border border-zinc-700"
+          >
             <div
-              className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+              className="w-5 h-5 rounded flex items-center justify-center shrink-0"
               style={{
-                background: "linear-gradient(135deg, #c99850 0%, #dbb56e 25%, #f4d698 50%, #dbb56e 75%, #c99850 100%)",
+                background: "linear-gradient(135deg, #c99850 0%, #dbb56e 50%, #c99850 100%)",
               }}
             >
-              <Wand2 className="w-3.5 h-3.5 text-black" />
+              <Home className="w-3 h-3 text-black" />
             </div>
-            <span className="text-sm font-medium text-white">Image Studio</span>
-          </div>
+            <span>Home</span>
+          </Link>
 
-          {/* Navigation Mega Menu */}
-          <NavigationMegaMenu
+          {/* Image Studio Mega Menu */}
+          <ImageStudioMegaMenu
             activeTab={activeTab}
             onTabChange={onTabChange}
-            onAction={onMenuAction}
           />
 
-          <Link href="/">
-            <Button
-              variant="ghost"
-              className="text-zinc-400 hover:text-white flex items-center gap-2"
-            >
-              <Home className="w-4 h-4" />
-              <span className="text-sm">Home</span>
-            </Button>
-          </Link>
-          <Button
-            onClick={onShowHistory}
-            variant="ghost"
-            className="text-zinc-400 hover:text-white flex items-center gap-2"
-          >
-            <Clock className="w-4 h-4" />
-            <span className="text-sm">History</span>
-          </Button>
-          {hasStoredParams && (
-            <Button
-              onClick={onRestoreParameters}
-              className="px-4 py-2 bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] font-medium flex items-center gap-2"
-            >
-              <Settings className="w-4 h-4" />
-              Restore Parameters
-            </Button>
+          {/* Context-specific buttons (only for Image Generator) */}
+          {activeTab === 'generate' && (
+            <HeaderContextButtons
+              favoritesCount={favoritesCount}
+              hasStoredParams={hasStoredParams}
+              onShowHistory={onShowHistory}
+              onRestoreParameters={onRestoreParameters}
+              onShowFavorites={onShowFavorites}
+            />
           )}
-          <Button
-            onClick={onShowFavorites}
-            variant="ghost"
-            className="text-zinc-400 hover:text-white flex items-center gap-2"
-          >
-            <Heart className="w-4 h-4" />
-            <span className="text-sm">Favorites ({favoritesCount})</span>
-          </Button>
         </div>
       </div>
     </header>

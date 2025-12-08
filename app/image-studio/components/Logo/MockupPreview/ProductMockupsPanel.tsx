@@ -209,7 +209,7 @@ export function ProductMockupsPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Header 1: Exit + MegaMenu + View Larger + Generate Photos */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-zinc-800">
+      <div className="relative flex items-center gap-2 px-4 py-2 border-b border-zinc-800">
         {/* Exit Button */}
         {onClose && (
           <button
@@ -227,20 +227,17 @@ export function ProductMockupsPanel({
           onSelectSubCategory={handleSelectSubCategory}
         />
 
-        {/* Left Spacer */}
-        <div className="flex-1" />
-
-        {/* View Larger Button - Centered */}
+        {/* View Larger Button - Centered over t-shirt collar */}
         <button
           onClick={() => setShowLightbox(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap text-white hover:text-white hover:bg-zinc-700 bg-zinc-800 border border-zinc-700"
+          className="absolute left-[47%] -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap text-white hover:text-white hover:bg-zinc-700 bg-zinc-800 border border-zinc-700"
           title="View mockup in fullscreen with all settings"
         >
           <Maximize2 className="w-4 h-4" />
           View Larger
         </button>
 
-        {/* Right Spacer */}
+        {/* Spacer to push Generate Photos to the right */}
         <div className="flex-1" />
 
         {/* Generate Photos Button */}
@@ -254,9 +251,9 @@ export function ProductMockupsPanel({
         </button>
       </div>
 
-      {/* Header 2: Selected Product Label + Upload New Products */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-700/50">
-        {/* Selected Product Label */}
+      {/* Header 2: Selected Product Label + Upload New Products (absolutely centered) */}
+      <div className="relative flex items-center px-4 py-2 border-b border-zinc-700/50">
+        {/* Selected Product Label - Left */}
         <div className="flex items-center gap-2">
           <Package className="w-4 h-4 text-purple-400" />
           <span className="text-sm text-zinc-300">
@@ -264,10 +261,10 @@ export function ProductMockupsPanel({
           </span>
         </div>
 
-        {/* Upload New Products Button */}
+        {/* Upload New Products Button - Centered over t-shirt collar */}
         <button
           onClick={() => setShowAddProductModal(true)}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30"
+          className="absolute left-[47%] -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30"
           title="Upload your own product photos"
         >
           <Upload className="w-4 h-4" />
@@ -276,7 +273,7 @@ export function ProductMockupsPanel({
       </div>
 
       {/* Product Mockup Canvas */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto relative">
         {currentConfig ? (
           <GenericMockup
             config={currentConfig}

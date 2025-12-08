@@ -2,5 +2,7 @@
  * Navigation Component Exports
  */
 
-export { NavigationMegaMenu } from './NavigationMegaMenu'
-export type { MainTab, SubMenuItem, MenuSection } from './NavigationMegaMenu'
+export { ImageStudioMegaMenu } from './ImageStudioMegaMenu'
+export { MenuSectionCard } from './MenuSectionCard'
+export type { ActiveTab } from './ImageStudioMegaMenu'
+export type { MenuItemConfig } from './MenuSectionCard'
