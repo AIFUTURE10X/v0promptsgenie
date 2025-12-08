@@ -55,7 +55,7 @@ export function HeaderContextButtons({
         <Button
           onClick={onRestoreParameters}
           size="sm"
-          className="px-3 py-1.5 bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] font-medium flex items-center gap-2"
+          className="px-3 py-1.5 bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black hover:from-[#dbb56e] hover:to-[#c99850] font-medium flex items-center gap-2"
         >
           <Settings className="w-4 h-4" />
           <span className="text-sm">Restore Parameters</span>

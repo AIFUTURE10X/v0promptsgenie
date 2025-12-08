@@ -129,7 +129,7 @@ export function LogoPresetSelector({
           {presetsCount > 0 && (
             <button
               onClick={() => setShowMyPresets(!showMyPresets)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg text-sm hover:from-amber-500/20 hover:to-orange-500/20 transition-all"
+              className="w-full flex items-center justify-between px-3 py-2 bg-linear-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg text-sm hover:from-amber-500/20 hover:to-orange-500/20 transition-all"
             >
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-400" />

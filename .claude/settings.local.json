@@ -60,7 +60,9 @@
       "Bash(start http://localhost:3001/image-studio)",
       "Bash(cmd /c start \"\" \"http://localhost:3000/image-studio\")",
       "Bash(explorer \"http://localhost:3000/image-studio\")",
-      "Bash(powershell -Command \"Start-Process ''http://localhost:3000/image-studio''\")"
+      "Bash(powershell -Command \"Start-Process ''http://localhost:3000/image-studio''\")",
+      "Bash(npm ls:*)",
+      "Bash(git remote set-url:*)"
     ],
     "deny": [],
     "ask": []
