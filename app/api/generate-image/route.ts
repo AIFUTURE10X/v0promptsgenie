@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
     const count = parseInt(formData.get('count') as string) || 1
     const rawAspectRatio = (formData.get('aspectRatio') as string) || "1:1"
     const referenceImageFile = formData.get('referenceImage') as File | null
+    const referenceMode = (formData.get('referenceMode') as string) || 'inspire'
     const seedParam = formData.get('seed') as string | null
     const seed = seedParam ? parseInt(seedParam) : undefined
     const imageSize = normalizeImageSize(formData.get('imageSize') as string | null)
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest) {
       model,
       imageSize,
       hasRef: !!referenceImage,
+      referenceMode,
       seed,
     })
 
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
           prompt,
           aspectRatio,
           referenceImage,
+          referenceMode: referenceMode as 'replicate' | 'inspire',
           seed,
           model,
           imageSize,

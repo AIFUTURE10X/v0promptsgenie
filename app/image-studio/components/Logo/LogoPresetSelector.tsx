@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ChevronDown, ChevronUp, Wand2, X, Settings2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Wand2, X, Settings2, Star, ChevronRight } from 'lucide-react'
 import {
   LogoPreset,
   PresetCategory,
@@ -13,6 +13,7 @@ import {
   applyPresetTemplate
 } from '../../constants/logo-presets'
 import { LogoConcept, RenderStyle, GOLD_GRADIENT } from '../../constants/logo-constants'
+import { CustomPresetsList, useCustomPresets, CustomPreset } from './CustomPresets'
 
 interface LogoPresetSelectorProps {
   onApplyPreset: (
@@ -22,21 +23,39 @@ interface LogoPresetSelectorProps {
     renderStyles: RenderStyle[]
   ) => void
   onOpenDotMatrixConfigurator?: () => void
+  onOpenUnifiedConfigurator?: (presetId: string) => void
+  onOpenUnifiedConfiguratorWithConfig?: (presetId: string, config: Record<string, any>) => void
   disabled?: boolean
 }
 
-export function LogoPresetSelector({ onApplyPreset, onOpenDotMatrixConfigurator, disabled }: LogoPresetSelectorProps) {
+export function LogoPresetSelector({
+  onApplyPreset,
+  onOpenDotMatrixConfigurator,
+  onOpenUnifiedConfigurator,
+  onOpenUnifiedConfiguratorWithConfig,
+  disabled
+}: LogoPresetSelectorProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<PresetCategory | null>(null)
   const [selectedPreset, setSelectedPreset] = useState<LogoPreset | null>(null)
   const [brandName, setBrandName] = useState('')
+  const [showMyPresets, setShowMyPresets] = useState(false)
+
+  const { presets: customPresets, presetsCount } = useCustomPresets()
 
   const filteredPresets = selectedCategory
     ? getPresetsByCategory(selectedCategory)
     : LOGO_PRESETS
 
   const handleSelectPreset = (preset: LogoPreset) => {
-    // If it's the Dot Matrix 3D preset, open the configurator modal
+    // Open the unified configurator for any preset if available
+    if (onOpenUnifiedConfigurator) {
+      onOpenUnifiedConfigurator(preset.id)
+      setIsExpanded(false)
+      return
+    }
+
+    // Legacy: If it's the Dot Matrix 3D preset, open the old configurator modal
     if (preset.id === 'corporate-dotmatrix' && onOpenDotMatrixConfigurator) {
       onOpenDotMatrixConfigurator()
       setIsExpanded(false)
@@ -68,6 +87,17 @@ export function LogoPresetSelector({ onApplyPreset, onOpenDotMatrixConfigurator,
     setSelectedCategory(null)
   }
 
+  const handleSelectCustomPreset = (preset: CustomPreset) => {
+    // Open configurator with saved config
+    if (onOpenUnifiedConfiguratorWithConfig) {
+      onOpenUnifiedConfiguratorWithConfig(preset.basePresetId, preset.config)
+      setIsExpanded(false)
+    } else if (onOpenUnifiedConfigurator) {
+      onOpenUnifiedConfigurator(preset.basePresetId)
+      setIsExpanded(false)
+    }
+  }
+
   return (
     <div className="space-y-2">
       {/* Header Toggle */}
@@ -95,6 +125,34 @@ export function LogoPresetSelector({ onApplyPreset, onOpenDotMatrixConfigurator,
       {/* Expanded Content */}
       {isExpanded && (
         <div className="bg-zinc-800/30 border border-zinc-700 rounded-lg p-3 space-y-3">
+          {/* My Presets Toggle */}
+          {presetsCount > 0 && (
+            <button
+              onClick={() => setShowMyPresets(!showMyPresets)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-lg text-sm hover:from-amber-500/20 hover:to-orange-500/20 transition-all"
+            >
+              <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-400" />
+                <span className="text-amber-200 font-medium">My Presets</span>
+                <span className="text-xs text-amber-400/60">({presetsCount})</span>
+              </div>
+              <ChevronRight
+                className={`w-4 h-4 text-amber-400 transition-transform ${
+                  showMyPresets ? 'rotate-90' : ''
+                }`}
+              />
+            </button>
+          )}
+
+          {/* My Presets List */}
+          {showMyPresets && (
+            <div className="border-l-2 border-amber-500/30 pl-3 ml-1">
+              <CustomPresetsList
+                onSelectPreset={handleSelectCustomPreset}
+              />
+            </div>
+          )}
+
           {/* Category Filter */}
           <div className="flex flex-wrap gap-1.5">
             <button
@@ -126,20 +184,23 @@ export function LogoPresetSelector({ onApplyPreset, onOpenDotMatrixConfigurator,
           {/* Preset Grid */}
           <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto pr-1">
             {filteredPresets.map((preset) => {
+              const hasUnifiedConfigurator = !!onOpenUnifiedConfigurator
               const isDotMatrixPreset = preset.id === 'corporate-dotmatrix'
               return (
                 <button
                   key={preset.id}
                   onClick={() => handleSelectPreset(preset)}
                   className={`p-2 rounded-lg border text-left transition-all relative ${
-                    isDotMatrixPreset
+                    hasUnifiedConfigurator
                       ? 'border-purple-500/50 bg-purple-900/20 hover:border-purple-400 hover:bg-purple-900/30'
-                      : selectedPreset?.id === preset.id
-                        ? 'border-[#c99850] bg-[#c99850]/10'
-                        : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600 hover:bg-zinc-800'
+                      : isDotMatrixPreset
+                        ? 'border-purple-500/50 bg-purple-900/20 hover:border-purple-400 hover:bg-purple-900/30'
+                        : selectedPreset?.id === preset.id
+                          ? 'border-[#c99850] bg-[#c99850]/10'
+                          : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600 hover:bg-zinc-800'
                   }`}
                 >
-                  {isDotMatrixPreset && (
+                  {(hasUnifiedConfigurator || isDotMatrixPreset) && (
                     <div className="absolute top-1 right-1">
                       <Settings2 className="w-3 h-3 text-purple-400" />
                     </div>
@@ -147,7 +208,7 @@ export function LogoPresetSelector({ onApplyPreset, onOpenDotMatrixConfigurator,
                   <div className="text-lg mb-1">{preset.icon}</div>
                   <div className="text-xs font-medium text-white truncate">{preset.name}</div>
                   <div className="text-[10px] text-zinc-500 truncate">
-                    {isDotMatrixPreset ? 'Advanced configurator' : preset.description}
+                    {hasUnifiedConfigurator ? 'Full configurator' : isDotMatrixPreset ? 'Advanced configurator' : preset.description}
                   </div>
                 </button>
               )

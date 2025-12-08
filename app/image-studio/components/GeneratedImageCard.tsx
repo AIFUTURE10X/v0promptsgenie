@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, RotateCcw, Maximize2 } from 'lucide-react'
+import { Download, RotateCcw, Maximize2, Eraser, Loader2 } from 'lucide-react'
 import { FavoriteButton } from './SimpleFavorites'
 
 interface GeneratedImageCardProps {
@@ -22,6 +22,7 @@ interface GeneratedImageCardProps {
   onDownload: () => void
   onOpenLightbox: () => void
   onRestoreParameters?: (params: any) => void
+  onRemoveBackground?: (index: number) => Promise<void>
 }
 
 export function GeneratedImageCard({
@@ -37,9 +38,21 @@ export function GeneratedImageCard({
   onToggleFavorite,
   onDownload,
   onOpenLightbox,
-  onRestoreParameters
+  onRestoreParameters,
+  onRemoveBackground
 }: GeneratedImageCardProps) {
   const [metadata, setMetadata] = useState<{ dimensions: string; fileSize?: string } | null>(imageMetadata || null)
+  const [isRemovingBg, setIsRemovingBg] = useState(false)
+
+  const handleRemoveBackground = async () => {
+    if (!onRemoveBackground || isRemovingBg) return
+    setIsRemovingBg(true)
+    try {
+      await onRemoveBackground(index)
+    } finally {
+      setIsRemovingBg(false)
+    }
+  }
 
   useEffect(() => {
     if (imageUrl) {
@@ -162,6 +175,26 @@ export function GeneratedImageCard({
           <Download className="w-3 h-3 mr-1" />
           Download
         </Button>
+        {onRemoveBackground && (
+          <Button
+            onClick={handleRemoveBackground}
+            size="sm"
+            disabled={isRemovingBg}
+            className="flex-1 bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50"
+          >
+            {isRemovingBg ? (
+              <>
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                Removing...
+              </>
+            ) : (
+              <>
+                <Eraser className="w-3 h-3 mr-1" />
+                Remove BG
+              </>
+            )}
+          </Button>
+        )}
       </div>
     </div>
   )

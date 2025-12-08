@@ -146,7 +146,7 @@ export async function removeBackgroundSmart(
 ): Promise<string> {
   const {
     tolerance = 25,
-    sampleDepth = 10,
+    sampleDepth = 15,
     edgeSmoothing = false  // Disabled - causes artifacts, flood-fill produces clean edges
   } = options
 
@@ -179,12 +179,31 @@ export async function removeBackgroundSmart(
     const bgColors = colorGroups.slice(0, 3) // Top 3 color groups
     console.log('[Smart BG Removal] Detected background colors:', bgColors.map(c => `rgb(${c.r},${c.g},${c.b}) [${c.count}]`))
 
+    // Check if background is dark and adjust settings accordingly
+    const avgBrightness = bgColors.reduce((sum, c) => sum + (c.r + c.g + c.b) / 3, 0) / bgColors.length
+
+    // For dark backgrounds, use more aggressive settings
+    let effectiveTolerance = tolerance
+    let effectiveBgColors = bgColors
+
+    if (avgBrightness < 80) {
+      // Dark background detected - increase tolerance and use more color groups
+      effectiveTolerance = Math.max(tolerance, 40)
+      effectiveBgColors = colorGroups.slice(0, 5) // Use top 5 colors instead of 3
+      console.log(`[Smart BG Removal] Dark background detected (brightness: ${avgBrightness.toFixed(0)}), using enhanced settings: tolerance=${effectiveTolerance}, colors=${effectiveBgColors.length}`)
+    } else if (avgBrightness > 200) {
+      // Light/white background detected - increase tolerance for off-white variations
+      effectiveTolerance = Math.max(tolerance, 35)
+      effectiveBgColors = colorGroups.slice(0, 5) // Use top 5 colors instead of 3
+      console.log(`[Smart BG Removal] Light background detected (brightness: ${avgBrightness.toFixed(0)}), using enhanced settings: tolerance=${effectiveTolerance}, colors=${effectiveBgColors.length}`)
+    }
+
     // Step 3: Flood fill from edges, removing only background colors
     const toRemove = new Set<number>()
     const visited = new Set<number>()
 
-    // Scaled tolerance based on input
-    const colorThreshold = tolerance * 3 // Scale to reasonable range
+    // Scaled tolerance based on input (use effectiveTolerance for dark backgrounds)
+    const colorThreshold = effectiveTolerance * 3 // Scale to reasonable range
 
     const isBackgroundColor = (idx: number): boolean => {
       const pixelColor = {
@@ -193,8 +212,8 @@ export async function removeBackgroundSmart(
         b: pixels[idx + 2]
       }
 
-      // Check if pixel matches any of the background colors
-      for (const bgColor of bgColors) {
+      // Check if pixel matches any of the background colors (use effectiveBgColors for dark backgrounds)
+      for (const bgColor of effectiveBgColors) {
         if (colorDistance(pixelColor, bgColor) < colorThreshold) {
           return true
         }

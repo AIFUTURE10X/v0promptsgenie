@@ -50,6 +50,12 @@ export const BG_REMOVAL_METHODS: Array<{
     badge: 'Recommended'
   },
   {
+    value: 'replicate',
+    label: 'Replicate AI',
+    description: 'High-quality ML model, works on any background',
+    badge: 'AI'
+  },
+  {
     value: 'smart',
     label: 'Smart (Local)',
     description: 'Free, detects background color, keeps ALL logo content',

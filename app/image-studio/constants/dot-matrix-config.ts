@@ -10,7 +10,7 @@
 // ============================================
 
 // Re-export types from component files for convenience
-export type { FancyFontStyle, FontCategory } from '../components/Logo/FancyFontGrid'
+export type { FancyFontStyle, FancyFontCategory } from '../components/Logo/FancyFontGrid'
 export type { LetterColorConfig } from '../components/Logo/LetterColorPicker'
 export type { MaterialType, MaterialOption } from '../components/Logo/MaterialSelector'
 export type { TextOutline, GlowEffect, TextTexture, LetterEffect } from '../components/Logo/TextEffectsPanel'
@@ -24,6 +24,9 @@ export interface DotMatrixConfig {
   // Brand Identity
   brandName: string
   tagline: string
+  taglinePosition: TaglinePosition | null
+  taglineStyle: TaglineStyle | null
+  taglineSize: TaglineSize | null
   useInitials: boolean
 
   // Dot Matrix Pattern
@@ -107,10 +110,14 @@ export type BackgroundColor = 'dark-navy' | 'black' | 'dark-gray' | 'gradient' |
 export type GradientDirection = 'left-right' | 'top-bottom' | 'diagonal' | 'radial'
 export type MetallicFinish = 'chrome' | 'gold' | 'bronze' | 'rose-gold' | 'platinum' | 'copper'
 
-export type FontStyle = 'sans-serif-bold' | 'serif-elegant' | 'modern-geometric' | 'tech-digital'
+export type FontStyle = 'sans-serif-bold' | 'serif-elegant' | 'modern-geometric' | 'tech-digital' | 'script-fancy' | 'display-bold'
 export type TextWeight = 'light' | 'regular' | 'bold' | 'extra-bold'
 export type LetterSpacing = 'tight' | 'normal' | 'wide' | 'very-wide'
 export type TextCase = 'uppercase' | 'titlecase' | 'lowercase'
+
+export type TaglinePosition = 'below' | 'above' | 'right' | 'left' | 'inline' | 'integrated'
+export type TaglineStyle = 'match' | 'italic' | 'lighter' | 'caps' | 'same-as-brand' | 'smaller'
+export type TaglineSize = 'small' | 'medium' | 'large'
 
 export type BrandPosition = 'above' | 'below' | 'left' | 'right' | 'integrated'
 export type LogoOrientation = 'horizontal' | 'vertical' | 'square'
@@ -217,6 +224,8 @@ export const FONT_STYLE_OPTIONS: Array<{ value: FontStyle; label: string; descri
   { value: 'serif-elegant', label: 'Serif Elegant', description: 'Classic, refined' },
   { value: 'modern-geometric', label: 'Modern Geometric', description: 'Tech, futuristic' },
   { value: 'tech-digital', label: 'Tech Digital', description: 'Digital, cyber' },
+  { value: 'script-fancy', label: 'Script Fancy', description: 'Elegant, decorative cursive' },
+  { value: 'display-bold', label: 'Display Bold', description: 'Impactful, attention-grabbing' },
 ]
 
 export const TEXT_WEIGHT_OPTIONS: Array<{ value: TextWeight; label: string }> = [
@@ -417,6 +426,9 @@ export const DEFAULT_DOT_MATRIX_CONFIG: DotMatrixConfig = {
   // Brand Identity
   brandName: '',
   tagline: '',
+  taglinePosition: null,
+  taglineStyle: null,
+  taglineSize: null,
   useInitials: false,
 
   // Dot Matrix Pattern

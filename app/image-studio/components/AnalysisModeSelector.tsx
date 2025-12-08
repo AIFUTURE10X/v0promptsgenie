@@ -26,7 +26,7 @@ export function AnalysisModeSelector({ mode, onChange }: AnalysisModeSelectorPro
                 onClick={() => onChange('fast')}
                 className={`px-3 py-2 h-8 text-xs font-medium flex items-center gap-1.5 transition-colors ${
                   mode === 'fast'
-                    ? 'bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black'
+                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
                     : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
                 }`}
               >
@@ -48,7 +48,7 @@ export function AnalysisModeSelector({ mode, onChange }: AnalysisModeSelectorPro
                 onClick={() => onChange('quality')}
                 className={`px-3 py-2 h-8 text-xs font-medium flex items-center gap-1.5 transition-colors ${
                   mode === 'quality'
-                    ? 'bg-gradient-to-r from-[#c99850] to-[#dbb56e] text-black'
+                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] text-black'
                     : 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700'
                 }`}
               >

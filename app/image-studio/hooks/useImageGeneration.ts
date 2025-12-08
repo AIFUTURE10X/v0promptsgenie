@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 export type ImageSize = "1K" | "2K" | "4K"
 export type GenerationModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview"
+export type ReferenceMode = "replicate" | "inspire"
 
 export interface GenerationOptions {
   prompt: string
@@ -9,6 +10,7 @@ export interface GenerationOptions {
   aspectRatio: string
   seed?: number | null
   referenceImage?: File
+  referenceMode?: ReferenceMode
   imageSize?: ImageSize
   model?: GenerationModel
 }
@@ -39,6 +41,9 @@ export function useImageGeneration(onImagesUpdate?: (images: GeneratedImage[]) =
       
       if (options.referenceImage) {
         formData.append('referenceImage', options.referenceImage)
+        if (options.referenceMode) {
+          formData.append('referenceMode', options.referenceMode)
+        }
       }
 
       if (options.imageSize) {

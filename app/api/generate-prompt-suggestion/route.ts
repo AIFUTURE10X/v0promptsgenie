@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextResponse } from "next/server"
+import { buildLogoSystemPrompt } from "@/app/image-studio/constants/ai-logo-knowledge"
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
@@ -17,13 +18,21 @@ export async function POST(request: Request) {
       styleStrength,
       promptMode,
       conversationHistory,
+      mode, // NEW: 'image' | 'logo'
+      logoAnalysis, // NEW: analysis from reference logo image
     } = await request.json()
 
     console.log("[v0 API] Generate Prompt Suggestion called:", {
       messageLength: message?.length,
       hasImageAnalysis: message?.includes("REFERENCE IMAGES ANALYSIS"),
       currentPromptLength: currentPrompt?.length,
+      mode: mode || 'image',
     })
+
+    // Handle logo mode separately
+    if (mode === 'logo') {
+      return handleLogoMode(message, conversationHistory, logoAnalysis)
+    }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
 
@@ -75,6 +84,7 @@ Based on the user's request${hasImageAnalysis ? " and the provided image analysi
 5. Recommended camera angle (use "None" if not applicable)
 6. Recommended camera lens (use "None" if not applicable)
 7. Recommended aspect ratio
+8. Style strength (subtle, moderate, or strong - how much to apply the style)
 
 Format your response as JSON:
 {
@@ -85,14 +95,16 @@ Format your response as JSON:
     "style": "style_preset_value",
     "cameraAngle": "camera_angle_value or None",
     "cameraLens": "camera_lens_value or None",
-    "aspectRatio": "aspect_ratio_value"
+    "aspectRatio": "aspect_ratio_value",
+    "styleStrength": "moderate"
   }
 }
 
 Available styles (MUST use exact values): Realistic, Cartoon Style, Pixar, PhotoReal, Anime, Oil Painting, Watercolor, 3D Render, Sketch, Comic Book, Studio Ghibli, Makoto Shinkai, Disney Modern 3D, Sony Spider-Verse, Laika Stop-Motion, Cartoon Saloon, Studio Trigger, Ufotable, Kyoto Animation
 Available camera angles: eye-level, high-angle, low-angle, birds-eye, overhead, dutch-angle, worms-eye, over-the-shoulder, point-of-view, None
 Available camera lenses: standard, wide-angle, telephoto, fisheye, macro, portrait, tilt-shift, None
-Available aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4, 21:9`
+Available aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4, 21:9
+Available style strengths: subtle, moderate, strong`
 
     console.log("[v0 API] Calling Gemini API with prompt length:", systemPrompt.length)
 
@@ -119,12 +131,94 @@ Available aspect ratios: 1:1, 16:9, 9:16, 4:3, 3:4, 21:9`
         cameraAngle: currentCameraAngle || "None",
         cameraLens: currentCameraLens || "None",
         aspectRatio: currentAspectRatio || "1:1",
+        styleStrength: styleStrength || "moderate",
       },
     })
   } catch (error) {
     console.error("[v0 API] Error generating prompt suggestion:", error)
     return NextResponse.json(
       { error: "Failed to generate suggestion", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    )
+  }
+}
+
+/**
+ * Handle logo mode requests - suggests DotMatrixConfig settings
+ */
+async function handleLogoMode(
+  message: string,
+  conversationHistory: any[],
+  logoAnalysis?: string
+) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+
+    // Build conversation context
+    const contextMessages = conversationHistory
+      ?.slice(-5)
+      .map((msg: any) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
+      .join("\n")
+
+    // Get the dynamic system prompt from ai-logo-knowledge.ts
+    const logoSystemPrompt = buildLogoSystemPrompt()
+
+    const fullPrompt = `${logoSystemPrompt}
+
+${logoAnalysis ? `
+=== REFERENCE LOGO ANALYSIS ===
+The user has uploaded a reference logo. Here is the analysis:
+${logoAnalysis}
+
+IMPORTANT: Use this analysis to suggest settings that will recreate a similar look.
+Match the colors, materials, effects, and style as closely as possible.
+` : ''}
+
+${contextMessages ? `
+Recent Conversation:
+${contextMessages}
+` : ''}
+
+User Request: ${message}
+
+Based on the user's request${logoAnalysis ? ' and the reference logo analysis' : ''}, suggest appropriate Dot Matrix 3D logo settings.
+Remember to respond with a JSON object containing "message" and "logoConfig" as specified above.`
+
+    console.log("[v0 API] Logo mode - calling Gemini with dynamic system prompt")
+
+    const result = await model.generateContent(fullPrompt)
+    const responseText = result.response.text()
+
+    console.log("[v0 API] Logo mode - Gemini response received, length:", responseText.length)
+
+    // Extract JSON from response
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      try {
+        const jsonResponse = JSON.parse(jsonMatch[0])
+        console.log("[v0 API] Logo mode - Successfully parsed JSON response with config keys:",
+          jsonResponse.logoConfig ? Object.keys(jsonResponse.logoConfig) : 'none')
+        return NextResponse.json({
+          message: jsonResponse.message || "Here are my logo design suggestions.",
+          logoConfig: jsonResponse.logoConfig || {},
+          mode: 'logo'
+        })
+      } catch (parseError) {
+        console.error("[v0 API] Logo mode - JSON parse error:", parseError)
+      }
+    }
+
+    // Fallback response
+    console.warn("[v0 API] Logo mode - Failed to parse JSON, using fallback")
+    return NextResponse.json({
+      message: responseText,
+      logoConfig: {},
+      mode: 'logo'
+    })
+  } catch (error) {
+    console.error("[v0 API] Logo mode error:", error)
+    return NextResponse.json(
+      { error: "Failed to generate logo suggestions", details: error instanceof Error ? error.message : String(error) },
       { status: 500 },
     )
   }

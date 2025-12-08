@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { buildLogoAnalysisPrompt } from "@/app/image-studio/constants/ai-logo-knowledge"
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,9 +62,10 @@ export async function POST(request: NextRequest) {
     const fastPrompts = {
       subject: "In 1-2 sentences, describe the main subject: appearance, clothing, and pose.",
       scene: "In 1-2 sentences, describe the scene: location, lighting, and atmosphere. Ignore subjects.",
-      style: selectedStylePreset 
+      style: selectedStylePreset
         ? `First, identify the ACTUAL artistic style of this image (e.g., Studio Ghibli anime, Pixar 3D, photorealistic, oil painting, comic book, etc.). Then in 1-2 sentences, state what style this image is and explain if it matches or differs from the requested "${selectedStylePreset}" style.`
         : "In 1-2 sentences, identify the specific artistic style (e.g., Pixar 3D animation, Studio Ghibli anime, Disney animation, oil painting, watercolor, manga, comic book, Art Deco, impressionism, cyberpunk art, minimalist design, etc.) and describe its key visual characteristics.",
+      logo: "Briefly describe this logo: colors (primary/accent), metallic finish type, 3D depth level, any dot/halftone patterns, glow effects, and overall style (tech/luxury/creative/finance). Keep it to 2-3 sentences.",
     }
 
     const qualityPrompts = {
@@ -74,6 +76,7 @@ export async function POST(request: NextRequest) {
       style: selectedStylePreset
         ? `Analyze this image's artistic style as a single flowing paragraph. First, identify the ACTUAL style of this image (e.g., Studio Ghibli hand-drawn anime, Makoto Shinkai digital anime, Pixar 3D animation style, Disney character design, photorealistic digital art, oil painting, watercolor, manga, comic book, Art Deco, impressionism, cyberpunk, etc.). Be very specific about the art style category - if it's anime, specify which studio or artist style (Ghibli, Shinkai, KyoAni, etc.). Then describe its defining visual characteristics including rendering technique, color palette, lighting approach, texture quality, line work, shading method, and aesthetic mood. Finally, explain whether this matches the requested "${selectedStylePreset}" style or how it differs. Write in natural prose without bullet points, numbered lists, or markdown formatting.`
         : "Identify and describe the specific artistic style of THIS image as a single flowing paragraph. Start by naming the precise art style or medium (e.g., Studio Ghibli hand-drawn anime, Makoto Shinkai digital anime, Pixar 3D animation style, Disney character design, photorealistic digital art, oil painting, watercolor illustration, manga/comic book art, Art Deco, Renaissance painting, impressionism, cyberpunk digital art, minimalist vector design, clay animation, stop-motion, retro poster art, etc.). Be as specific as possible - if it's anime, identify which studio or artist style. Then describe its defining visual characteristics including the rendering technique, color palette and color temperature, lighting approach, texture quality, line work style, shading method, any signature visual effects, and the overall aesthetic mood. Write in natural prose without bullet points, numbered lists, or markdown formatting.",
+      logo: buildLogoAnalysisPrompt(),
     }
 
     const prompts = mode === "fast" ? fastPrompts : qualityPrompts

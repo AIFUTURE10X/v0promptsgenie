@@ -1,9 +1,11 @@
 /**
  * lib/replicate-bg-removal.ts
- * AI-powered background removal using Replicate's BRIA-based model
+ * AI-powered background removal using Replicate's BRIA RMBG 2.0 model
  *
- * Uses lucataco/remove-bg which is based on BRIA AI's commercial
- * background removal - better at preserving fine details, text, and edges.
+ * Uses bria/remove-background - the official Bria AI model with:
+ * - 256 levels of transparency (not binary masks)
+ * - Better preservation of fine details, text, and edges
+ * - Natural blending with any background
  *
  * Cost: ~$0.01 per image
  * Speed: 1-2 seconds
@@ -12,7 +14,7 @@
 import Replicate from "replicate"
 
 /**
- * Remove background from an image using Replicate's BRIA-based model
+ * Remove background from an image using Replicate's Bria RMBG 2.0 model
  *
  * @param imageBase64 - Base64 encoded image (without data URL prefix)
  * @returns Base64 encoded PNG with transparent background
@@ -26,19 +28,19 @@ export async function removeBackgroundWithReplicate(
     throw new Error("REPLICATE_API_TOKEN environment variable is not set")
   }
 
-  console.log("[Replicate BG Removal] Starting AI background removal...")
+  console.log("[Replicate BG Removal] Starting Bria RMBG 2.0 background removal...")
 
   const replicate = new Replicate({
     auth: apiToken,
   })
 
-  // Use BRIA-based remove-bg model - better at preserving text and fine details
-  // Works on any background color, not just white
+  // Use official Bria RMBG 2.0 - 256 levels of transparency, better for logos
   const output = await replicate.run(
-    "lucataco/remove-bg:95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
+    "bria/remove-background:4ed060b3587b7c3912353dd7d59000c883a6e1c5c9181ed7415c2624c2e8e392",
     {
       input: {
-        image: `data:image/png;base64,${imageBase64}`
+        image: `data:image/png;base64,${imageBase64}`,
+        preserve_alpha: true  // Maintain original transparency levels
       }
     }
   )

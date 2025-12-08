@@ -1,7 +1,8 @@
 "use client"
 
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Upload, X, GripHorizontal } from 'lucide-react'
+import { Upload, X, GripHorizontal, Sparkles, Loader2, Copy, Lightbulb } from 'lucide-react'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 interface ReferenceImage {
   file: File
@@ -15,6 +16,8 @@ interface LogoPromptSectionProps {
   setNegativePrompt: (value: string) => void
   referenceImage: ReferenceImage | null
   setReferenceImage: (image: ReferenceImage | null) => void
+  referenceMode: 'replicate' | 'inspire'
+  setReferenceMode: (mode: 'replicate' | 'inspire') => void
   removeBackgroundOnly: boolean
   setRemoveBackgroundOnly: (value: boolean) => void
   isGenerating: boolean
@@ -28,6 +31,8 @@ export function LogoPromptSection({
   setNegativePrompt,
   referenceImage,
   setReferenceImage,
+  referenceMode,
+  setReferenceMode,
   removeBackgroundOnly,
   setRemoveBackgroundOnly,
   isGenerating,
@@ -37,8 +42,31 @@ export function LogoPromptSection({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [textareaHeight, setTextareaHeight] = useState(64)
   const [isDragging, setIsDragging] = useState(false)
+  const [isEnhancing, setIsEnhancing] = useState(false)
   const dragStartY = useRef(0)
   const dragStartHeight = useRef(0)
+
+  // AI Enhance handler
+  const handleAIEnhance = async () => {
+    if (!prompt.trim()) return
+
+    setIsEnhancing(true)
+    try {
+      const response = await fetch('/api/enhance-logo-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await response.json()
+      if (data.enhancedPrompt) {
+        setPrompt(data.enhancedPrompt)
+      }
+    } catch (error) {
+      console.error('Failed to enhance prompt:', error)
+    } finally {
+      setIsEnhancing(false)
+    }
+  }
 
   // Handle drag to resize textarea
   const handleDragStart = useCallback((e: React.MouseEvent) => {
@@ -124,6 +152,25 @@ export function LogoPromptSection({
             <GripHorizontal className="w-4 h-3 text-zinc-500" />
           </div>
         </div>
+
+        {/* AI Enhance Button */}
+        <button
+          onClick={handleAIEnhance}
+          disabled={isEnhancing || !prompt.trim() || isGenerating}
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-all"
+        >
+          {isEnhancing ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Enhancing...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-3.5 h-3.5" />
+              AI Enhance Prompt
+            </>
+          )}
+        </button>
       </div>
 
       {/* Negative Prompt Input */}
@@ -166,20 +213,65 @@ export function LogoPromptSection({
             </div>
           </div>
         ) : (
-          <div className="relative w-full">
-            <div className="w-full h-14 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-800">
-              <img
-                src={referenceImage.preview}
-                alt="Reference"
-                className="w-full h-full object-contain"
-              />
+          <div className="space-y-2">
+            <div className="relative w-full">
+              <div className="w-full h-14 rounded-lg overflow-hidden border border-zinc-700 bg-zinc-800">
+                <img
+                  src={referenceImage.preview}
+                  alt="Reference"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <button
+                onClick={clearReferenceImage}
+                className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
+              >
+                <X className="w-3 h-3 text-white" />
+              </button>
             </div>
-            <button
-              onClick={clearReferenceImage}
-              className="absolute top-1 right-1 w-5 h-5 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
-            >
-              <X className="w-3 h-3 text-white" />
-            </button>
+
+            {/* Replicate / Inspire Mode Toggle */}
+            <div className="flex items-center gap-1 p-1 bg-zinc-800/50 rounded-lg border border-zinc-700">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setReferenceMode('replicate')}
+                    disabled={isGenerating}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      referenceMode === 'replicate'
+                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-700'
+                    }`}
+                  >
+                    <Copy className="w-3 h-3" />
+                    Replicate
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p className="text-xs">Exact reproduction - ignores style settings</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setReferenceMode('inspire')}
+                    disabled={isGenerating}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                      referenceMode === 'inspire'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'text-zinc-400 hover:text-white hover:bg-zinc-700'
+                    }`}
+                  >
+                    <Lightbulb className="w-3 h-3" />
+                    Inspire
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p className="text-xs">Use as inspiration - applies style settings</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         )}
 

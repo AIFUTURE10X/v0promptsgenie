@@ -121,7 +121,7 @@ export function DepthSlider({
         {/* Depth indicator bar */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-700">
           <div
-            className="h-full bg-gradient-to-r from-purple-600 to-purple-400 transition-all duration-300"
+            className="h-full bg-linear-to-r from-purple-600 to-purple-400 transition-all duration-300"
             style={{ width: `${depthAmount}%` }}
           />
         </div>

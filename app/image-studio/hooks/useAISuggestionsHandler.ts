@@ -1,0 +1,156 @@
+"use client"
+
+/**
+ * useAISuggestionsHandler Hook
+ *
+ * Handles applying AI suggestions to generation parameters
+ */
+
+import { useCallback } from 'react'
+import {
+  normalizeValue,
+  styleSynonyms,
+  cameraAngleSynonyms,
+  cameraLensSynonyms,
+  styleStrengthSynonyms,
+  type StyleStrength,
+} from '../constants/normalization-synonyms'
+import { styleValues, cameraAngleOptions, cameraLensOptions, aspectRatioOptions } from '../constants/camera-options'
+
+interface AISuggestions {
+  prompt?: string
+  negativePrompt?: string
+  style?: string
+  aspectRatio?: string
+  cameraAngle?: string
+  cameraLens?: string
+  styleStrength?: string
+  resolution?: string
+}
+
+interface UseAISuggestionsHandlerProps {
+  setMainPrompt: (value: string) => void
+  setNegativePrompt: (value: string) => void
+  setSelectedStylePreset: (value: string) => void
+  setAspectRatio: (value: string) => void
+  setSelectedCameraAngle: (value: string) => void
+  setSelectedCameraLens: (value: string) => void
+  setStyleStrength: (value: StyleStrength) => void
+  setImageSize: (value: '1K' | '2K' | '4K') => void
+}
+
+export function useAISuggestionsHandler({
+  setMainPrompt,
+  setNegativePrompt,
+  setSelectedStylePreset,
+  setAspectRatio,
+  setSelectedCameraAngle,
+  setSelectedCameraLens,
+  setStyleStrength,
+  setImageSize,
+}: UseAISuggestionsHandlerProps) {
+  const handleApplyAISuggestions = useCallback((suggestions: AISuggestions) => {
+    console.log('[v0] ===== handleApplyAISuggestions CALLED =====')
+    console.log('[v0] Received suggestions:', JSON.stringify(suggestions, null, 2))
+
+    if (!suggestions) {
+      console.warn('[v0] No suggestions provided, returning early')
+      return
+    }
+
+    // Apply prompt - always set even if empty to allow clearing
+    if (suggestions.prompt !== undefined) {
+      console.log('[v0] Setting mainPrompt to:', suggestions.prompt?.substring(0, 50) + '...')
+      setMainPrompt(suggestions.prompt)
+    }
+
+    // Apply negative prompt
+    if (suggestions.negativePrompt !== undefined) {
+      console.log('[v0] Setting negativePrompt to:', suggestions.negativePrompt?.substring(0, 50) + '...')
+      setNegativePrompt(suggestions.negativePrompt)
+    }
+
+    // Apply style
+    const normalizedStyle = normalizeValue(suggestions.style, styleValues, styleSynonyms)
+    if (normalizedStyle) {
+      console.log('[v0] Setting style to:', normalizedStyle)
+      setSelectedStylePreset(normalizedStyle)
+    } else if (suggestions.style && suggestions.style !== 'None') {
+      console.warn('[v0] Unrecognized style suggestion:', suggestions.style)
+    }
+
+    // Apply aspect ratio
+    const normalizedAspectRatio = normalizeValue(suggestions.aspectRatio, aspectRatioOptions as unknown as string[])
+    if (normalizedAspectRatio) {
+      console.log('[v0] Setting aspectRatio to:', normalizedAspectRatio)
+      setAspectRatio(normalizedAspectRatio)
+    } else if (suggestions.aspectRatio) {
+      console.warn('[v0] Unrecognized aspect ratio suggestion:', suggestions.aspectRatio)
+    }
+
+    // Apply camera angle
+    const normalizedCameraAngle = normalizeValue(
+      suggestions.cameraAngle,
+      cameraAngleOptions as unknown as string[],
+      cameraAngleSynonyms
+    )
+    if (normalizedCameraAngle) {
+      console.log('[v0] Setting cameraAngle to:', normalizedCameraAngle)
+      setSelectedCameraAngle(normalizedCameraAngle)
+    } else if (suggestions.cameraAngle && suggestions.cameraAngle !== 'None') {
+      console.warn('[v0] Unrecognized camera angle suggestion:', suggestions.cameraAngle, '- clearing')
+      setSelectedCameraAngle('')
+    }
+
+    // Apply camera lens
+    const normalizedCameraLens = normalizeValue(
+      suggestions.cameraLens,
+      cameraLensOptions as unknown as string[],
+      cameraLensSynonyms
+    )
+    if (normalizedCameraLens) {
+      console.log('[v0] Setting cameraLens to:', normalizedCameraLens)
+      setSelectedCameraLens(normalizedCameraLens)
+    } else if (suggestions.cameraLens && suggestions.cameraLens !== 'None') {
+      console.warn('[v0] Unrecognized camera lens suggestion:', suggestions.cameraLens, '- clearing')
+      setSelectedCameraLens('')
+    }
+
+    // Apply style strength
+    if (suggestions.styleStrength) {
+      const strengthKey = suggestions.styleStrength.toLowerCase()
+      const normalizedStrength = styleStrengthSynonyms[strengthKey]
+      if (normalizedStrength) {
+        console.log('[v0] Setting styleStrength to:', normalizedStrength)
+        setStyleStrength(normalizedStrength)
+      } else {
+        console.warn('[v0] Unrecognized style strength suggestion:', suggestions.styleStrength)
+      }
+    }
+
+    // Apply resolution/image size
+    if (suggestions.resolution) {
+      const validResolutions = ['1K', '2K', '4K']
+      const upperRes = suggestions.resolution.toUpperCase()
+      if (validResolutions.includes(upperRes)) {
+        console.log('[v0] Setting imageSize to:', upperRes)
+        setImageSize(upperRes as '1K' | '2K' | '4K')
+      } else {
+        console.warn('[v0] Unrecognized resolution suggestion:', suggestions.resolution)
+      }
+    }
+
+    console.log('[v0] ===== AI suggestions applied successfully =====')
+  }, [
+    setMainPrompt,
+    setNegativePrompt,
+    setSelectedStylePreset,
+    setAspectRatio,
+    setSelectedCameraAngle,
+    setSelectedCameraLens,
+    setStyleStrength,
+    setImageSize,
+  ])
+
+  return handleApplyAISuggestions
+}

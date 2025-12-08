@@ -37,10 +37,13 @@ function isQuotaOrRateError(err: any): boolean {
   return msg.includes("quota") || msg.includes("rate") || msg.includes("resource exhausted") || err.status === 429
 }
 
+export type ReferenceMode = 'replicate' | 'inspire'
+
 export async function generateImageWithRetry({
   prompt,
   aspectRatio = "1:1",
   referenceImage,
+  referenceMode = "inspire",
   seed,
   model = "gemini-2.5-flash-image",
   imageSize = "1K",
@@ -49,6 +52,7 @@ export async function generateImageWithRetry({
   prompt: string
   aspectRatio?: string
   referenceImage?: string
+  referenceMode?: ReferenceMode
   seed?: number
   model?: GenerationModel
   imageSize?: ImageSize
@@ -72,15 +76,34 @@ export async function generateImageWithRetry({
 
       const geminiClient = getClient()
 
-      const contentParts: any[] = [{ text: prompt }]
+      // Build content parts - for image-to-image, put the image FIRST with clear instructions
+      const contentParts: any[] = []
 
       if (referenceImage) {
+        // Image-to-image generation: put image first, then instruction
         contentParts.push({
           inlineData: {
             mimeType: "image/png",
             data: referenceImage,
           },
         })
+
+        if (referenceMode === 'replicate') {
+          // REPLICATE MODE: Generate an exact copy of the image
+          contentParts.push({
+            text: `Generate an EXACT replica of this image. Recreate every detail precisely - same subject, same colors, same composition, same style, same background. Do not add, remove, or change anything. Output should be visually identical to the input image.`
+          })
+          console.log(`[v0 SERVER] REPLICATE mode: generating exact copy`)
+        } else {
+          // INSPIRE MODE: Use as reference while incorporating user prompt
+          contentParts.push({
+            text: `Using the provided image as reference, generate a new image that maintains the same subject/object appearance. ${prompt}`
+          })
+          console.log(`[v0 SERVER] INSPIRE mode: using image as reference for prompt`)
+        }
+      } else {
+        // Text-to-image: just the prompt
+        contentParts.push({ text: prompt })
       }
 
       const imageConfig: any = {

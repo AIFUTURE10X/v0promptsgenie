@@ -13,7 +13,9 @@ import {
   Heart,
   Loader2,
   Sparkles,
-  Scissors
+  Scissors,
+  CreditCard,
+  ALargeSmall
 } from 'lucide-react'
 import { GeneratedLogo } from '../../hooks/useLogoGeneration'
 
@@ -34,6 +36,8 @@ interface LogoActionButtonsProps {
   isFavoriteToggling: boolean
   onRemoveBackground: () => void
   isRemovingBackground: boolean
+  onShowMockup?: () => void
+  onShowRealFontOverlay?: () => void
 }
 
 export function LogoActionButtons({
@@ -53,6 +57,8 @@ export function LogoActionButtons({
   isFavoriteToggling,
   onRemoveBackground,
   isRemovingBackground,
+  onShowMockup,
+  onShowRealFontOverlay,
 }: LogoActionButtonsProps) {
   const [showUpscaleMenu, setShowUpscaleMenu] = useState(false)
 
@@ -193,6 +199,32 @@ export function LogoActionButtons({
         )}
         {isFavorite ? 'Saved' : 'Fav'}
       </Button>
+
+      {/* Second Row - Real Font & Mockup Buttons */}
+      {(onShowRealFontOverlay || onShowMockup) && (
+        <div className="col-span-8 flex gap-1 mt-1">
+          {onShowRealFontOverlay && (
+            <Button
+              onClick={onShowRealFontOverlay}
+              size="sm"
+              className="h-8 flex-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-purple-400 border border-purple-500/30 text-xs"
+            >
+              <ALargeSmall className="w-3 h-3 mr-1.5" />
+              Real Font Overlay
+            </Button>
+          )}
+          {onShowMockup && (
+            <Button
+              onClick={onShowMockup}
+              size="sm"
+              className="h-8 flex-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 text-cyan-400 border border-cyan-500/30 text-xs"
+            >
+              <CreditCard className="w-3 h-3 mr-1.5" />
+              Preview on Mockups
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   )
 }

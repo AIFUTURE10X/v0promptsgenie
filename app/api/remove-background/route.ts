@@ -1,4 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { put } from "@vercel/blob"
+import { neon } from "@neondatabase/serverless"
 import { removeBackground, type BackgroundRemovalMethod } from "@/lib/background-removal"
 import { removeBackgroundCloud, removeBackgroundPixian } from "@/lib/cloud-bg-removal"
 import { removeBackgroundWithReplicate } from "@/lib/replicate-bg-removal"
@@ -13,11 +15,19 @@ export async function POST(request: NextRequest) {
     const bgRemovalMethod = (formData.get('bgRemovalMethod') as BackgroundRemovalMethod) || 'auto'
     const cloudApiKey = formData.get('cloudApiKey') as string | null
 
+    // Optional: metadata for saving to history (server-side save)
+    const userId = formData.get('userId') as string | null
+    const prompt = formData.get('prompt') as string | null
+    const seed = formData.get('seed') as string | null
+    const style = formData.get('style') as string | null
+    const originalUrl = formData.get('originalUrl') as string | null
+
     console.log("[Remove BG API] Request received:", {
       hasImage: !!imageFile,
       imageSize: imageFile?.size,
       bgRemovalMethod,
       hasApiKey: !!cloudApiKey,
+      hasMetadata: !!(userId && prompt),
     })
 
     if (!imageFile || imageFile.size === 0) {
@@ -67,13 +77,48 @@ export async function POST(request: NextRequest) {
 
     console.log("[Remove BG API] Background removed successfully")
 
-    // Return as data URL
-    const dataUrl = `data:image/png;base64,${transparentBase64}`
+    // Upload to Vercel Blob instead of returning huge data URI
+    const buffer = Buffer.from(transparentBase64, 'base64')
+    const filename = `logos/rb-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.png`
+
+    console.log("[Remove BG API] Uploading to Vercel Blob...")
+    const blobResult = await put(filename, buffer, {
+      access: 'public',
+      contentType: 'image/png'
+    })
+
+    console.log("[Remove BG API] Uploaded to Blob:", blobResult.url)
+
+    // Server-side history save (if metadata provided)
+    let historyId: number | null = null
+    if (userId && prompt) {
+      try {
+        console.log("[Remove BG API] Saving to history for user:", userId)
+        const sql = neon(process.env.NEON_DATABASE_URL!)
+        const config = JSON.stringify({
+          wasBackgroundRemoval: true,
+          originalUrl: originalUrl || null,
+          bgRemovalMethod
+        })
+
+        const result = await sql`
+          INSERT INTO logo_history (user_id, image_url, prompt, seed, style, config, is_favorited)
+          VALUES (${userId}, ${blobResult.url}, ${prompt}, ${seed ? parseInt(seed) : null}, ${style}, ${config}::jsonb, false)
+          RETURNING id
+        `
+        historyId = result[0]?.id
+        console.log("[Remove BG API] Saved to history with ID:", historyId)
+      } catch (historyErr) {
+        console.error("[Remove BG API] Failed to save to history:", historyErr)
+        // Don't fail the request if history save fails
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      image: dataUrl,
+      image: blobResult.url,  // Return URL instead of data URI
       bgRemovalMethod,
+      historyId,  // Return the history ID if saved
     })
   } catch (error) {
     console.error("[Remove BG API] Route error:", error)

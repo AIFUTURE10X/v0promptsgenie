@@ -164,7 +164,7 @@ export function BatchModePanel({ isActive, onBatchGenerate }: BatchModePanelProp
         {showGuide && (
           <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-4">
             <div className="flex gap-2">
-              <Info className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+              <Info className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" />
               <div className="space-y-2">
                 <p className="text-sm font-medium text-blue-300">How to use batch generation:</p>
                 <ol className="text-xs text-blue-300 space-y-1 list-decimal list-inside">

@@ -3,6 +3,7 @@ import { generateImageWithRetry, type GenerationModel } from "@/lib/gemini-clien
 import { removeBackground, type BackgroundRemovalMethod } from "@/lib/background-removal"
 import { removeBackgroundCloud, removeBackgroundPixian } from "@/lib/cloud-bg-removal"
 import { removeBackgroundWithReplicate } from "@/lib/replicate-bg-removal"
+import { removeBackgroundWithPixelcut } from "@/lib/pixelcut-bg-removal"
 import { upscaleWithRealESRGAN, isReplicateAvailable } from "@/lib/replicate-upscaler"
 import sharp from 'sharp'
 
@@ -341,7 +342,7 @@ export async function POST(request: NextRequest) {
     // Use free-form generation (no background constraints) when:
     // 1. Skipping BG removal (user will remove it later if needed)
     // 2. Using AI-based removal that can handle any background
-    const useCloudRemoval = bgRemovalMethod === 'replicate' || ((bgRemovalMethod === 'pixian' || bgRemovalMethod === 'cloud') && cloudApiKey)
+    const useCloudRemoval = bgRemovalMethod === 'pixelcut' || bgRemovalMethod === 'replicate' || ((bgRemovalMethod === 'pixian' || bgRemovalMethod === 'cloud') && cloudApiKey)
     const useFreeFormPrompt = skipBgRemoval || useCloudRemoval
     let enhancedPrompt = useFreeFormPrompt
       ? buildFreeFormLogoPrompt(prompt, style)
@@ -362,15 +363,14 @@ export async function POST(request: NextRequest) {
       : 'gemini-3-pro-image-preview'
 
     // Generate the logo image with Gemini
-    // IMPORTANT: Always generate at 1K - Gemini API has issues with higher resolutions
-    // ("Set maximum size exceeded" error). Higher resolutions achieved via upscaling.
+    // Gemini 3 Pro Image natively supports 1K, 2K, and 4K resolutions via image_size config
     // disableSearch: true prevents Google Search from injecting existing brand references
     // This ensures original, creative logo designs without web influence
     const result = await generateImageWithRetry({
       prompt: enhancedPrompt,
       aspectRatio: "1:1", // Logos are typically square
       model,
-      imageSize: "1K", // Always 1K - upscale afterward for 2K/4K
+      imageSize: resolution, // Gemini 3 Pro natively supports 1K, 2K, 4K
       referenceImage,
       seed, // Pass seed for reproducible generation
       disableSearch: true, // Critical for original creative logo generation
@@ -391,7 +391,10 @@ export async function POST(request: NextRequest) {
       console.log(`[Logo API] Removing background with method: ${bgRemovalMethod}...`)
 
       // Remove background based on selected method
-      if (bgRemovalMethod === 'replicate') {
+      if (bgRemovalMethod === 'pixelcut') {
+        // Use Pixelcut API - optimized for logos with text preservation
+        processedBase64 = await removeBackgroundWithPixelcut(result.imageBase64)
+      } else if (bgRemovalMethod === 'replicate') {
         // Use Replicate AI - works on any background color
         processedBase64 = await removeBackgroundWithReplicate(result.imageBase64)
       } else if (bgRemovalMethod === 'pixian' && cloudApiKey) {
@@ -416,45 +419,62 @@ export async function POST(request: NextRequest) {
       console.log("[Logo API] Skipping background removal (will be done later if needed)")
     }
 
-    // Auto-upscale if 2K or 4K was requested
+    // Note: Gemini 3 Pro now generates at native resolution (1K/2K/4K)
+    // This upscaling code is kept as a fallback in case the native generation doesn't produce expected size
     let finalBase64 = processedBase64
     if (resolution !== '1K') {
-      console.log(`[Logo API] Auto-upscaling to ${resolution}...`)
-      try {
-        const targetSize = resolution === '4K' ? 4096 : 2048
-        const aiScale = resolution === '4K' ? 4 : 2
+      // Check if we actually got a higher resolution image from Gemini
+      // If so, skip upscaling. Otherwise, upscale as fallback.
+      const checkBuffer = Buffer.from(processedBase64, 'base64')
+      const checkMetadata = await sharp(checkBuffer).metadata()
+      const currentSize = Math.max(checkMetadata.width || 0, checkMetadata.height || 0)
+      const targetSize = resolution === '4K' ? 4096 : 2048
 
-        // Try AI upscaling if available
-        if (isReplicateAvailable()) {
-          console.log(`[Logo API] Using AI upscaling (Real-ESRGAN ${aiScale}x)...`)
-          finalBase64 = await upscaleWithRealESRGAN(processedBase64, aiScale as 2 | 4)
-          console.log("[Logo API] AI upscale complete")
-        } else {
-          // Fallback to Sharp upscaling
-          console.log("[Logo API] Using Sharp upscaling (Replicate not available)...")
-          const imageBuffer = Buffer.from(processedBase64, 'base64')
-          const metadata = await sharp(imageBuffer).metadata()
-          const originalWidth = metadata.width || 1024
-          const originalHeight = metadata.height || 1024
-          const maxOriginalDim = Math.max(originalWidth, originalHeight)
-          const scale = targetSize / maxOriginalDim
-          const newWidth = Math.round(originalWidth * scale)
-          const newHeight = Math.round(originalHeight * scale)
+      console.log(`[Logo API] Current image size: ${checkMetadata.width}x${checkMetadata.height}`)
+      console.log(`[Logo API] Target size for ${resolution}: ${targetSize}`)
 
-          const upscaledBuffer = await sharp(imageBuffer)
-            .resize(newWidth, newHeight, {
-              kernel: 'lanczos3',
-              fit: 'fill',
-            })
-            .png({ quality: 100 })
-            .toBuffer()
+      // Only upscale if the image is significantly smaller than target (less than 90%)
+      if (currentSize < targetSize * 0.9) {
+        console.log(`[Logo API] Image smaller than target, upscaling as fallback...`)
+        console.log(`[Logo API] Replicate available: ${isReplicateAvailable()}`)
 
-          finalBase64 = upscaledBuffer.toString('base64')
-          console.log(`[Logo API] Sharp upscale complete: ${newWidth}x${newHeight}`)
+        try {
+          const aiScale = resolution === '4K' ? 4 : 2
+
+          // Try AI upscaling if available
+          if (isReplicateAvailable()) {
+            console.log(`[Logo API] Using AI upscaling (Real-ESRGAN ${aiScale}x)...`)
+            finalBase64 = await upscaleWithRealESRGAN(processedBase64, aiScale as 2 | 4)
+            console.log("[Logo API] AI upscale complete")
+          } else {
+            // Fallback to Sharp upscaling with enhanced sharpening
+            console.log("[Logo API] Using Sharp upscaling (Replicate not available)...")
+            const originalWidth = checkMetadata.width || 1024
+            const originalHeight = checkMetadata.height || 1024
+            const maxOriginalDim = Math.max(originalWidth, originalHeight)
+            const scale = targetSize / maxOriginalDim
+            const newWidth = Math.round(originalWidth * scale)
+            const newHeight = Math.round(originalHeight * scale)
+
+            // Use lanczos3 with sharpening to improve quality
+            const upscaledBuffer = await sharp(checkBuffer)
+              .resize(newWidth, newHeight, {
+                kernel: 'lanczos3',
+                fit: 'fill',
+              })
+              .sharpen({ sigma: 1.0 }) // Add sharpening to improve clarity
+              .png({ quality: 100 })
+              .toBuffer()
+
+            finalBase64 = upscaledBuffer.toString('base64')
+            console.log(`[Logo API] Sharp upscale complete: ${newWidth}x${newHeight}`)
+          }
+        } catch (upscaleError) {
+          console.error("[Logo API] Upscale failed, using original:", upscaleError)
+          // Continue with original image if upscaling fails
         }
-      } catch (upscaleError) {
-        console.error("[Logo API] Upscale failed, returning 1K:", upscaleError)
-        // Continue with 1K resolution if upscaling fails
+      } else {
+        console.log(`[Logo API] Gemini generated at native ${resolution} resolution, no upscaling needed`)
       }
     }
 

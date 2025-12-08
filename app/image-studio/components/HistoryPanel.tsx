@@ -163,7 +163,7 @@ export function HistoryPanel({ onReusePrompt, onImageClick }: HistoryPanelProps)
                     {imageCount} images
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
                   <span className="text-white text-sm font-medium">Click to view</span>
                 </div>
               </div>
@@ -195,7 +195,7 @@ export function HistoryPanel({ onReusePrompt, onImageClick }: HistoryPanelProps)
                   <Button
                     onClick={() => onReusePrompt(item.main_prompt, item.aspect_ratio)}
                     size="sm"
-                    className="flex-1 bg-gradient-to-r from-[#c99850] to-[#dbb56e] hover:from-[#dbb56e] hover:to-[#c99850] text-black font-medium"
+                    className="flex-1 bg-linear-to-r from-[#c99850] to-[#dbb56e] hover:from-[#dbb56e] hover:to-[#c99850] text-black font-medium"
                   >
                     <RotateCcw className="w-3 h-3 mr-2" />
                     Reuse

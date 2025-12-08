@@ -12,7 +12,30 @@ export type HistoryItem = {
 }
 
 const HISTORY_KEY = "image_generation_history"
+const DELETED_IDS_KEY = "history_deleted_ids"
 const MAX_HISTORY_ITEMS = 100
+
+// Track deleted IDs to prevent them from coming back on sync
+function getDeletedIds(): Set<string> {
+  try {
+    const data = localStorage.getItem(DELETED_IDS_KEY)
+    return data ? new Set(JSON.parse(data)) : new Set()
+  } catch {
+    return new Set()
+  }
+}
+
+function addDeletedId(id: string): void {
+  try {
+    const existing = getDeletedIds()
+    existing.add(id)
+    // Keep only last 500 deleted IDs to prevent unbounded growth
+    const arr = Array.from(existing).slice(-500)
+    localStorage.setItem(DELETED_IDS_KEY, JSON.stringify(arr))
+  } catch (err) {
+    console.error('[v0] Failed to save deleted ID:', err)
+  }
+}
 
 export async function saveToHistory(
   prompt: string,
@@ -98,7 +121,9 @@ export type SyncResult = {
 export async function syncHistoryFromNeon(): Promise<SyncResult> {
   try {
     const userId = getUserId()
+    const deletedIds = getDeletedIds()
     console.log('[v0] Syncing history from Neon for user:', userId)
+    console.log('[v0] Filtering out', deletedIds.size, 'deleted items')
 
     const response = await fetch(`/api/history?userId=${userId}`)
 
@@ -109,12 +134,15 @@ export async function syncHistoryFromNeon(): Promise<SyncResult> {
     }
 
     const data = await response.json()
-    const neonHistory = data.history as HistoryItem[]
+    // Filter out items that were deleted locally
+    const neonHistory = (data.history as HistoryItem[]).filter(
+      item => !deletedIds.has(item.id)
+    )
 
-    console.log('[v0] Synced history from Neon:', neonHistory.length, 'items')
+    console.log('[v0] Synced history from Neon:', neonHistory.length, 'items (after filtering deleted)')
 
-    // Merge with localStorage and update
-    const localHistory = getHistory()
+    // Merge with localStorage and update (also filter deleted from local)
+    const localHistory = getHistory().filter(item => !deletedIds.has(item.id))
     const mergedHistory = mergeHistories(neonHistory, localHistory)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(mergedHistory))
 
@@ -153,19 +181,61 @@ function mergeHistories(neonHistory: HistoryItem[], localHistory: HistoryItem[])
     .slice(0, MAX_HISTORY_ITEMS)
 }
 
-export function deleteHistoryItem(id: string): void {
+export async function deleteHistoryItem(id: string): Promise<void> {
   try {
+    // Track deleted ID to prevent it from coming back on sync
+    addDeletedId(id)
+
+    // Remove from localStorage immediately
     const history = getHistory()
     const filtered = history.filter((item) => item.id !== id)
     localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered))
+
+    // Also delete from Neon database
+    try {
+      const response = await fetch(`/api/history?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        console.log('[v0] Deleted from Neon:', id)
+      } else {
+        console.error('[v0] Failed to delete from Neon:', response.status)
+      }
+    } catch (apiError) {
+      console.error('[v0] API delete failed (item still tracked as deleted):', apiError)
+    }
   } catch (error) {
     console.error("[v0] Error deleting history item:", error)
   }
 }
 
-export function clearHistory(): void {
+export async function clearHistory(): Promise<void> {
   try {
+    const history = getHistory()
+
+    // Track all IDs as deleted first
+    for (const item of history) {
+      addDeletedId(item.id)
+    }
+
+    // Clear localStorage
     localStorage.removeItem(HISTORY_KEY)
+
+    // Delete each item from Neon
+    for (const item of history) {
+      try {
+        await fetch(`/api/history?id=${encodeURIComponent(item.id)}`, {
+          method: 'DELETE'
+        })
+      } catch (err) {
+        console.error('[v0] Failed to delete item from Neon:', item.id, err)
+      }
+    }
+
+    // Clear deleted IDs tracking since DB is now clean
+    localStorage.removeItem(DELETED_IDS_KEY)
+    console.log('[v0] Cleared all history from localStorage and Neon')
   } catch (error) {
     console.error("[v0] Error clearing history:", error)
   }

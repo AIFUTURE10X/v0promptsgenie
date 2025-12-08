@@ -39,16 +39,16 @@ export function ToolbarHintBar({ hoveredButton, onHoverChange }: ToolbarHintBarP
   const currentHint = hoveredButton ? hints[hoveredButton] : null
 
   return (
-    <div className="h-20 mb-4 flex items-center justify-center">
-      <div 
-        className={`transition-all duration-200 ${
+    <div className="h-0 overflow-visible flex items-center justify-center relative z-10">
+      <div
+        className={`absolute top-14 transition-all duration-200 ${
           visible && currentHint ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
         }`}
         onMouseEnter={() => hoveredButton && onHoverChange(hoveredButton)}
         onMouseLeave={() => onHoverChange(null)}
       >
         <div className="flex items-center justify-center gap-3 px-6 py-3 bg-black/90 backdrop-blur-md border-2 border-[#D4AF37] rounded-lg shadow-lg shadow-[#D4AF37]/20">
-          <div className="text-[#D4AF37] flex-shrink-0">
+          <div className="text-[#D4AF37] shrink-0">
             {currentHint?.icon}
           </div>
           <p className="text-sm text-[#D4AF37] font-medium leading-relaxed">
