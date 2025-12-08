@@ -61,7 +61,7 @@ export function VariationResults({
             >
               {/* Top pick badge */}
               {isTopPick && (
-                <div className="absolute -top-3 left-4 flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full">
+                <div className="absolute -top-3 left-4 flex items-center gap-1 px-2 py-0.5 bg-linear-to-r from-purple-500 to-pink-500 rounded-full">
                   <Sparkles className="w-3 h-3 text-white" />
                   <span className="text-[10px] font-medium text-white">Best Match</span>
                 </div>
@@ -95,7 +95,7 @@ export function VariationResults({
                   <div
                     className={`h-full rounded-full ${
                       isTopPick
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500'
+                        ? 'bg-linear-to-r from-purple-500 to-pink-500'
                         : 'bg-zinc-500'
                     }`}
                     style={{ width: `${matchPercentage}%` }}
@@ -114,7 +114,7 @@ export function VariationResults({
                     className={`
                       flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
                       ${isTopPick
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90'
+                        ? 'bg-linear-to-r from-purple-500 to-pink-500 text-white hover:opacity-90'
                         : 'bg-zinc-700 text-white hover:bg-zinc-600'}
                     `}
                   >
@@ -132,7 +132,7 @@ export function VariationResults({
                     ${onGenerateNow
                       ? 'bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700'
                       : isTopPick
-                        ? 'flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90'
+                        ? 'flex-1 bg-linear-to-r from-purple-500 to-pink-500 text-white hover:opacity-90'
                         : 'flex-1 bg-zinc-700 text-white hover:bg-zinc-600'}
                   `}
                 >

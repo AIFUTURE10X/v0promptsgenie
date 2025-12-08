@@ -157,7 +157,7 @@ export function LogoPromptSection({
         <button
           onClick={handleAIEnhance}
           disabled={isEnhancing || !prompt.trim() || isGenerating}
-          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-all"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-white text-xs font-medium rounded-lg transition-all"
         >
           {isEnhancing ? (
             <>

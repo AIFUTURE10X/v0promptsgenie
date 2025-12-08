@@ -63,7 +63,7 @@ export function ComparisonView({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+            <div className="p-2 rounded-lg bg-linear-to-r from-purple-500 to-pink-500">
               <GitCompare className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -153,7 +153,7 @@ export function ComparisonView({
                       onClose()
                     }}
                     size="sm"
-                    className="h-7 px-3 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
+                    className="h-7 px-3 text-xs bg-linear-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600"
                   >
                     <ArrowRight className="w-3 h-3 mr-1" />
                     Use This

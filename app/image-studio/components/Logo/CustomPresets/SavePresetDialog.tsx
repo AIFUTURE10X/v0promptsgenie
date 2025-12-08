@@ -90,7 +90,7 @@ export function SavePresetDialog({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500">
+            <div className="p-2 rounded-lg bg-linear-to-r from-amber-500 to-orange-500">
               <Save className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -198,7 +198,7 @@ export function SavePresetDialog({
           <Button
             onClick={handleSave}
             disabled={!name.trim() || !canAddMore || isSaving}
-            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
+            className="bg-linear-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600"
           >
             {isSaving ? 'Saving...' : 'Save Preset'}
           </Button>

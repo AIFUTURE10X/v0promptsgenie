@@ -91,7 +91,7 @@ export function BatchGenerator({
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500">
+            <div className="p-2 rounded-lg bg-linear-to-r from-purple-500 to-pink-500">
               <Grid2X2 className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -136,7 +136,7 @@ export function BatchGenerator({
               </p>
               <button
                 onClick={handleStartGeneration}
-                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:opacity-90 transition-all"
+                className="flex items-center gap-2 px-6 py-3 bg-linear-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium hover:opacity-90 transition-all"
               >
                 <Grid2X2 className="w-5 h-5" />
                 Generate 4 Variations
@@ -180,7 +180,7 @@ export function BatchGenerator({
         {isGenerating && (
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-800 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+              className="h-full bg-linear-to-r from-purple-500 to-pink-500 transition-all duration-300"
               style={{ width: `${(completedCount / totalCount) * 100}%` }}
             />
           </div>

@@ -91,7 +91,7 @@ export function LightboxControls({
       {/* Download Button */}
       <button
         onClick={onDownload}
-        className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium hover:opacity-90 transition-opacity"
+        className="flex items-center gap-2 px-4 py-2 rounded-full bg-linear-to-r from-purple-500 to-pink-500 text-white font-medium hover:opacity-90 transition-opacity"
       >
         <Download className="w-4 h-4" />
         Download Logo

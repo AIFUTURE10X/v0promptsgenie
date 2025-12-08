@@ -49,7 +49,7 @@ export function WizardProgress({
               transition-all duration-200
               ${
                 isActive
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-110'
+                  ? 'bg-linear-to-r from-purple-500 to-pink-500 text-white scale-110'
                   : isCompleted
                   ? 'bg-green-500 text-white hover:bg-green-600'
                   : isPast
@@ -95,7 +95,7 @@ export function WizardProgressBar({ currentStep, totalSteps, onStepClick }: Wiza
       </div>
       <div className="h-2 bg-zinc-800 rounded-full overflow-hidden mb-2">
         <div
-          className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+          className="h-full bg-linear-to-r from-purple-500 to-pink-500 transition-all duration-300"
           style={{ width: `${progress}%` }}
         />
       </div>

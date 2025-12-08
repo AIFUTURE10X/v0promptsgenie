@@ -207,7 +207,7 @@ export function LogoActionButtons({
             <Button
               onClick={onShowRealFontOverlay}
               size="sm"
-              className="h-8 flex-1 bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-purple-400 border border-purple-500/30 text-xs"
+              className="h-8 flex-1 bg-linear-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-purple-400 border border-purple-500/30 text-xs"
             >
               <ALargeSmall className="w-3 h-3 mr-1.5" />
               Real Font Overlay
@@ -217,7 +217,7 @@ export function LogoActionButtons({
             <Button
               onClick={onShowMockup}
               size="sm"
-              className="h-8 flex-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 text-cyan-400 border border-cyan-500/30 text-xs"
+              className="h-8 flex-1 bg-linear-to-r from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 text-cyan-400 border border-cyan-500/30 text-xs"
             >
               <CreditCard className="w-3 h-3 mr-1.5" />
               Preview on Mockups
