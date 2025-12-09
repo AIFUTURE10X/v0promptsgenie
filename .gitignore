@@ -19,6 +19,14 @@ yarn-error.log*
 # env files
 .env*
 
+# API keys and secrets - NEVER commit these
+*KEYS*.txt
+*keys*.txt
+*.keys
+.ENV_VARS*
+*secrets*
+*credentials*
+
 # vercel
 .vercel
 
