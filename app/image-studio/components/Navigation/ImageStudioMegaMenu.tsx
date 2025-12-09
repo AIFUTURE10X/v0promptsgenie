@@ -78,11 +78,24 @@ export function ImageStudioMegaMenu({
 
   const isLogoStudioActive = activeTab === 'logo' || activeTab === 'mockups'
 
+  // Handle mouse enter/leave for hover behavior
+  const handleMouseEnter = useCallback(() => {
+    setIsOpen(true)
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setIsOpen(false)
+  }, [])
+
   return (
-    <div ref={menuRef} className="relative">
+    <div
+      ref={menuRef}
+      className="relative"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Trigger Button */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
           isOpen
             ? 'bg-zinc-800 text-white border border-zinc-600'
@@ -103,10 +116,11 @@ export function ImageStudioMegaMenu({
         <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Mega Menu Dropdown */}
+      {/* Mega Menu Dropdown - pt-2 creates visual gap while maintaining hover area */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-[580px] bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200">
-          <div className="grid grid-cols-2 gap-4 p-4">
+        <div className="absolute top-full left-0 pt-2 w-[580px] z-50">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200">
+            <div className="grid grid-cols-2 gap-4 p-4">
 
             {/* Left: Image Generator - Standalone App */}
             <div>
@@ -250,6 +264,7 @@ export function ImageStudioMegaMenu({
             </p>
           </div>
         </div>
+      </div>
       )}
     </div>
   )

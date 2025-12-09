@@ -32,6 +32,8 @@ interface HistoryItemProps {
   onUseSettings: () => void
   onLoadImage?: () => void
   canSelect: boolean
+  /** Hide the "Use Settings" button (for mockups that don't have generation settings) */
+  hideUseSettings?: boolean
 }
 
 export function HistoryItem({
@@ -43,7 +45,8 @@ export function HistoryItem({
   onDelete,
   onUseSettings,
   onLoadImage,
-  canSelect
+  canSelect,
+  hideUseSettings = false
 }: HistoryItemProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -181,13 +184,15 @@ export function HistoryItem({
               <Copy className="w-3.5 h-3.5" />
             )}
           </button>
-          <button
-            onClick={onUseSettings}
-            className="p-1 rounded text-amber-400/70 hover:text-amber-400 transition-colors"
-            title="Use these settings"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+          {!hideUseSettings && (
+            <button
+              onClick={onUseSettings}
+              className="p-1 rounded text-amber-400/70 hover:text-amber-400 transition-colors"
+              title="Use these settings"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onLoadImage && (
             <button
               onClick={onLoadImage}

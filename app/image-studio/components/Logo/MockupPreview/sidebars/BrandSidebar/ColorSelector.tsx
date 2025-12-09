@@ -5,7 +5,7 @@
  * Full color picker with RGB inputs and quick presets
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronDown, Pipette } from 'lucide-react'
 import { RgbaColorPicker } from 'react-colorful'
 import { hexToRgba, rgbaToHex, type RgbaColor } from '@/app/image-studio/utils/color-conversions'
@@ -30,17 +30,32 @@ export function ColorSelector({
     return { r: rgba.r.toString(), g: rgba.g.toString(), b: rgba.b.toString() }
   })
 
-  // Sync color picker when brandColor changes externally
+  // Track if we're currently picking (to prevent sync feedback loop)
+  const isPickingRef = useRef(false)
+  const lastInternalColorRef = useRef(brandColor)
+
+  // Sync color picker when brandColor changes externally (not from our own picker)
   useEffect(() => {
+    // Skip sync if the change originated from this picker
+    if (isPickingRef.current || brandColor === lastInternalColorRef.current) {
+      return
+    }
     const rgba = hexToRgba(brandColor)
     setRgbaColor(rgba)
     setRgbInputs({ r: rgba.r.toString(), g: rgba.g.toString(), b: rgba.b.toString() })
   }, [brandColor])
 
   const handleRgbaChange = (color: RgbaColor) => {
+    isPickingRef.current = true
     setRgbaColor(color)
     setRgbInputs({ r: color.r.toString(), g: color.g.toString(), b: color.b.toString() })
-    onColorChange(rgbaToHex(color))
+    const hex = rgbaToHex(color)
+    lastInternalColorRef.current = hex
+    onColorChange(hex)
+    // Reset picking flag after a short delay to allow parent state to settle
+    requestAnimationFrame(() => {
+      isPickingRef.current = false
+    })
   }
 
   const handleRgbInputChange = (channel: 'r' | 'g' | 'b', value: string) => {
@@ -49,11 +64,14 @@ export function ColorSelector({
       const numValue = Math.max(0, Math.min(255, parseInt(value) || 0))
       const newRgba = { ...rgbaColor, [channel]: numValue }
       setRgbaColor(newRgba)
-      onColorChange(rgbaToHex(newRgba))
+      const hex = rgbaToHex(newRgba)
+      lastInternalColorRef.current = hex
+      onColorChange(hex)
     }
   }
 
   const handleQuickColorSelect = (color: string) => {
+    lastInternalColorRef.current = color
     onColorChange(color)
     const rgba = hexToRgba(color)
     setRgbaColor(rgba)

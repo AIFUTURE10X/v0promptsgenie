@@ -19,8 +19,8 @@ import { LogoPanelHeader } from './LogoPanelHeader'
 import { LogoPanelModals } from './LogoPanelModals'
 import { LogoModeSection } from './LogoModeSection'
 import { LogoGenerateSection } from './LogoGenerateSection'
+import { useLogoPanelGenerate, useLogoFavorite } from './useLogoPanelGenerate'
 import type { DotMatrixConfig } from '../../constants/dot-matrix-config'
-import { isTextOnlyLogo, buildTextOnlyNegativePrompt, REPLICATION_PROMPT, INSPIRE_PROMPT } from '../../utils/logo-prompt-helpers'
 
 interface LogoPanelProps {
   onLogoGenerated?: (url: string) => void
@@ -60,65 +60,32 @@ export function LogoPanel({
   // Track color filter from LogoPreviewPanel for mockups
   const [logoFilter, setLogoFilter] = useState<LogoFilterStyle>({})
 
-  const handleGenerate = async () => {
-    if (state.removeBackgroundOnly && state.referenceImage) {
-      return handleRemoveRefBackground(state.referenceImage)
-    }
-    if (!state.prompt.trim() && !state.referenceImage) return
+  // Use extracted hooks for generate and favorite logic
+  const { handleGenerate } = useLogoPanelGenerate({
+    state: {
+      prompt: state.prompt,
+      negativePrompt: state.negativePrompt,
+      referenceImage: state.referenceImage,
+      referenceMode: state.referenceMode,
+      bgRemovalMethod: state.bgRemovalMethod,
+      resolution: state.resolution,
+      seedLocked: state.seedLocked,
+      seedValue: state.seedValue,
+      removeBackgroundOnly: state.removeBackgroundOnly,
+      selectedPresetId: state.selectedPresetId,
+      getCombinedStyle: state.getCombinedStyle,
+      setSeedValue: state.setSeedValue,
+    },
+    generateLogo,
+    handleRemoveRefBackground,
+    addToHistory,
+    onLogoGenerated,
+  })
 
-    try {
-      // Determine prompt and style based on reference mode
-      const isReplicate = state.referenceImage && state.referenceMode === 'replicate'
-      const effectivePrompt = state.prompt.trim() || (isReplicate ? REPLICATION_PROMPT : INSPIRE_PROMPT)
-      const combinedStyle = isReplicate ? '' : state.getCombinedStyle()
-
-      // Build negative prompt with text-only handling
-      let finalNegativePrompt = state.negativePrompt.trim()
-      if (isTextOnlyLogo(effectivePrompt)) {
-        finalNegativePrompt = buildTextOnlyNegativePrompt(finalNegativePrompt)
-      }
-
-      const logo = await generateLogo({
-        prompt: effectivePrompt,
-        negativePrompt: finalNegativePrompt || undefined,
-        style: combinedStyle,
-        referenceImage: state.referenceImage?.file,
-        bgRemovalMethod: state.bgRemovalMethod,
-        resolution: state.resolution,
-        seed: state.seedLocked ? state.seedValue : undefined
-      })
-
-      if (logo.seed !== undefined) state.setSeedValue(logo.seed)
-
-      addToHistory({
-        imageUrl: logo.url,
-        prompt: state.prompt.trim() || (state.referenceImage ? '[Reference Image]' : effectivePrompt),
-        negativePrompt: state.negativePrompt.trim() || undefined,
-        seed: logo.seed,
-        style: combinedStyle,
-        presetId: state.selectedPresetId,
-        config: state.referenceImage ? {
-          referenceMode: state.referenceMode,
-          wasReplication: isReplicate,
-          resolution: state.resolution,
-          bgRemovalMethod: state.bgRemovalMethod
-        } : undefined
-      })
-
-      onLogoGenerated?.(logo.url)
-      toast.info("If you don't like this logo, generate again for a better result!", { duration: 5000, position: 'top-center' })
-    } catch (err) {
-      // Error handled by hook
-    }
-  }
-
-  const handleToggleFavorite = () => {
-    if (!generatedLogo) return
-    toggleFavorite(generatedLogo.url, {
-      style: generatedLogo.style,
-      params: { prompt: generatedLogo.prompt, bgRemovalMethod: generatedLogo.bgRemovalMethod, seed: generatedLogo.seed }
-    })
-  }
+  const { handleToggleFavorite } = useLogoFavorite({
+    generatedLogo,
+    toggleFavorite,
+  })
 
   const handleClearAll = () => { state.handleClearAll(); clearLogo() }
 

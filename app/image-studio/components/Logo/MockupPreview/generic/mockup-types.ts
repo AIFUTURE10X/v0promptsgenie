@@ -207,6 +207,11 @@ export interface CategoryDefinition {
 // ============ State Types ============
 
 /**
+ * Available text effects
+ */
+export type TextEffect = 'none' | '3d' | 'embossed' | 'floating' | 'debossed' | 'extrude' | 'solid-block'
+
+/**
  * Text item for multiple text support
  */
 export interface TextItem {
@@ -214,16 +219,13 @@ export interface TextItem {
   content: string
   position: Position
   scale: number
+  scaleX?: number  // Independent width scale
+  scaleY?: number  // Independent height scale
   font: string
   color: string
   effect: TextEffect
   rotation: number
 }
-
-/**
- * Available text effects
- */
-export type TextEffect = 'none' | '3d' | 'embossed' | 'floating' | 'debossed' | 'extrude'
 
 /**
  * Complete mockup state (used by GenericMockup component)
@@ -255,6 +257,24 @@ export interface MockupState {
   isEditingName: boolean
 }
 
+// ============ Brand Settings for Preset Save/Load ============
+
+/**
+ * Brand text settings that can be saved with presets
+ */
+export interface BrandSettings {
+  editableBrandName: string
+  brandPosition: Position
+  brandScale: number
+  brandFont: string
+  brandColor: string
+  brandEffect: TextEffect
+  brandRotation: number
+  brandWeight: number
+  showBrandName: boolean
+  textItems: TextItem[]
+}
+
 // ============ Export Controls ============
 
 /**
@@ -270,4 +290,6 @@ export interface MockupExportControls {
   handleExportPDF: () => Promise<void>
   /** Capture the current mockup as a canvas element */
   captureCanvas: () => Promise<HTMLCanvasElement | null>
+  /** Get current brand settings for preset saving */
+  getBrandSettings?: () => BrandSettings
 }

@@ -213,7 +213,7 @@ export function BatchModePanel({ isActive, onBatchGenerate }: BatchModePanelProp
                 value={prompt.text}
                 onChange={(e) => handlePromptChange(prompt.id, e.target.value)}
                 placeholder={`Enter prompt ${index + 1}...`}
-                className="min-h-[80px] bg-background border-border text-foreground placeholder:text-muted-foreground"
+                className="min-h-20 bg-background border-border text-foreground placeholder:text-muted-foreground"
               />
             </div>
           ))}

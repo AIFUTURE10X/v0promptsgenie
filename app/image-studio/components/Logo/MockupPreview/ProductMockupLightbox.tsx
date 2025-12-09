@@ -6,11 +6,11 @@
  * Full-screen lightbox for viewing product mockups with settings
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { GenericMockup } from './generic'
 import { getMockupConfig } from './configs'
-import type { MockupConfig } from './generic/mockup-types'
+import type { MockupConfig, BrandSettings } from './generic/mockup-types'
 
 interface ProductMockupLightboxProps {
   isOpen: boolean
@@ -25,6 +25,10 @@ interface ProductMockupLightboxProps {
   customProductImageUrl?: string
   /** Pre-processed logo URL (already has BG removed) */
   processedLogoUrl?: string
+  /** Saved brand settings to restore in lightbox */
+  savedBrandSettings?: BrandSettings | null
+  /** Callback when BG is removed in lightbox - propagates to parent */
+  onProcessedLogoChange?: (url: string | null) => void
 }
 
 export function ProductMockupLightbox({
@@ -37,7 +41,34 @@ export function ProductMockupLightbox({
   config: configOverride,
   customProductImageUrl,
   processedLogoUrl,
+  savedBrandSettings,
+  onProcessedLogoChange,
 }: ProductMockupLightboxProps) {
+  // Local state for BG removal done within the lightbox
+  const [lightboxProcessedUrl, setLightboxProcessedUrl] = useState<string | null>(null)
+
+  // Handler that updates both local state AND notifies parent
+  // This ensures BG removal done in lightbox persists when lightbox closes
+  const handleLightboxProcessedChange = (url: string | null) => {
+    setLightboxProcessedUrl(url)
+    onProcessedLogoChange?.(url)  // Propagate to parent so it persists!
+  }
+
+  // Use parent's processed URL first, then lightbox's local processed URL
+  const effectiveProcessedUrl = processedLogoUrl || lightboxProcessedUrl || undefined
+
+  // Debug logging - track what URLs are being received
+  console.log('[ProductMockupLightbox] Render:', {
+    isOpen,
+    parentProcessedUrl: processedLogoUrl?.substring(0, 60),
+    lightboxProcessedUrl: lightboxProcessedUrl?.substring(0, 60),
+    effectiveProcessedUrl: effectiveProcessedUrl?.substring(0, 60),
+    originalLogoUrl: logoUrl?.substring(0, 60),
+    using: processedLogoUrl ? 'PARENT (main panel BG-removed)' :
+           lightboxProcessedUrl ? 'LIGHTBOX (local BG-removed)' :
+           'ORIGINAL (no BG removal)',
+  })
+
   // Handle ESC key to close
   useEffect(() => {
     if (!isOpen) return
@@ -84,7 +115,9 @@ export function ProductMockupLightbox({
           logoFilter={logoFilter}
           hideControls={false}
           customProductImageUrl={customProductImageUrl}
-          externalProcessedLogoUrl={processedLogoUrl}
+          externalProcessedLogoUrl={effectiveProcessedUrl}
+          onProcessedLogoChange={handleLightboxProcessedChange}
+          savedBrandSettings={savedBrandSettings}
         />
       </div>
     </div>

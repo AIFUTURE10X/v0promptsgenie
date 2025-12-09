@@ -3,35 +3,38 @@
 /**
  * LogoHistoryPanel Component
  *
- * Collapsible panel showing logo generation history with filters
+ * Collapsible panel showing logo generation history with filters.
+ * Toolbar extracted to HistoryToolbar.tsx to keep files under 300 lines.
  */
 
-import { useState } from 'react'
-import {
-  History,
-  ChevronDown,
-  ChevronUp,
-  Heart,
-  Trash2,
-  GitCompare,
-  Filter,
-  CheckSquare,
-  Square
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useState, useEffect, MutableRefObject } from 'react'
+import { History, ChevronDown, ChevronUp, Heart } from 'lucide-react'
 import { HistoryItem } from './HistoryItem'
+import { HistoryToolbar } from './HistoryToolbar'
 import { useLogoHistory, LogoHistoryItem } from './useLogoHistory'
 
 interface LogoHistoryPanelProps {
-  onUseSettings: (item: LogoHistoryItem) => void
+  onUseSettings?: (item: LogoHistoryItem) => void
   onLoadImage?: (item: LogoHistoryItem) => void
-  onCompare: (items: LogoHistoryItem[]) => void
+  onCompare?: (items: LogoHistoryItem[]) => void
+  /** Filter to show only items with this style ('logo' or 'mockup') */
+  filterStyle?: 'logo' | 'mockup'
+  /** Compact mode for sidebar placement */
+  compact?: boolean
+  /** Ref to expose refresh function to parent for triggering refresh after external saves */
+  refreshRef?: MutableRefObject<(() => void) | null>
+  /** When true, removes the collapsible header and shows content directly with full height */
+  alwaysExpanded?: boolean
 }
 
 export function LogoHistoryPanel({
   onUseSettings,
   onLoadImage,
-  onCompare
+  onCompare,
+  filterStyle,
+  compact = false,
+  refreshRef,
+  alwaysExpanded = false
 }: LogoHistoryPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
@@ -60,196 +63,126 @@ export function LogoHistoryPanel({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  const displayItems = showFavoritesOnly
-    ? items.filter(i => i.isFavorited)
+  // Expose syncFromCloud to parent via ref for triggering refresh after external saves
+  useEffect(() => {
+    if (refreshRef) {
+      refreshRef.current = syncFromCloud
+    }
+    return () => {
+      if (refreshRef) {
+        refreshRef.current = null
+      }
+    }
+  }, [refreshRef, syncFromCloud])
+
+  // Filter by style first, then by favorites
+  const styleFilteredItems = filterStyle
+    ? items.filter(i => filterStyle === 'mockup' ? i.style === 'mockup' : i.style !== 'mockup')
     : items
+
+  const displayItems = showFavoritesOnly
+    ? styleFilteredItems.filter(i => i.isFavorited)
+    : styleFilteredItems
+
+  // Count favorites within filtered items
+  const filteredFavoritesCount = styleFilteredItems.filter(i => i.isFavorited).length
 
   const handleCompare = () => {
     const comparisonItems = getComparisonItems()
-    if (comparisonItems.length >= 2) {
+    if (comparisonItems.length >= 2 && onCompare) {
       onCompare(comparisonItems)
     }
   }
 
+  // Dynamic labels based on filter
+  const historyLabel = filterStyle === 'mockup' ? 'Mockup History' : 'Generation History'
+  const displayCount = styleFilteredItems.length
+
+  // Determine if content should be shown
+  const showContent = alwaysExpanded || isExpanded
+
   return (
-    <div className="space-y-2">
-      {/* Header Toggle */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-white transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <History className="w-4 h-4 text-blue-400" />
-          <span>Generation History</span>
-          <span className="text-xs text-zinc-500">({totalCount})</span>
-          {favoritesCount > 0 && (
-            <span className="flex items-center gap-1 text-xs text-red-400">
-              <Heart className="w-3 h-3 fill-current" />
-              {favoritesCount}
-            </span>
-          )}
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-zinc-400" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-zinc-400" />
-        )}
-      </button>
-
-      {/* Expanded Content */}
-      {isExpanded && (
-        <div className="bg-zinc-800/30 border border-zinc-700 rounded-lg p-3 space-y-3">
-          {/* Toolbar */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {/* Select All checkbox */}
-              <button
-                onClick={() => {
-                  if (selectedForComparison.length === displayItems.length) {
-                    clearComparisonSelection()
-                  } else {
-                    selectAll()
-                  }
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-zinc-700 text-zinc-400 hover:text-white transition-colors"
-                title={selectedForComparison.length === displayItems.length ? 'Deselect all' : 'Select all'}
-              >
-                {selectedForComparison.length === displayItems.length && displayItems.length > 0 ? (
-                  <CheckSquare className="w-3 h-3 text-purple-400" />
-                ) : (
-                  <Square className="w-3 h-3" />
-                )}
-                {selectedForComparison.length > 0 ? `${selectedForComparison.length} selected` : 'Select All'}
-              </button>
-
-              {/* Favorites filter */}
-              <button
-                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-                  showFavoritesOnly
-                    ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    : 'bg-zinc-700 text-zinc-400 hover:text-white'
-                }`}
-              >
-                <Heart className={`w-3 h-3 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-                Favorites
-              </button>
-
-              {/* Delete Selected button */}
-              {selectedForComparison.length > 0 && (
-                <>
-                  {showDeleteConfirm ? (
-                    <div className="flex items-center gap-1 bg-red-500/10 rounded px-2 py-1 border border-red-500/30">
-                      <span className="text-[10px] text-red-400">Delete {selectedForComparison.length}?</span>
-                      <Button
-                        onClick={async () => {
-                          setIsDeleting(true)
-                          await deleteSelected()
-                          setIsDeleting(false)
-                          setShowDeleteConfirm(false)
-                        }}
-                        disabled={isDeleting}
-                        size="sm"
-                        className="h-5 px-2 text-[10px] bg-red-500 hover:bg-red-600 text-white"
-                      >
-                        {isDeleting ? 'Deleting...' : 'Yes'}
-                      </Button>
-                      <Button
-                        onClick={() => setShowDeleteConfirm(false)}
-                        size="sm"
-                        variant="ghost"
-                        className="h-5 px-2 text-[10px] text-zinc-400"
-                      >
-                        No
-                      </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => setShowDeleteConfirm(true)}
-                      size="sm"
-                      className="h-6 px-2 text-xs bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
-                    >
-                      <Trash2 className="w-3 h-3 mr-1" />
-                      Delete Selected
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {/* Compare button */}
-              {selectedForComparison.length >= 2 && selectedForComparison.length <= 4 && (
-                <Button
-                  onClick={handleCompare}
-                  size="sm"
-                  className="h-6 px-2 text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500/30"
-                >
-                  <GitCompare className="w-3 h-3 mr-1" />
-                  Compare
-                </Button>
-              )}
-
-              {selectedForComparison.length > 0 && (
-                <button
-                  onClick={clearComparisonSelection}
-                  className="text-xs text-zinc-500 hover:text-white"
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-
-            {/* Sync and Clear */}
-            <div className="flex items-center gap-2">
-              {/* Sync button */}
-              <button
-                onClick={syncFromCloud}
-                disabled={isSyncing}
-                className={`p-1 rounded transition-colors ${
-                  isSyncing ? 'text-blue-400 animate-spin' : 'text-zinc-500 hover:text-blue-400'
-                }`}
-                title="Sync from cloud"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-
-              {/* Clear history */}
-              <div className="relative">
-                {showClearConfirm ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-zinc-400">Clear all?</span>
-                    <Button
-                      onClick={() => {
-                        clearAllHistory()
-                        setShowClearConfirm(false)
-                      }}
-                      size="sm"
-                      className="h-5 px-2 text-[10px] bg-red-500/20 text-red-400"
-                    >
-                      Yes
-                    </Button>
-                    <Button
-                      onClick={() => setShowClearConfirm(false)}
-                      size="sm"
-                      variant="ghost"
-                      className="h-5 px-2 text-[10px] text-zinc-400"
-                    >
-                      No
-                    </Button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setShowClearConfirm(true)}
-                    className="p-1 text-zinc-500 hover:text-red-400 rounded transition-colors"
-                    title="Clear history"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            </div>
+    <div className={alwaysExpanded ? "h-full flex flex-col" : (compact ? "space-y-1" : "space-y-2")}>
+      {/* Header Toggle - only show when not always expanded */}
+      {!alwaysExpanded && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={`w-full flex items-center justify-between bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 rounded-lg text-white transition-colors ${
+            compact ? "px-2 py-1.5 text-xs" : "px-3 py-2 text-sm"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <History className={`${compact ? "w-3 h-3" : "w-4 h-4"} text-blue-400`} />
+            <span>{historyLabel}</span>
+            <span className="text-xs text-zinc-500">({displayCount})</span>
+            {filteredFavoritesCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-red-400">
+                <Heart className="w-3 h-3 fill-current" />
+                {filteredFavoritesCount}
+              </span>
+            )}
           </div>
+          {isExpanded ? (
+            <ChevronUp className={`${compact ? "w-3 h-3" : "w-4 h-4"} text-zinc-400`} />
+          ) : (
+            <ChevronDown className={`${compact ? "w-3 h-3" : "w-4 h-4"} text-zinc-400`} />
+          )}
+        </button>
+      )}
+
+      {/* Always Expanded Header - simple title bar */}
+      {alwaysExpanded && (
+        <div className="flex items-center justify-between px-1 py-2 border-b border-zinc-700 shrink-0">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-blue-400" />
+            <span className="text-sm font-medium text-white">{historyLabel}</span>
+            <span className="text-xs text-zinc-500">({displayCount})</span>
+            {filteredFavoritesCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-red-400">
+                <Heart className="w-3 h-3 fill-current" />
+                {filteredFavoritesCount}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Content */}
+      {showContent && (
+        <div className={alwaysExpanded
+          ? "flex-1 flex flex-col space-y-2 overflow-hidden"
+          : `bg-zinc-800/30 border border-zinc-700 rounded-lg space-y-2 ${compact ? "p-2 min-w-[320px]" : "p-3 space-y-3"}`
+        }>
+          {/* Toolbar */}
+          <HistoryToolbar
+            displayItemsCount={displayItems.length}
+            selectedCount={selectedForComparison.length}
+            allSelected={selectedForComparison.length === displayItems.length && displayItems.length > 0}
+            showFavoritesOnly={showFavoritesOnly}
+            showDeleteConfirm={showDeleteConfirm}
+            isDeleting={isDeleting}
+            isSyncing={isSyncing}
+            showClearConfirm={showClearConfirm}
+            onSelectAll={() => {
+              if (selectedForComparison.length === displayItems.length) {
+                clearComparisonSelection()
+              } else {
+                selectAll()
+              }
+            }}
+            onClearSelection={clearComparisonSelection}
+            onToggleFavoritesFilter={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            onShowDeleteConfirm={setShowDeleteConfirm}
+            onDeleteSelected={async () => {
+              setIsDeleting(true)
+              await deleteSelected()
+              setIsDeleting(false)
+            }}
+            onCompare={handleCompare}
+            onSync={syncFromCloud}
+            onShowClearConfirm={setShowClearConfirm}
+            onClearAll={clearAllHistory}
+          />
 
           {/* Selection hint */}
           {selectedForComparison.length > 0 && selectedForComparison.length < 2 && (
@@ -260,20 +193,26 @@ export function LogoHistoryPanel({
 
           {/* History grid */}
           {displayItems.length > 0 ? (
-            <div className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto pr-1">
+            <div className={`grid gap-2 pr-1 ${
+              alwaysExpanded
+                ? "grid-cols-4 overflow-y-auto scrollbar-hide max-h-[400px]"
+                : `overflow-y-auto ${compact ? "grid-cols-2 max-h-[400px]" : "grid-cols-3 max-h-[300px]"}`
+            }`}>
               {displayItems.map((item) => (
-                <HistoryItem
-                  key={item.id}
-                  item={item}
-                  isSelected={selectedForComparison.includes(item.id)}
-                  onToggleSelect={() => toggleComparisonSelection(item.id)}
-                  onToggleFavorite={() => toggleFavorite(item.id)}
-                  onSetRating={(rating) => setRating(item.id, rating)}
-                  onDelete={() => removeFromHistory(item.id)}
-                  onUseSettings={() => onUseSettings(item)}
-                  onLoadImage={onLoadImage ? () => onLoadImage(item) : undefined}
-                  canSelect={true}
-                />
+                <div key={item.id}>
+                  <HistoryItem
+                    item={item}
+                    isSelected={selectedForComparison.includes(item.id)}
+                    onToggleSelect={() => toggleComparisonSelection(item.id)}
+                    onToggleFavorite={() => toggleFavorite(item.id)}
+                    onSetRating={(rating) => setRating(item.id, rating)}
+                    onDelete={() => removeFromHistory(item.id)}
+                    onUseSettings={onUseSettings ? () => onUseSettings(item) : () => {}}
+                    onLoadImage={onLoadImage ? () => onLoadImage(item) : undefined}
+                    canSelect={true}
+                    hideUseSettings={filterStyle === 'mockup'}
+                  />
+                </div>
               ))}
             </div>
           ) : (

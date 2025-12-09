@@ -4,11 +4,10 @@
  * Generic Mockup Component
  *
  * Config-driven mockup that works with any product type.
- * State management, drag/drop, and export are handled generically.
+ * State, drag/drop, and export are handled by extracted hooks.
  */
 
-import { useState, useRef, useEffect, useCallback, useMemo, ComponentType, MutableRefObject } from 'react'
-import { Maximize2 } from 'lucide-react'
+import { useRef, useEffect, useMemo, ComponentType } from 'react'
 import { buildGoogleFontsUrl } from '@/app/image-studio/constants/real-fonts'
 import { LogoDraggable } from '../LogoDraggable'
 import { BrandTextDraggable } from '../BrandTextDraggable'
@@ -17,32 +16,25 @@ import { LogoSidebar, BrandSidebar } from '../shared'
 import { MockupControls } from '../MockupControls'
 import { useGenericDrag } from './useGenericDrag'
 import { useGenericExport } from './useGenericExport'
-import type { MockupConfig, ProductColor, Position, TextEffect, TextItem, MockupExportControls, ShapeRendererProps, MockupView } from './mockup-types'
-import { createTextItem } from '../text-effects-config'
+import { useGenericMockupState } from './useGenericMockupState'
+import { useTextItemHandlers } from './useTextItemHandlers'
+import { useBackgroundRemoval } from './useBackgroundRemoval'
+import type { MockupConfig, MockupExportControls, ShapeRendererProps, BrandSettings } from './mockup-types'
 
 interface GenericMockupProps {
-  /** Mockup configuration */
   config: MockupConfig
-  /** Logo image URL (optional - shows blank product if not provided) */
   logoUrl?: string
-  /** Initial brand name */
   brandName?: string
-  /** Callback after export */
   onExport?: (format: 'png', dataUrl: string) => void
-  /** Callback when controls are ready (for parent integration) */
   onControlsReady?: (controls: MockupExportControls) => void
-  /** Hide bottom controls (parent handles them) */
   hideControls?: boolean
-  /** CSS filter to apply to the logo */
   logoFilter?: React.CSSProperties
-  /** Custom product image URL (for custom-upload product type) */
   customProductImageUrl?: string
-  /** Callback when custom product image is uploaded */
   onCustomProductImageUpload?: (url: string) => void
-  /** Pre-processed logo URL (already has BG removed) - allows sharing across instances */
   externalProcessedLogoUrl?: string
-  /** Callback when logo BG is removed - allows parent to track processed URL */
   onProcessedLogoChange?: (url: string | null) => void
+  /** Saved brand settings to restore when loading a preset */
+  savedBrandSettings?: BrandSettings | null
 }
 
 export function GenericMockup({
@@ -57,123 +49,95 @@ export function GenericMockup({
   onCustomProductImageUpload,
   externalProcessedLogoUrl,
   onProcessedLogoChange,
+  savedBrandSettings,
 }: GenericMockupProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Product color
-  const [selectedColor, setSelectedColor] = useState<ProductColor>(
-    config.colors.find(c => c.id === config.defaultColorId) || config.colors[0]
-  )
-  const [showColorPicker, setShowColorPicker] = useState(false)
+  // State management hook
+  const state = useGenericMockupState({
+    config,
+    brandName,
+    externalProcessedLogoUrl,
+    logoUrl,
+    customProductImageUrl,
+    onProcessedLogoChange,
+    savedBrandSettings,
+  })
 
-  // Logo state
-  const [logoPosition, setLogoPosition] = useState<Position>(config.defaultLogoPosition)
-  const [logoScale, setLogoScale] = useState(config.defaultLogoScale)
+  // Text item handlers
+  const textHandlers = useTextItemHandlers({
+    textItems: state.textItems,
+    setTextItems: state.setTextItems,
+    selectedTextId: state.selectedTextId,
+    setSelectedTextId: state.setSelectedTextId,
+    setEditableBrandName: state.setEditableBrandName,
+    setBrandFont: state.setBrandFont,
+    setBrandColor: state.setBrandColor,
+    setBrandScale: state.setBrandScale,
+    setBrandEffect: state.setBrandEffect,
+    setBrandRotation: state.setBrandRotation,
+    setBrandPosition: state.setBrandPosition,
+  })
 
-  // Brand text state
-  const [showBrandName, setShowBrandName] = useState(true)
-  const [editableBrandName, setEditableBrandName] = useState(brandName)
-  const [brandPosition, setBrandPosition] = useState<Position>(config.defaultTextPosition)
-  const [brandScale, setBrandScale] = useState(config.defaultTextScale)
-  const [brandFont, setBrandFont] = useState<string>('montserrat')
-  const [brandColor, setBrandColor] = useState<string>('#ffffff')
-  const [brandEffect, setBrandEffect] = useState<TextEffect>('none')
-  const [brandRotation, setBrandRotation] = useState(0)
-  const [brandWeight, setBrandWeight] = useState(400)
-  const [showFontPicker, setShowFontPicker] = useState(false)
-
-  // Multiple text items
-  const [textItems, setTextItems] = useState<TextItem[]>([])
-  const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
-
-  // Background removal state
-  const [isRemovingBg, setIsRemovingBg] = useState(false)
-  const [processedLogoUrl, setProcessedLogoUrl] = useState<string | null>(null)
-  const [processedProductUrl, setProcessedProductUrl] = useState<string | null>(null)
-
-  // View state (front/back for apparel)
-  const [selectedView, setSelectedView] = useState<MockupView>('front')
-  const hasMultipleViews = (config.features?.multipleViews?.length ?? 0) > 1
-
-  // Use ref to always have latest callback (avoids stale closure in useCallback)
-  const onProcessedLogoChangeRef = useRef(onProcessedLogoChange)
-  useEffect(() => {
-    onProcessedLogoChangeRef.current = onProcessedLogoChange
-  }, [onProcessedLogoChange])
-
-  // Reset processed logo when original logo changes
-  useEffect(() => {
-    setProcessedLogoUrl(null)
-  }, [logoUrl])
-
-  // Reset processed product when original product changes
-  useEffect(() => {
-    setProcessedProductUrl(null)
-  }, [customProductImageUrl])
-
-  // Use external processed URL (from parent), then local processed, then original
-  const effectiveLogoUrl = externalProcessedLogoUrl || processedLogoUrl || logoUrl
-
-  // Use processed product image if available
-  const effectiveProductImageUrl = processedProductUrl || customProductImageUrl
+  // Background removal handler
+  const { handleRemoveBackground } = useBackgroundRemoval({
+    effectiveLogoUrl: state.effectiveLogoUrl,
+    effectiveProductImageUrl: state.effectiveProductImageUrl,
+    isRemovingBg: state.isRemovingBg,
+    setIsRemovingBg: state.setIsRemovingBg,
+    setProcessedLogoUrl: state.setProcessedLogoUrl,
+    setProcessedProductUrl: state.setProcessedProductUrl,
+    onProcessedLogoChangeRef: state.onProcessedLogoChangeRef,
+  })
 
   // Shape component from config
   const ShapeComponent = config.shapeComponent as ComponentType<ShapeRendererProps>
 
-  // Photo URL computation (for photo-based rendering)
-  const [photoLoadFailed, setPhotoLoadFailed] = useState(false)
+  // Photo URL computation
   const photoUrl = useMemo(() => {
     if (!config.photoAssets) return null
-    const colorPhoto = config.photoAssets.colorMap[selectedColor.id]
+    const colorPhoto = config.photoAssets.colorMap[state.selectedColor.id]
     const photo = colorPhoto || config.photoAssets.fallbackPhoto
     if (!photo) return null
     return `${config.photoAssets.baseUrl}${photo}`
-  }, [config.photoAssets, selectedColor.id])
+  }, [config.photoAssets, state.selectedColor.id])
 
-  // Determine render mode: photo (if available and not failed) or svg
-  const usePhotoRendering = config.renderMode === 'photo' && photoUrl && !photoLoadFailed
-
-  // Reset photo load state when color changes
-  useEffect(() => {
-    setPhotoLoadFailed(false)
-  }, [selectedColor.id])
+  const usePhotoRendering = config.renderMode === 'photo' && photoUrl && !state.photoLoadFailed
 
   // Drag hook
   const drag = useGenericDrag({
     containerRef,
     logoPrintArea: config.logoPrintArea,
     textPrintArea: config.textPrintArea,
-    logoPosition,
-    onLogoPositionChange: setLogoPosition,
-    brandPosition,
-    onBrandPositionChange: setBrandPosition,
-    textItems,
-    onTextItemsChange: setTextItems,
-    selectedTextId,
-    onSelectedTextIdChange: setSelectedTextId,
+    logoPosition: state.logoPosition,
+    onLogoPositionChange: state.setLogoPosition,
+    brandPosition: state.brandPosition,
+    onBrandPositionChange: state.setBrandPosition,
+    textItems: state.textItems,
+    onTextItemsChange: state.setTextItems,
+    selectedTextId: state.selectedTextId,
+    onSelectedTextIdChange: state.setSelectedTextId,
   })
 
   // Export hook
   const exportState = useGenericExport({
     mockupConfig: config,
-    logoUrl: effectiveLogoUrl,
-    logoPosition,
-    logoScale,
-    selectedColor,
-    showBrandName,
-    brandName: editableBrandName,
-    brandFont,
-    brandColor,
-    brandPosition,
-    brandScale,
-    brandEffect,
-    brandRotation,
-    textItems,
+    logoUrl: state.effectiveLogoUrl,
+    logoPosition: state.logoPosition,
+    logoScale: state.logoScale,
+    selectedColor: state.selectedColor,
+    showBrandName: state.showBrandName,
+    brandName: state.editableBrandName,
+    brandFont: state.brandFont,
+    brandColor: state.brandColor,
+    brandPosition: state.brandPosition,
+    brandScale: state.brandScale,
+    brandEffect: state.brandEffect,
+    brandRotation: state.brandRotation,
+    textItems: state.textItems,
     onExport,
-    // Photo rendering support
     photoUrl: usePhotoRendering ? photoUrl : null,
-    // View support
-    view: selectedView,
+    view: state.selectedView,
   })
 
   // Load Google Fonts
@@ -185,121 +149,6 @@ export function GenericMockup({
     return () => { document.head.removeChild(link) }
   }, [])
 
-  // Reset handler
-  const handleReset = useCallback(() => {
-    console.log('[GenericMockup] Reset triggered - resetting all positions and settings')
-    // Reset logo position and scale
-    setLogoPosition(config.defaultLogoPosition)
-    setLogoScale(config.defaultLogoScale)
-    // Reset brand text (including the editable name)
-    setEditableBrandName(brandName)
-    setBrandPosition(config.defaultTextPosition)
-    setBrandScale(config.defaultTextScale)
-    setBrandFont('montserrat')
-    setBrandColor('#ffffff')
-    setBrandEffect('none')
-    setBrandRotation(0)
-    setBrandWeight(400)
-    // Reset additional text items
-    setTextItems([])
-    setSelectedTextId(null)
-    // Reset color to default
-    const defaultColor = config.colors.find(c => c.id === config.defaultColorId) || config.colors[0]
-    setSelectedColor(defaultColor)
-    // Reset photo load state
-    setPhotoLoadFailed(false)
-    // Reset view to front
-    setSelectedView('front')
-  }, [config, brandName])
-
-  // Text item handlers
-  const handleAddText = useCallback(() => {
-    const newItem = createTextItem({
-      content: `Text ${textItems.length + 1}`,
-      position: { x: 50, y: 65 + (textItems.length * 8) % 30 },
-    })
-    setTextItems(prev => [...prev, newItem])
-    setSelectedTextId(newItem.id)
-  }, [textItems.length])
-
-  const handleRemoveText = useCallback((id: string) => {
-    setTextItems(prev => prev.filter(item => item.id !== id))
-    if (selectedTextId === id) setSelectedTextId(null)
-  }, [selectedTextId])
-
-  const handleSelectText = useCallback((id: string) => {
-    setSelectedTextId(id)
-    const item = textItems.find(t => t.id === id)
-    if (item) {
-      setEditableBrandName(item.content)
-      setBrandFont(item.font)
-      setBrandColor(item.color)
-      setBrandScale(item.scale)
-      setBrandEffect(item.effect)
-      setBrandRotation(item.rotation)
-      setBrandPosition(item.position)
-    }
-  }, [textItems])
-
-  const handleUpdateSelectedText = useCallback((updates: Partial<TextItem>) => {
-    if (!selectedTextId) return
-    setTextItems(prev => prev.map(item =>
-      item.id === selectedTextId ? { ...item, ...updates } : item
-    ))
-  }, [selectedTextId])
-
-  const handleUpdateTextContent = useCallback((id: string, content: string) => {
-    setTextItems(prev => prev.map(item =>
-      item.id === id ? { ...item, content } : item
-    ))
-  }, [])
-
-  // Remove background from logo or custom product image
-  const handleRemoveBackground = useCallback(async () => {
-    // Determine which image to process - logo first, then custom product
-    const imageToProcess = effectiveLogoUrl || effectiveProductImageUrl
-    const isProcessingProduct = !effectiveLogoUrl && !!effectiveProductImageUrl
-
-    if (!imageToProcess || isRemovingBg) return
-
-    setIsRemovingBg(true)
-    try {
-      // Fetch the image
-      const response = await fetch(imageToProcess)
-      const blob = await response.blob()
-      const file = new File([blob], 'image.png', { type: 'image/png' })
-
-      // Call the API with Replicate method
-      const formData = new FormData()
-      formData.append('image', file)
-      formData.append('bgRemovalMethod', 'replicate')
-
-      const result = await fetch('/api/remove-background', {
-        method: 'POST',
-        body: formData,
-      })
-
-      const data = await result.json()
-      if (data.success && data.image) {
-        console.log('[GenericMockup] Background removal succeeded, new URL:', data.image?.substring(0, 50))
-        if (isProcessingProduct) {
-          setProcessedProductUrl(data.image)
-        } else {
-          setProcessedLogoUrl(data.image)
-          // Notify parent via ref (avoids stale closure)
-          console.log('[GenericMockup] Calling onProcessedLogoChangeRef.current')
-          onProcessedLogoChangeRef.current?.(data.image)
-        }
-      } else {
-        console.error('[GenericMockup] Background removal failed:', data.error)
-      }
-    } catch (error) {
-      console.error('[GenericMockup] Background removal error:', error)
-    } finally {
-      setIsRemovingBg(false)
-    }
-  }, [effectiveLogoUrl, effectiveProductImageUrl, isRemovingBg])
-
   // Pass controls to parent
   useEffect(() => {
     if (onControlsReady) {
@@ -307,90 +156,88 @@ export function GenericMockup({
         isExporting: exportState.isExporting,
         showExportMenu: exportState.showExportMenu,
         setShowExportMenu: exportState.setShowExportMenu,
-        handleReset,
+        handleReset: state.handleReset,
         handleExportPNG: exportState.handleExportPNG,
         handleExportSVG: exportState.handleExportSVG,
         handleExportPDF: exportState.handleExportPDF,
         captureCanvas: exportState.captureCanvas,
+        getBrandSettings: state.getBrandSettings,
       })
     }
-  }, [onControlsReady, exportState, handleReset])
+  }, [onControlsReady, exportState, state.handleReset, state.getBrandSettings])
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex flex-1 min-h-0">
-        {/* Left Sidebar - scrollable */}
+    <div className="h-full flex flex-col overflow-x-hidden">
+      <div className="flex flex-1 min-h-0 overflow-x-hidden overflow-y-auto">
+        {/* Left Sidebar */}
         <div className="overflow-y-auto shrink-0">
           <LogoSidebar
             productLabel={config.name}
             colors={config.colors}
-            selectedColor={selectedColor}
-            showColorPicker={showColorPicker}
-            logoScale={logoScale}
-            onColorSelect={(c) => { setSelectedColor(c); setShowColorPicker(false) }}
-            onToggleColorPicker={() => setShowColorPicker(!showColorPicker)}
-            onScaleIncrease={() => setLogoScale(Math.min(2, logoScale + 0.1))}
-            onScaleDecrease={() => setLogoScale(Math.max(0.5, logoScale - 0.1))}
+            selectedColor={state.selectedColor}
+            showColorPicker={state.showColorPicker}
+            logoScale={state.logoScale}
+            onColorSelect={(c) => { state.setSelectedColor(c); state.setShowColorPicker(false) }}
+            onToggleColorPicker={() => state.setShowColorPicker(!state.showColorPicker)}
+            onScaleIncrease={() => state.setLogoScale(Math.min(2, state.logoScale + 0.1))}
+            onScaleDecrease={() => state.setLogoScale(Math.max(0.5, state.logoScale - 0.1))}
             onRemoveBackground={handleRemoveBackground}
-            isRemovingBackground={isRemovingBg}
-            hasLogo={!!effectiveLogoUrl || !!effectiveProductImageUrl}
-            hasMultipleViews={hasMultipleViews}
-            selectedView={selectedView}
-            onViewChange={setSelectedView}
+            isRemovingBackground={state.isRemovingBg}
+            hasLogo={!!state.effectiveLogoUrl || !!state.effectiveProductImageUrl}
+            hasMultipleViews={state.hasMultipleViews}
+            selectedView={state.selectedView}
+            onViewChange={state.setSelectedView}
           />
         </div>
 
         {/* Center: Mockup Canvas */}
         <div
           ref={containerRef}
-          className="relative flex-1 overflow-hidden bg-zinc-900"
+          className="relative flex-1 shrink-0 overflow-hidden bg-zinc-900"
           style={{ aspectRatio: config.aspectRatio }}
-          onClick={() => setSelectedTextId(null)}
+          onClick={() => state.setSelectedTextId(null)}
         >
           <div className="absolute inset-0">
-            {/* Render photo or SVG shape based on config and availability */}
             {usePhotoRendering ? (
               <PhotoShape
                 photoUrl={photoUrl!}
-                color={selectedColor}
-                onError={() => setPhotoLoadFailed(true)}
+                color={state.selectedColor}
+                onError={() => state.setPhotoLoadFailed(true)}
               />
             ) : (
               <ShapeComponent
-                color={selectedColor}
-                view={selectedView}
-                customImageUrl={effectiveProductImageUrl}
+                color={state.selectedColor}
+                view={state.selectedView}
+                customImageUrl={state.effectiveProductImageUrl}
                 onImageUpload={onCustomProductImageUpload}
               />
             )}
-            {effectiveLogoUrl && (
+            {state.effectiveLogoUrl && (
               <LogoDraggable
-                logoUrl={effectiveLogoUrl}
-                position={logoPosition}
-                scale={logoScale}
+                logoUrl={state.effectiveLogoUrl}
+                position={state.logoPosition}
+                scale={state.logoScale}
                 isDragging={drag.isDragging}
-                isDarkShirt={selectedColor.textColor === 'light'}
+                isDarkShirt={state.selectedColor.textColor === 'light'}
                 onDragStart={drag.handleDragStart}
                 logoFilter={logoFilter}
               />
             )}
             <BrandTextDraggable
-              text={editableBrandName}
-              font={brandFont}
-              color={brandColor}
-              position={brandPosition}
-              scale={brandScale}
-              weight={brandWeight}
-              effect={brandEffect}
-              rotation={brandRotation}
+              text={state.editableBrandName}
+              font={state.brandFont}
+              color={state.brandColor}
+              position={state.brandPosition}
+              scale={state.brandScale}
+              weight={state.brandWeight}
+              effect={state.brandEffect}
+              rotation={state.brandRotation}
               isDragging={drag.isDraggingBrand}
-              isVisible={showBrandName && !selectedTextId}
+              isVisible={state.showBrandName && !state.selectedTextId}
               onDragStart={drag.handleBrandDragStart}
-              onResize={(scaleX, scaleY) => {
-                setBrandScale((scaleX + scaleY) / 2)
-              }}
+              onResize={(scaleX, scaleY) => state.setBrandScale((scaleX + scaleY) / 2)}
             />
-            {textItems.map(item => (
+            {state.textItems.map(item => (
               <BrandTextDraggable
                 key={item.id}
                 id={item.id}
@@ -404,12 +251,12 @@ export function GenericMockup({
                 effect={item.effect}
                 rotation={item.rotation}
                 isDragging={drag.isDraggingBrand && drag.draggingTextId === item.id}
-                isVisible={showBrandName}
-                isSelected={selectedTextId === item.id}
+                isVisible={state.showBrandName}
+                isSelected={state.selectedTextId === item.id}
                 onDragStart={drag.handleBrandDragStart}
-                onClick={() => handleSelectText(item.id)}
+                onClick={() => textHandlers.handleSelectText(item.id)}
                 onResize={(scaleX, scaleY) => {
-                  setTextItems(prev => prev.map(t =>
+                  state.setTextItems(prev => prev.map(t =>
                     t.id === item.id ? { ...t, scaleX, scaleY, scale: (scaleX + scaleY) / 2 } : t
                   ))
                 }}
@@ -428,66 +275,64 @@ export function GenericMockup({
           </div>
         </div>
 
-        {/* Right Sidebar - scrollable */}
-        <div className="overflow-y-auto shrink-0">
+        {/* Right Sidebar */}
+        <div className="overflow-y-auto overflow-x-hidden shrink-0">
           <BrandSidebar
-          showBrandName={showBrandName}
-          editableBrandName={editableBrandName}
-          brandFont={brandFont}
-          brandColor={brandColor}
-          brandScale={brandScale}
-          brandEffect={brandEffect}
-          brandRotation={brandRotation}
-          brandWeight={brandWeight}
-          showFontPicker={showFontPicker}
-          onToggleBrandName={() => setShowBrandName(!showBrandName)}
-          onEditableBrandNameChange={(value) => {
-            setEditableBrandName(value)
-            if (selectedTextId) handleUpdateSelectedText({ content: value })
-          }}
-          onBrandFontChange={(f) => {
-            setBrandFont(f)
-            setShowFontPicker(false)
-            if (selectedTextId) handleUpdateSelectedText({ font: f })
-          }}
-          onBrandColorChange={(c) => {
-            setBrandColor(c)
-            if (selectedTextId) handleUpdateSelectedText({ color: c })
-          }}
-          onBrandScaleIncrease={() => {
-            const newScale = Math.min(8, brandScale + 0.1)
-            setBrandScale(newScale)
-            if (selectedTextId) handleUpdateSelectedText({ scale: newScale })
-          }}
-          onBrandScaleDecrease={() => {
-            const newScale = Math.max(0.5, brandScale - 0.1)
-            setBrandScale(newScale)
-            if (selectedTextId) handleUpdateSelectedText({ scale: newScale })
-          }}
-          onBrandScaleChange={(scale) => {
-            const clampedScale = Math.max(0.5, Math.min(8, scale))
-            setBrandScale(clampedScale)
-            if (selectedTextId) handleUpdateSelectedText({ scale: clampedScale })
-          }}
-          onBrandEffectChange={(e) => {
-            setBrandEffect(e)
-            if (selectedTextId) handleUpdateSelectedText({ effect: e })
-          }}
-          onBrandRotationChange={(r) => {
-            setBrandRotation(r)
-            if (selectedTextId) handleUpdateSelectedText({ rotation: r })
-          }}
-          onBrandWeightChange={(w) => {
-            setBrandWeight(w)
-          }}
-          onToggleFontPicker={() => setShowFontPicker(!showFontPicker)}
-          textItems={textItems}
-          selectedTextId={selectedTextId}
-          onAddText={handleAddText}
-          onRemoveText={handleRemoveText}
-          onSelectText={handleSelectText}
-          onUpdateTextContent={handleUpdateTextContent}
-        />
+            showBrandName={state.showBrandName}
+            editableBrandName={state.editableBrandName}
+            brandFont={state.brandFont}
+            brandColor={state.brandColor}
+            brandScale={state.brandScale}
+            brandEffect={state.brandEffect}
+            brandRotation={state.brandRotation}
+            brandWeight={state.brandWeight}
+            showFontPicker={state.showFontPicker}
+            onToggleBrandName={() => state.setShowBrandName(!state.showBrandName)}
+            onEditableBrandNameChange={(value) => {
+              state.setEditableBrandName(value)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ content: value })
+            }}
+            onBrandFontChange={(f) => {
+              state.setBrandFont(f)
+              state.setShowFontPicker(false)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ font: f })
+            }}
+            onBrandColorChange={(c) => {
+              state.setBrandColor(c)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ color: c })
+            }}
+            onBrandScaleIncrease={() => {
+              const newScale = Math.min(8, state.brandScale + 0.1)
+              state.setBrandScale(newScale)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ scale: newScale })
+            }}
+            onBrandScaleDecrease={() => {
+              const newScale = Math.max(0.5, state.brandScale - 0.1)
+              state.setBrandScale(newScale)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ scale: newScale })
+            }}
+            onBrandScaleChange={(scale) => {
+              const clampedScale = Math.max(0.5, Math.min(8, scale))
+              state.setBrandScale(clampedScale)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ scale: clampedScale })
+            }}
+            onBrandEffectChange={(e) => {
+              state.setBrandEffect(e)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ effect: e })
+            }}
+            onBrandRotationChange={(r) => {
+              state.setBrandRotation(r)
+              if (state.selectedTextId) textHandlers.handleUpdateSelectedText({ rotation: r })
+            }}
+            onBrandWeightChange={state.setBrandWeight}
+            onToggleFontPicker={() => state.setShowFontPicker(!state.showFontPicker)}
+            textItems={state.textItems}
+            selectedTextId={state.selectedTextId}
+            onAddText={textHandlers.handleAddText}
+            onRemoveText={textHandlers.handleRemoveText}
+            onSelectText={textHandlers.handleSelectText}
+            onUpdateTextContent={textHandlers.handleUpdateTextContent}
+          />
         </div>
       </div>
 
@@ -497,7 +342,7 @@ export function GenericMockup({
           <MockupControls
             isExporting={exportState.isExporting}
             showExportMenu={exportState.showExportMenu}
-            onReset={handleReset}
+            onReset={state.handleReset}
             onToggleExportMenu={() => exportState.setShowExportMenu(!exportState.showExportMenu)}
             onExportPNG={exportState.handleExportPNG}
             onExportSVG={exportState.handleExportSVG}

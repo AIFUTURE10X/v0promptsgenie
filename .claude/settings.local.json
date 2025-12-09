@@ -62,7 +62,12 @@
       "Bash(explorer \"http://localhost:3000/image-studio\")",
       "Bash(powershell -Command \"Start-Process ''http://localhost:3000/image-studio''\")",
       "Bash(npm ls:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(cmd /c start \"\" \"http://localhost:3000\")",
+      "Bash(timeout //t 2 //nobreak)",
+      "Bash(echo $GEMINI_API_KEY)",
+      "Bash(export GEMINI_API_KEY=\"AIzaSyCveFfG7T0_oiUHDwgBtQX_TxPQklcSN9w\")",
+      "Bash(timeout /t 30 /nobreak)"
     ],
     "deny": [],
     "ask": []

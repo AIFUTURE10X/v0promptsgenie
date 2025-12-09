@@ -38,6 +38,7 @@ export default function ImageStudioPage() {
   const generatePanelRef = useRef<{ triggerGenerate: () => void; isGenerating: boolean }>(null)
   const [showPhotoGenerator, setShowPhotoGenerator] = useState(false)
 
+
   // Use extracted parameter handlers
   const { handleRestoreParameters, handleResetAll } = useParameterHandlers({
     loadParameters,

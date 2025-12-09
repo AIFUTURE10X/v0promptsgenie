@@ -79,7 +79,7 @@ export function MockupControls({
           ) : (
             <>
               <Save className="w-4 h-4" />
-              Save
+              To History
             </>
           )}
         </button>

@@ -5,6 +5,7 @@
  *
  * Handles PNG, SVG, and PDF export for any mockup type.
  * The shape drawing function comes from the mockup config.
+ * Refactored: Drawing utils extracted to export-utils.ts
  */
 
 import { useState, useCallback } from 'react'
@@ -12,100 +13,10 @@ import jsPDF from 'jspdf'
 import { toast } from 'sonner'
 import { REAL_FONTS } from '@/app/image-studio/constants/real-fonts'
 import type { MockupConfig, ProductColor, Position, TextEffect, TextItem, MockupView } from './mockup-types'
+import { preloadImage, drawTextWithEffect, drawRotatedText } from './export-utils'
 
-// ============ Utility Functions ============
-
-/**
- * Preload image utility - waits for image to fully load
- */
-export function preloadImage(url: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.crossOrigin = 'anonymous'  // Set BEFORE src for CORS
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Image failed to load'))
-    img.src = url
-  })
-}
-
-/**
- * Draw text with effect on canvas
- */
-function drawTextWithEffect(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  color: string,
-  effect: TextEffect
-) {
-  ctx.save()
-
-  switch (effect) {
-    case '3d':
-      for (let i = 4; i >= 1; i--) {
-        ctx.fillStyle = `rgba(0, 0, 0, ${0.2 + (4 - i) * 0.15})`
-        ctx.fillText(text, x + i, y + i)
-      }
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    case 'embossed':
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
-      ctx.fillText(text, x - 1, y - 1)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillText(text, x + 1, y + 1)
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    case 'floating':
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-      ctx.shadowBlur = 8
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 4
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    case 'debossed':
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
-      ctx.fillText(text, x + 1, y + 1)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillText(text, x - 1, y - 1)
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    default:
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-  }
-
-  ctx.restore()
-}
-
-/**
- * Draw text with rotation
- */
-function drawRotatedText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  rotation: number,
-  color: string,
-  effect: TextEffect
-) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate((rotation * Math.PI) / 180)
-  drawTextWithEffect(ctx, text, 0, 0, color, effect)
-  ctx.restore()
-}
-
-// ============ Export Hook ============
+// Re-export preloadImage for backward compatibility
+export { preloadImage }
 
 interface UseGenericExportConfig {
   /** Mockup configuration */
