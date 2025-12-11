@@ -292,4 +292,6 @@ export interface MockupExportControls {
   captureCanvas: () => Promise<HTMLCanvasElement | null>
   /** Get current brand settings for preset saving */
   getBrandSettings?: () => BrandSettings
+  /** Set canvas zoom level (1.0 = 100%) */
+  setCanvasZoom?: (zoom: number) => void
 }

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       prompt,
       aspectRatio: '1:1',
       imageSize: '2K',
-      model: 'gemini-3-pro-image-preview',
+      model: 'gemini-3-pro-image',
     })
 
     if (!result.success || !result.imageBase64) {

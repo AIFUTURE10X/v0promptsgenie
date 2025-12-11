@@ -2,15 +2,14 @@
 
 /**
  * Mockup Export Hook
- * Handles PNG, SVG, and PDF export using manual canvas drawing
- * Supports text effects, rotation, and multiple text items
+ * Handles PNG, SVG, and PDF export using html2canvas to capture rendered DOM
+ * See EXPORT_FIX_REFERENCE.md for documentation on why this approach is used
  */
 
 import { useState, useCallback } from 'react'
+import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { toast } from 'sonner'
-import { REAL_FONTS } from '@/app/image-studio/constants/real-fonts'
-import { preloadImage, drawTShirtShape, CANVAS_WIDTH, CANVAS_HEIGHT, CANVAS_SCALE, CANVAS_Y_OFFSET } from './canvas-export'
 import type { TShirtColor } from './tshirt-assets'
 import type { TextEffect, TextItem } from './text-effects-config'
 
@@ -31,152 +30,31 @@ interface ExportConfig {
   onExport?: (format: 'png', dataUrl: string) => void
 }
 
-// Draw text with effect on canvas
-function drawTextWithEffect(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  color: string,
-  effect: TextEffect
-) {
-  ctx.save()
-
-  switch (effect) {
-    case '3d':
-      // Draw multiple offset shadows for 3D effect
-      for (let i = 4; i >= 1; i--) {
-        ctx.fillStyle = `rgba(0, 0, 0, ${0.2 + (4 - i) * 0.15})`
-        ctx.fillText(text, x + i, y + i)
-      }
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    case 'embossed':
-      // Light shadow top-left
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.4)'
-      ctx.fillText(text, x - 1, y - 1)
-      // Dark shadow bottom-right
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillText(text, x + 1, y + 1)
-      // Main text
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    case 'floating':
-      // Drop shadow
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'
-      ctx.shadowBlur = 8
-      ctx.shadowOffsetX = 0
-      ctx.shadowOffsetY = 4
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    case 'debossed':
-      // Light shadow bottom-right
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'
-      ctx.fillText(text, x + 1, y + 1)
-      // Dark shadow top-left
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
-      ctx.fillText(text, x - 1, y - 1)
-      // Main text
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-      break
-
-    default:
-      // No effect
-      ctx.fillStyle = color
-      ctx.fillText(text, x, y)
-  }
-
-  ctx.restore()
-}
-
-// Draw text with rotation
-function drawRotatedText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  y: number,
-  rotation: number,
-  color: string,
-  effect: TextEffect
-) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate((rotation * Math.PI) / 180)
-  drawTextWithEffect(ctx, text, 0, 0, color, effect)
-  ctx.restore()
-}
-
 export function useMockupExport(config: ExportConfig) {
   const [isExporting, setIsExporting] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
 
+  /**
+   * Capture the rendered mockup using html2canvas
+   * This captures exactly what the user sees - T-shirt, logo, text, and effects
+   */
   const captureCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
     try {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { toast.error('Export failed: Canvas not supported'); return null }
-
-      canvas.width = CANVAS_WIDTH * CANVAS_SCALE
-      canvas.height = CANVAS_HEIGHT * CANVAS_SCALE
-      ctx.scale(CANVAS_SCALE, CANVAS_SCALE)
-
-      ctx.fillStyle = '#18181b'
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-      const isDark = config.selectedColor.textColor === 'light'
-      drawTShirtShape(ctx, config.selectedColor.hex, isDark)
-
-      const logoImg = await preloadImage(config.logoUrl)
-      const logoBaseW = 120 * config.logoScale
-      const logoH = (logoImg.height / logoImg.width) * logoBaseW
-      const logoX = (config.logoPosition.x / 100) * CANVAS_WIDTH - logoBaseW / 2
-      const logoY = (config.logoPosition.y / 100) * CANVAS_HEIGHT - logoH / 2 + 25
-      ctx.drawImage(logoImg, logoX, logoY, logoBaseW, logoH)
-
-      // Draw main brand text (if not using multiple text items or no text selected)
-      if (config.showBrandName && config.editableBrandName && config.textItems.length === 0) {
-        const fontFamily = REAL_FONTS[config.brandFont]?.family || 'sans-serif'
-        const fontSize = 8 * config.brandScale
-        ctx.font = `${fontSize}px ${fontFamily}`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-
-        const textX = (config.brandPosition.x / 100) * CANVAS_WIDTH
-        const textY = (config.brandPosition.y / 100) * CANVAS_HEIGHT + 40
-
-        if (config.brandRotation !== 0) {
-          drawRotatedText(ctx, config.editableBrandName.toUpperCase(), textX, textY, config.brandRotation, config.brandColor, config.brandEffect)
-        } else {
-          drawTextWithEffect(ctx, config.editableBrandName.toUpperCase(), textX, textY, config.brandColor, config.brandEffect)
-        }
+      // Find the mockup container element with data-mockup-capture attribute
+      const mockupElement = document.querySelector('[data-mockup-capture]') as HTMLElement
+      if (!mockupElement) {
+        toast.error('Export failed: Mockup element not found')
+        return null
       }
 
-      // Draw multiple text items
-      if (config.showBrandName && config.textItems.length > 0) {
-        for (const item of config.textItems) {
-          const fontFamily = REAL_FONTS[item.font]?.family || 'sans-serif'
-          const fontSize = 8 * item.scale
-          ctx.font = `${fontSize}px ${fontFamily}`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-
-          const textX = (item.position.x / 100) * CANVAS_WIDTH
-          const textY = (item.position.y / 100) * CANVAS_HEIGHT + 40
-
-          if (item.rotation !== 0) {
-            drawRotatedText(ctx, item.content.toUpperCase(), textX, textY, item.rotation, item.color, item.effect)
-          } else {
-            drawTextWithEffect(ctx, item.content.toUpperCase(), textX, textY, item.color, item.effect)
-          }
-        }
-      }
+      // Use html2canvas to capture the rendered DOM
+      const canvas = await html2canvas(mockupElement, {
+        backgroundColor: '#18181b',
+        scale: 2, // HiDPI support for crisp exports
+        useCORS: true, // Allow cross-origin images
+        allowTaint: true,
+        logging: false,
+      })
 
       return canvas
     } catch (err) {
@@ -184,7 +62,7 @@ export function useMockupExport(config: ExportConfig) {
       toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       return null
     }
-  }, [config])
+  }, [])
 
   const handleExportPNG = useCallback(async () => {
     setIsExporting(true); setShowExportMenu(false)

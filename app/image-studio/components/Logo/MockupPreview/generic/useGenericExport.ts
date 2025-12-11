@@ -4,16 +4,15 @@
  * Generic Mockup Export Hook
  *
  * Handles PNG, SVG, and PDF export for any mockup type.
- * The shape drawing function comes from the mockup config.
- * Refactored: Drawing utils extracted to export-utils.ts
+ * Uses html-to-image for DOM capture (true WYSIWYG export).
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, RefObject } from 'react'
+import { toPng, toCanvas } from 'html-to-image'
 import jsPDF from 'jspdf'
 import { toast } from 'sonner'
-import { REAL_FONTS } from '@/app/image-studio/constants/real-fonts'
 import type { MockupConfig, ProductColor, Position, TextEffect, TextItem, MockupView } from './mockup-types'
-import { preloadImage, drawTextWithEffect, drawRotatedText } from './export-utils'
+import { preloadImage } from './export-utils'
 
 // Re-export preloadImage for backward compatibility
 export { preloadImage }
@@ -21,6 +20,8 @@ export { preloadImage }
 interface UseGenericExportConfig {
   /** Mockup configuration */
   mockupConfig: MockupConfig
+  /** Reference to the mockup container element for DOM capture */
+  containerRef: RefObject<HTMLDivElement>
   /** Logo image URL (optional - can show blank product) */
   logoUrl?: string
   /** Logo position (percentage) */
@@ -59,124 +60,57 @@ export function useGenericExport(config: UseGenericExportConfig) {
   const [isExporting, setIsExporting] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
 
-  const { mockupConfig } = config
-  const canvasWidth = mockupConfig.canvasWidth
-  const canvasHeight = mockupConfig.canvasHeight
+  const { mockupConfig, containerRef } = config
   const scale = mockupConfig.exportConfig.scale || 2
-  const yOffset = mockupConfig.exportConfig.yOffset || 0
 
+  /**
+   * Capture the mockup container as a canvas using html-to-image
+   * This gives TRUE WYSIWYG export - exactly what you see in preview
+   */
   const captureCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
     try {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        toast.error('Export failed: Canvas not supported')
+      const element = containerRef.current
+      if (!element) {
+        toast.error('Export failed: Container not found')
         return null
       }
 
-      // Set up canvas with HiDPI support
-      canvas.width = canvasWidth * scale
-      canvas.height = canvasHeight * scale
-      ctx.scale(scale, scale)
+      console.log('[Export] Starting DOM capture with html-to-image...')
 
-      // Background
-      ctx.fillStyle = '#18181b'
-      ctx.fillRect(0, 0, canvasWidth, canvasHeight)
+      // Temporarily remove background for transparent export
+      element.classList.remove('bg-zinc-900')
 
-      // Draw product shape using photo or SVG
-      if (config.photoUrl) {
-        // Photo-based rendering
-        try {
-          const photoImg = await preloadImage(config.photoUrl)
-          // Calculate aspect-fit dimensions
-          const imgAspect = photoImg.width / photoImg.height
-          const canvasAspect = canvasWidth / canvasHeight
-          let drawWidth: number, drawHeight: number, drawX: number, drawY: number
-
-          if (imgAspect > canvasAspect) {
-            drawWidth = canvasWidth
-            drawHeight = canvasWidth / imgAspect
-            drawX = 0
-            drawY = (canvasHeight - drawHeight) / 2
-          } else {
-            drawHeight = canvasHeight
-            drawWidth = canvasHeight * imgAspect
-            drawX = (canvasWidth - drawWidth) / 2
-            drawY = 0
+      // Use html-to-image to capture the DOM exactly as rendered (true WYSIWYG)
+      const canvas = await toCanvas(element, {
+        pixelRatio: scale,
+        cacheBust: true,
+        backgroundColor: undefined, // Transparent
+        filter: (node) => {
+          // Filter out UI elements that shouldn't be in export (rulers, grids, controls)
+          if (node instanceof Element) {
+            // Keep everything except ruler/grid overlays which have z-30 class
+            const className = node.className?.toString() || ''
+            if (className.includes('z-30') || className.includes('z-5')) {
+              return false // Exclude rulers and grid
+            }
           }
-          ctx.drawImage(photoImg, drawX, drawY, drawWidth, drawHeight)
-        } catch {
-          // Fallback to SVG if photo fails
-          mockupConfig.exportConfig.drawShape(ctx, config.selectedColor, canvasWidth, canvasHeight, config.view)
-        }
-      } else {
-        // SVG-based rendering (fallback)
-        mockupConfig.exportConfig.drawShape(ctx, config.selectedColor, canvasWidth, canvasHeight, config.view)
-      }
+          return true
+        },
+      })
 
-      // Draw logo with blend mode for realistic integration (if provided)
-      if (config.logoUrl) {
-        const logoImg = await preloadImage(config.logoUrl)
-        const logoBaseW = 120 * config.logoScale
-        const logoH = (logoImg.height / logoImg.width) * logoBaseW
-        const logoX = (config.logoPosition.x / 100) * canvasWidth - logoBaseW / 2
-        const logoY = (config.logoPosition.y / 100) * canvasHeight - logoH / 2 + (yOffset > 0 ? 25 : 0)
+      // Restore background after capture
+      element.classList.add('bg-zinc-900')
 
-        // Apply blend mode for photo-based rendering (multiply for light, screen for dark)
-        if (config.photoUrl) {
-          const isDarkProduct = config.selectedColor.textColor === 'light'
-          ctx.globalCompositeOperation = isDarkProduct ? 'screen' : 'multiply'
-        }
-        ctx.drawImage(logoImg, logoX, logoY, logoBaseW, logoH)
-        // Reset blend mode
-        ctx.globalCompositeOperation = 'source-over'
-      }
-
-      // Draw main brand text (if not using multiple text items)
-      if (config.showBrandName && config.brandName && config.textItems.length === 0) {
-        const fontFamily = REAL_FONTS[config.brandFont]?.family || 'sans-serif'
-        const fontSize = 8 * config.brandScale
-        ctx.font = `${fontSize}px ${fontFamily}`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-
-        const textX = (config.brandPosition.x / 100) * canvasWidth
-        const textY = (config.brandPosition.y / 100) * canvasHeight + (yOffset > 0 ? 40 : 0)
-
-        if (config.brandRotation !== 0) {
-          drawRotatedText(ctx, config.brandName.toUpperCase(), textX, textY, config.brandRotation, config.brandColor, config.brandEffect)
-        } else {
-          drawTextWithEffect(ctx, config.brandName.toUpperCase(), textX, textY, config.brandColor, config.brandEffect)
-        }
-      }
-
-      // Draw multiple text items
-      if (config.showBrandName && config.textItems.length > 0) {
-        for (const item of config.textItems) {
-          const fontFamily = REAL_FONTS[item.font]?.family || 'sans-serif'
-          const fontSize = 8 * item.scale
-          ctx.font = `${fontSize}px ${fontFamily}`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-
-          const textX = (item.position.x / 100) * canvasWidth
-          const textY = (item.position.y / 100) * canvasHeight + (yOffset > 0 ? 40 : 0)
-
-          if (item.rotation !== 0) {
-            drawRotatedText(ctx, item.content.toUpperCase(), textX, textY, item.rotation, item.color, item.effect)
-          } else {
-            drawTextWithEffect(ctx, item.content.toUpperCase(), textX, textY, item.color, item.effect)
-          }
-        }
-      }
-
+      console.log('[Export] DOM captured successfully', { width: canvas.width, height: canvas.height })
       return canvas
     } catch (err) {
+      // Restore background on error too
+      containerRef.current?.classList.add('bg-zinc-900')
       console.error('Canvas capture failed:', err)
       toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
       return null
     }
-  }, [config, mockupConfig, canvasWidth, canvasHeight, scale, yOffset])
+  }, [containerRef, scale])
 
   const handleExportPNG = useCallback(async () => {
     setIsExporting(true)

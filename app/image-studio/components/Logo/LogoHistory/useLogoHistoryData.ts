@@ -10,21 +10,12 @@
 import { useCallback } from 'react'
 import type { LogoHistoryItem, LogoHistoryState } from './types'
 import { addDeletedIds } from './useLogoHistorySync'
+import { getUserId } from '@/lib/user-id'
+
+// Re-export getUserId for backward compatibility
+export { getUserId }
 
 const LOCAL_STORAGE_KEY = 'logo-history-local'
-const USER_ID_KEY = 'logo-history-user-id'
-
-// Generate or retrieve a persistent user ID
-export function getUserId(): string {
-  if (typeof window === 'undefined') return 'server'
-
-  let userId = localStorage.getItem(USER_ID_KEY)
-  if (!userId) {
-    userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    localStorage.setItem(USER_ID_KEY, userId)
-  }
-  return userId
-}
 
 // Save to local storage as backup
 export function saveToLocal(items: LogoHistoryItem[]): void {

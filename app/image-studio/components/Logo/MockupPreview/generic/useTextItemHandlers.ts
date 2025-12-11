@@ -13,16 +13,16 @@ import { createTextItem } from '../text-effects-config'
 
 interface UseTextItemHandlersConfig {
   textItems: TextItem[]
-  setTextItems: React.Dispatch<React.SetStateAction<TextItem[]>>
+  setTextItems: (items: TextItem[] | ((prev: TextItem[]) => TextItem[])) => void
   selectedTextId: string | null
-  setSelectedTextId: React.Dispatch<React.SetStateAction<string | null>>
-  setEditableBrandName: React.Dispatch<React.SetStateAction<string>>
-  setBrandFont: React.Dispatch<React.SetStateAction<string>>
-  setBrandColor: React.Dispatch<React.SetStateAction<string>>
-  setBrandScale: React.Dispatch<React.SetStateAction<number>>
-  setBrandEffect: React.Dispatch<React.SetStateAction<TextEffect>>
-  setBrandRotation: React.Dispatch<React.SetStateAction<number>>
-  setBrandPosition: React.Dispatch<React.SetStateAction<Position>>
+  setSelectedTextId: (id: string | null) => void
+  setEditableBrandName: (name: string) => void
+  setBrandFont: (font: string) => void
+  setBrandColor: (color: string) => void
+  setBrandScale: (scale: number) => void
+  setBrandEffect: (effect: TextEffect) => void
+  setBrandRotation: (rotation: number) => void
+  setBrandPosition: (position: Position) => void
 }
 
 export function useTextItemHandlers({

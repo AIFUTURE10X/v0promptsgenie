@@ -32,7 +32,7 @@ export function TextItemsList({
 
   return (
     <div className="w-full space-y-1.5">
-      <div className="text-[9px] text-zinc-500 font-extralight uppercase">Text Items</div>
+      <div className="text-[10px] text-zinc-300 font-normal uppercase">Text Items</div>
       {textItems.map((item, index) => (
         <div
           key={item.id}

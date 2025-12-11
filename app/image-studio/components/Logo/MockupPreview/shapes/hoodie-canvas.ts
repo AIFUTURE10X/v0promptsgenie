@@ -9,6 +9,10 @@ import type { MockupView } from '../generic/mockup-types'
 
 /**
  * Draw hoodie shape to canvas (for export)
+ *
+ * ViewBox is '0 80 400 400' meaning:
+ * - minX = 0, minY = 80
+ * - width = 400, height = 400
  */
 export function drawHoodieToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -19,12 +23,21 @@ export function drawHoodieToCanvas(
 ) {
   const isDark = color.textColor === 'light'
   const isBack = view === 'back'
-  const scaleX = width / 400
-  const scaleY = height / 400
+
+  // ViewBox dimensions from HOODIE_VIEWBOX = '0 80 400 400'
+  const viewBoxX = 0
+  const viewBoxY = 80
+  const viewBoxWidth = 400
+  const viewBoxHeight = 400
+
+  // Scale from viewBox dimensions to canvas size
+  const scaleX = width / viewBoxWidth
+  const scaleY = height / viewBoxHeight
 
   ctx.save()
   ctx.scale(scaleX, scaleY)
-  ctx.translate(0, -80)
+  // Translate to account for viewBox origin
+  ctx.translate(-viewBoxX, -viewBoxY)
 
   // Hood ellipse
   ctx.beginPath()

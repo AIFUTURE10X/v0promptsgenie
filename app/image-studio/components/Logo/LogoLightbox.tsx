@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { X, Download, Eye, EyeOff } from 'lucide-react'
 import { transparencyGridStyle } from '../../constants/logo-constants'
+import { downloadImageAsFile } from '../../utils/export-utils'
 
 // Background options for lightbox
 export type LightboxBackground = 'transparent' | 'white' | 'black' | 'gradient'
@@ -54,13 +55,13 @@ export function LogoLightbox({
 
   if (!isOpen) return null
 
-  const handleDownload = () => {
-    const link = document.createElement('a')
-    link.href = logoUrl
-    link.download = 'logo.png'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const handleDownload = async () => {
+    try {
+      // Use utility function - see EXPORT_FIX_REFERENCE.md for why this pattern is needed
+      await downloadImageAsFile(logoUrl, 'logo.png')
+    } catch (err) {
+      console.error('[Lightbox] Download failed:', err)
+    }
   }
 
   return (
@@ -86,15 +87,15 @@ export function LogoLightbox({
             ...(background === 'transparent' ? transparencyGridStyle : {}),
             backgroundColor: background === 'white' ? '#ffffff' : background === 'black' ? '#000000' : undefined,
             background: background === 'gradient' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : undefined,
-            maxWidth: '85vw',
-            maxHeight: '80vh',
+            maxWidth: '92vw',
+            maxHeight: '85vh',
           }}
         >
           <img
             src={showOriginal && hasOriginal ? originalUrl : logoUrl}
             alt="Generated logo full size"
-            className="max-w-full max-h-[75vh] object-contain"
-            style={{ minWidth: '500px', minHeight: '400px', ...logoFilter }}
+            className="max-w-full max-h-[80vh] object-contain"
+            style={{ minWidth: '600px', minHeight: '500px', ...logoFilter }}
           />
         </div>
 

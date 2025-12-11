@@ -51,10 +51,10 @@ export const tshirtConfig: MockupConfig = {
   category: 'apparel',
   icon: 'Shirt',
 
-  // Dimensions - matches viewBox "0 100 400 360"
-  canvasWidth: 400,
-  canvasHeight: 360,
-  aspectRatio: '1/1',
+  // Dimensions for export canvas (matches viewBox "-40 115 480 335")
+  canvasWidth: 480,
+  canvasHeight: 335,
+  aspectRatio: '480/335',  // Must match canvasWidth/canvasHeight for position consistency
 
   // Print areas (percentage of container)
   logoPrintArea: { top: 18, left: 25, width: 50, height: 45 },

@@ -1,4 +1,5 @@
 import { indexedDBHelper } from './indexedDB'
+import { getUserId } from '@/lib/user-id'
 
 export interface FavoriteImage {
   id: string
@@ -12,17 +13,6 @@ export interface FavoriteImage {
     fileSize?: string
     params?: any
   }
-}
-
-// Get or create anonymous user ID
-function getUserId(): string {
-  if (typeof window === 'undefined') return 'anon-default'
-  let userId = localStorage.getItem('anonymous-user-id')
-  if (!userId) {
-    userId = `anon-${Math.random().toString(36).substring(2, 15)}`
-    localStorage.setItem('anonymous-user-id', userId)
-  }
-  return userId
 }
 
 export async function addFavorite(

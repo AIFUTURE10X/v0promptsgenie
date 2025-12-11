@@ -97,12 +97,30 @@ export function useGenericDrag({
   const [isDraggingBrand, setIsDraggingBrand] = useState(false)
   const [draggingTextId, setDraggingTextId] = useState<string | null>(null)
 
+  // Offset tracking for smooth drag (prevents jump on drag start)
+  const [logoDragOffset, setLogoDragOffset] = useState<Position>({ x: 0, y: 0 })
+  const [brandDragOffset, setBrandDragOffset] = useState<Position>({ x: 0, y: 0 })
+
   // ============ Logo Drag Handlers ============
 
   const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault()
+    if (!containerRef.current) return
+
+    // Capture offset between mouse position and element center for smooth drag
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const rect = containerRef.current.getBoundingClientRect()
+    const mousePos = clientToPercent(clientX, clientY, rect)
+
+    // Offset = where user clicked - where element center is
+    setLogoDragOffset({
+      x: mousePos.x - logoPosition.x,
+      y: mousePos.y - logoPosition.y,
+    })
+
     setIsDragging(true)
-  }, [])
+  }, [containerRef, logoPosition])
 
   const handleDragMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!isDragging || !containerRef.current) return
@@ -110,10 +128,16 @@ export function useGenericDrag({
     const { clientX, clientY } = getEventCoords(e)
     const rect = containerRef.current.getBoundingClientRect()
     const rawPos = clientToPercent(clientX, clientY, rect)
-    const constrainedPos = constrainToArea(rawPos.x, rawPos.y, logoPrintArea)
+
+    // Apply offset so element stays at same relative position under cursor
+    const adjustedPos = {
+      x: rawPos.x - logoDragOffset.x,
+      y: rawPos.y - logoDragOffset.y,
+    }
+    const constrainedPos = constrainToArea(adjustedPos.x, adjustedPos.y, logoPrintArea)
 
     onLogoPositionChange(constrainedPos)
-  }, [isDragging, containerRef, logoPrintArea, onLogoPositionChange])
+  }, [isDragging, containerRef, logoPrintArea, logoDragOffset, onLogoPositionChange])
 
   const handleDragEnd = useCallback(() => {
     setIsDragging(false)
@@ -124,10 +148,33 @@ export function useGenericDrag({
   const handleBrandDragStart = useCallback((e: React.MouseEvent | React.TouchEvent, textId?: string) => {
     e.preventDefault()
     e.stopPropagation()
+    if (!containerRef.current) return
+
+    // Capture offset between mouse position and element center for smooth drag
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    const rect = containerRef.current.getBoundingClientRect()
+    const mousePos = clientToPercent(clientX, clientY, rect)
+
+    // Get current element position (either specific text item or main brand)
+    let elementPos: Position
+    if (textId) {
+      const textItem = textItems.find(item => item.id === textId)
+      elementPos = textItem?.position || brandPosition
+    } else {
+      elementPos = brandPosition
+    }
+
+    // Offset = where user clicked - where element center is
+    setBrandDragOffset({
+      x: mousePos.x - elementPos.x,
+      y: mousePos.y - elementPos.y,
+    })
+
     setIsDraggingBrand(true)
     setDraggingTextId(textId || null)
     if (textId) onSelectedTextIdChange(textId)
-  }, [onSelectedTextIdChange])
+  }, [containerRef, brandPosition, textItems, onSelectedTextIdChange])
 
   const handleBrandDragMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!isDraggingBrand || !containerRef.current) return
@@ -135,7 +182,13 @@ export function useGenericDrag({
     const { clientX, clientY } = getEventCoords(e)
     const rect = containerRef.current.getBoundingClientRect()
     const rawPos = clientToPercent(clientX, clientY, rect)
-    const constrainedPos = constrainToArea(rawPos.x, rawPos.y, textPrintArea)
+
+    // Apply offset so element stays at same relative position under cursor
+    const adjustedPos = {
+      x: rawPos.x - brandDragOffset.x,
+      y: rawPos.y - brandDragOffset.y,
+    }
+    const constrainedPos = constrainToArea(adjustedPos.x, adjustedPos.y, textPrintArea)
 
     if (draggingTextId) {
       // Dragging a specific text item
@@ -148,7 +201,7 @@ export function useGenericDrag({
       // Dragging the main brand text
       onBrandPositionChange(constrainedPos)
     }
-  }, [isDraggingBrand, containerRef, textPrintArea, draggingTextId, textItems, onTextItemsChange, onBrandPositionChange])
+  }, [isDraggingBrand, containerRef, textPrintArea, brandDragOffset, draggingTextId, textItems, onTextItemsChange, onBrandPositionChange])
 
   const handleBrandDragEnd = useCallback(() => {
     setIsDraggingBrand(false)

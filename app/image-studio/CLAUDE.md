@@ -385,11 +385,158 @@ ctx.drawImage(img, 0, 0)  // Safe!
 ```
 
 ### When to Use This Pattern
-- Exporting mockups (t-shirts, business cards, etc.)
-- Composite images (logo + background + text)
-- Any export where html2canvas fails
-- Projects using Tailwind CSS 4 (oklch/oklab colors)
-- Cross-origin images (remote URLs, data URIs)
+- Simple exports with known dimensions
+- When you need pixel-perfect control over rendering
+- Static content without complex CSS transforms
+
+---
+
+## WYSIWYG Mockup Export Pattern (html-to-image)
+
+**Problem:** Manual Canvas API drawing can never perfectly match CSS rendering. Position/size calculations for logos, text, and transforms become a nightmare of mismatches between preview and export.
+
+**Solution:** Use `html-to-image` library to capture the actual rendered DOM - true WYSIWYG (What You See Is What You Get).
+
+### Why This Works
+- **True WYSIWYG** - Export exactly matches the preview because we capture the actual DOM
+- **No calculation mismatches** - CSS transforms, fonts, and effects all captured as rendered
+- **Simpler code** - No manual Canvas drawing, just capture and download
+- **Handles all CSS** - Transforms, blend modes, filters, custom fonts all work automatically
+
+### Installation
+```bash
+npm install html-to-image
+```
+
+### Implementation Pattern
+```typescript
+import { toCanvas } from 'html-to-image'
+
+interface UseGenericExportConfig {
+  containerRef: RefObject<HTMLDivElement>  // Reference to the DOM element to capture
+  // ... other config
+}
+
+const captureCanvas = useCallback(async (): Promise<HTMLCanvasElement | null> => {
+  try {
+    const element = containerRef.current
+    if (!element) {
+      toast.error('Export failed: Container not found')
+      return null
+    }
+
+    // Temporarily remove background for transparent export
+    element.classList.remove('bg-zinc-900')
+
+    // Capture the DOM exactly as rendered
+    const canvas = await toCanvas(element, {
+      pixelRatio: 2,           // HiDPI support
+      cacheBust: true,         // Prevent caching issues
+      backgroundColor: undefined, // Transparent background
+      filter: (node) => {
+        // Filter out UI elements (rulers, grids, controls)
+        if (node instanceof Element) {
+          const className = node.className?.toString() || ''
+          if (className.includes('z-30') || className.includes('z-5')) {
+            return false // Exclude these elements from export
+          }
+        }
+        return true
+      },
+    })
+
+    // Restore background after capture
+    element.classList.add('bg-zinc-900')
+
+    return canvas
+  } catch (err) {
+    // Restore background on error too
+    containerRef.current?.classList.add('bg-zinc-900')
+    console.error('Canvas capture failed:', err)
+    return null
+  }
+}, [containerRef])
+```
+
+### Key Techniques
+
+#### 1. Transparent Background Export
+The DOM element has a background class (`bg-zinc-900`). To export with transparency:
+```typescript
+// Before capture - remove background
+element.classList.remove('bg-zinc-900')
+
+const canvas = await toCanvas(element, { backgroundColor: undefined })
+
+// After capture - restore background
+element.classList.add('bg-zinc-900')
+```
+
+#### 2. Filtering UI Elements
+Use the `filter` option to exclude rulers, grids, and controls:
+```typescript
+filter: (node) => {
+  if (node instanceof Element) {
+    const className = node.className?.toString() || ''
+    // Exclude elements with z-30 (rulers) or z-5 (grid)
+    if (className.includes('z-30') || className.includes('z-5')) {
+      return false
+    }
+  }
+  return true
+}
+```
+
+#### 3. HiDPI/Retina Support
+```typescript
+pixelRatio: 2  // 2x resolution for sharp exports on retina displays
+```
+
+### Export Handlers
+```typescript
+const handleExportPNG = useCallback(async () => {
+  const canvas = await captureCanvas()
+  if (!canvas) return
+
+  canvas.toBlob((blob) => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'mockup.png'
+    link.click()
+    URL.revokeObjectURL(url)
+  }, 'image/png', 0.95)
+}, [captureCanvas])
+```
+
+### When to Use This Pattern (vs Manual Canvas)
+| Use Case | html-to-image | Manual Canvas |
+|----------|---------------|---------------|
+| Complex CSS (transforms, blend modes) | ✅ Best | ❌ Hard to replicate |
+| Exact preview matching (WYSIWYG) | ✅ Best | ❌ Calculations drift |
+| Transparent backgrounds | ✅ Easy | ✅ Easy |
+| Simple shapes/text | ✅ Works | ✅ Works |
+| Cross-origin images | ⚠️ Needs CORS | ⚠️ Needs CORS |
+| Pixel-perfect control | ❌ Limited | ✅ Full control |
+
+### Files Using This Pattern
+- `components/Logo/MockupPreview/generic/useGenericExport.ts` - Mockup export hook
+- `components/Logo/MockupPreview/generic/GenericMockup.tsx` - Passes containerRef
+
+### Common Issues & Solutions
+
+**Issue:** Background appears in export
+**Solution:** Remove background class before capture, restore after
+
+**Issue:** Rulers/grid appear in export
+**Solution:** Use filter option to exclude z-30/z-5 elements
+
+**Issue:** Export doesn't match preview size
+**Solution:** Ensure containerRef points to the correct element with proper aspectRatio
+
+**Issue:** Fonts not rendering
+**Solution:** Ensure fonts are loaded before export (use document font loading API)
 
 ---
 

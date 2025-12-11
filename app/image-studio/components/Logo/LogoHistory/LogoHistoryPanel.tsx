@@ -16,6 +16,8 @@ import { useLogoHistory, LogoHistoryItem } from './useLogoHistory'
 interface LogoHistoryPanelProps {
   onUseSettings?: (item: LogoHistoryItem) => void
   onLoadImage?: (item: LogoHistoryItem) => void
+  /** Send logo directly to mockups panel */
+  onSendToMockups?: (item: LogoHistoryItem) => void
   onCompare?: (items: LogoHistoryItem[]) => void
   /** Filter to show only items with this style ('logo' or 'mockup') */
   filterStyle?: 'logo' | 'mockup'
@@ -30,6 +32,7 @@ interface LogoHistoryPanelProps {
 export function LogoHistoryPanel({
   onUseSettings,
   onLoadImage,
+  onSendToMockups,
   onCompare,
   filterStyle,
   compact = false,
@@ -209,6 +212,7 @@ export function LogoHistoryPanel({
                     onDelete={() => removeFromHistory(item.id)}
                     onUseSettings={onUseSettings ? () => onUseSettings(item) : () => {}}
                     onLoadImage={onLoadImage ? () => onLoadImage(item) : undefined}
+                    onSendToMockups={onSendToMockups ? () => onSendToMockups(item) : undefined}
                     canSelect={true}
                     hideUseSettings={filterStyle === 'mockup'}
                   />

@@ -93,7 +93,7 @@ export function BrandSidebar({
 
   return (
     <div className="flex flex-col gap-3 w-52 shrink-0 p-3 items-center justify-start max-h-[720px] overflow-y-auto overflow-x-hidden scrollbar-hide">
-      <div className="text-[10px] text-zinc-500 font-extralight uppercase tracking-widest text-center w-full">
+      <div className="text-[11px] text-zinc-200 font-medium uppercase tracking-wider text-center w-full py-1 bg-zinc-800/50 rounded-md border border-zinc-700/50">
         Brand Settings
       </div>
 
@@ -126,7 +126,7 @@ export function BrandSidebar({
 
           {/* Text Content */}
           <div className="w-full space-y-1.5">
-            <div className="text-[9px] text-zinc-500 font-extralight uppercase">Text Content</div>
+            <div className="text-[10px] text-zinc-300 font-normal uppercase">Text Content</div>
             <input
               type="text"
               value={editableBrandName}
@@ -149,7 +149,7 @@ export function BrandSidebar({
           {/* Font Weight Selector - only show if font has multiple weights */}
           {REAL_FONTS[brandFont]?.weights && REAL_FONTS[brandFont].weights.length > 1 && onBrandWeightChange && (
             <div className="w-full space-y-1.5">
-              <div className="text-[9px] text-zinc-500 font-extralight uppercase">Weight</div>
+              <div className="text-[10px] text-zinc-300 font-normal uppercase">Weight</div>
               <div className="grid grid-cols-4 gap-1">
                 {REAL_FONTS[brandFont].weights.map((weight) => (
                   <button
@@ -178,7 +178,7 @@ export function BrandSidebar({
 
           {/* Effect Grid */}
           <div className="w-full space-y-1.5">
-            <div className="text-[9px] text-zinc-500 font-extralight uppercase">Effect</div>
+            <div className="text-[10px] text-zinc-300 font-normal uppercase">Effect</div>
             <div className="grid grid-cols-3 gap-1">
               {(Object.keys(TEXT_EFFECTS) as TextEffect[]).map((effectKey) => (
                 <button
@@ -199,8 +199,8 @@ export function BrandSidebar({
           {/* Rotation Presets + Slider */}
           <div className="w-full space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] text-zinc-500 font-extralight uppercase">Rotation</span>
-              <span className="text-[10px] text-zinc-400 font-extralight">{brandRotation}°</span>
+              <span className="text-[10px] text-zinc-300 font-normal uppercase">Rotation</span>
+              <span className="text-[10px] text-zinc-300 font-normal">{brandRotation}°</span>
             </div>
             <div className="grid grid-cols-5 gap-1">
               {ROTATION_PRESETS.map((preset) => (
@@ -217,22 +217,13 @@ export function BrandSidebar({
                 </button>
               ))}
             </div>
-            {/* Rotation Slider */}
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              value={brandRotation}
-              onChange={(e) => onBrandRotationChange(parseInt(e.target.value))}
-              className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-            />
           </div>
 
           {/* Size Controls */}
           <div className="w-full space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] text-zinc-500 font-extralight uppercase">Size</span>
-              <span className="text-[10px] text-zinc-400 font-extralight">{Math.round(brandScale * 100)}%</span>
+              <span className="text-[10px] text-zinc-300 font-normal uppercase">Size</span>
+              <span className="text-[10px] text-zinc-300 font-normal">{Math.round(brandScale * 100)}%</span>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -241,9 +232,14 @@ export function BrandSidebar({
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <div className="flex-1 text-center text-xs text-zinc-300 font-extralight">
-                {Math.round(brandScale * 100)}%
-              </div>
+              <input
+                type="range"
+                min="10"
+                max="300"
+                value={Math.round(brandScale * 100)}
+                onChange={(e) => onBrandScaleChange?.(parseInt(e.target.value) / 100)}
+                className="flex-1 h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              />
               <button
                 onClick={onBrandScaleIncrease}
                 className="p-1.5 text-zinc-400 hover:text-white bg-zinc-800/50 hover:bg-zinc-700 rounded-md border border-zinc-700/50"
@@ -251,17 +247,6 @@ export function BrandSidebar({
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
             </div>
-            {/* Size Slider */}
-            {onBrandScaleChange && (
-              <input
-                type="range"
-                min="50"
-                max="800"
-                value={Math.round(brandScale * 100)}
-                onChange={(e) => onBrandScaleChange(parseInt(e.target.value) / 100)}
-                className="w-full h-1.5 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-purple-500"
-              />
-            )}
           </div>
         </>
       )}

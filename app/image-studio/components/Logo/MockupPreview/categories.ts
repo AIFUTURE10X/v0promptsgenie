@@ -36,8 +36,8 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     icon: Shirt,
     subCategories: [
       { id: 'tshirt', label: 'T-Shirts', mockupIds: ['tshirt'], hasFrontBack: true },
-      { id: 'longsleeve', label: 'Long-sleeve tees', mockupIds: ['longsleeve'] },
-      { id: 'tanktop', label: 'Tank tops', mockupIds: ['tanktop'] },
+      { id: 'longsleeve', label: 'Long-sleeve tees', mockupIds: ['longsleeve'], hasFrontBack: true },
+      { id: 'tanktop', label: 'Tank tops', mockupIds: ['tanktop'], hasFrontBack: true },
     ],
   },
   {
@@ -46,7 +46,7 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     icon: Shirt,
     subCategories: [
       { id: 'hoodie', label: 'Pullover hoodies', mockupIds: ['hoodie'], hasFrontBack: true },
-      { id: 'zip-hoodie', label: 'Zip hoodies', mockupIds: ['zip-hoodie'], hasFrontBack: true },
+      { id: 'ziphoodie', label: 'Zip hoodies', mockupIds: ['ziphoodie'], hasFrontBack: true },
     ],
   },
   {
@@ -55,7 +55,7 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     icon: Coffee,
     subCategories: [
       { id: 'mug', label: 'Mugs', mockupIds: ['mug'] },
-      { id: 'travel-mug', label: 'Travel mugs', mockupIds: ['travel-mug'] },
+      { id: 'travelmug', label: 'Travel mugs', mockupIds: ['travelmug'] },
       { id: 'tumbler', label: 'Tumblers & bottles', mockupIds: ['tumbler'] },
     ],
   },
@@ -74,7 +74,7 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     icon: Sticker,
     subCategories: [
       { id: 'sticker-sheet', label: 'Sticker sheets', mockupIds: ['stickers'] },
-      { id: 'sticker-pack', label: 'Sticker packs', mockupIds: ['sticker-pack'] },
+      { id: 'stickerpack', label: 'Sticker packs', mockupIds: ['stickerpack'] },
     ],
   },
   {
@@ -83,8 +83,8 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     icon: ShoppingBag,
     subCategories: [
       { id: 'tote-bag', label: 'Tote bags', mockupIds: ['tote-bag'] },
-      { id: 'backpack', label: 'Backpacks', mockupIds: ['backpack'] },
-      { id: 'fanny-pack', label: 'Fanny packs', mockupIds: ['fanny-pack'] },
+      { id: 'backpack', label: 'Backpacks', mockupIds: ['backpack'], hasFrontBack: true },
+      { id: 'fannypack', label: 'Fanny packs', mockupIds: ['fannypack'] },
     ],
   },
   // Row 2 (4 categories)
@@ -109,8 +109,8 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     label: 'Kids & Baby',
     icon: Baby,
     subCategories: [
-      { id: 'baby-bodysuit', label: 'Baby bodysuits', mockupIds: ['baby-bodysuit'] },
-      { id: 'kids-tee', label: 'Kids tees & hoodies', mockupIds: ['kids-tee'] },
+      { id: 'babybodysuit', label: 'Baby bodysuits', mockupIds: ['babybodysuit'], hasFrontBack: true },
+      { id: 'kidstee', label: 'Kids tees & hoodies', mockupIds: ['kidstee'], hasFrontBack: true },
     ],
   },
   {
@@ -118,9 +118,9 @@ export const MEGA_MENU_CATEGORIES: MegaMenuCategory[] = [
     label: 'Pet Products',
     icon: PawPrint,
     subCategories: [
-      { id: 'pet-bandana', label: 'Pet bandanas', mockupIds: ['pet-bandana'] },
-      { id: 'pet-hoodie', label: 'Pet hoodies & shirts', mockupIds: ['pet-hoodie'] },
-      { id: 'pet-bed', label: 'Pet beds & blankets', mockupIds: ['pet-bed'] },
+      { id: 'petbandana', label: 'Pet bandanas', mockupIds: ['petbandana'] },
+      { id: 'pethoodie', label: 'Pet hoodies & shirts', mockupIds: ['pethoodie'], hasFrontBack: true },
+      { id: 'petbed', label: 'Pet beds & blankets', mockupIds: ['petbed'] },
     ],
   },
 ]

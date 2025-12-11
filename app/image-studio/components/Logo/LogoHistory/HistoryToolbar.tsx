@@ -7,7 +7,7 @@
  * Extracted from LogoHistoryPanel.tsx to keep files under 300 lines.
  */
 
-import { Heart, Trash2, GitCompare, CheckSquare, Square } from 'lucide-react'
+import { Heart, Trash2, GitCompare, CheckSquare, Square, History } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface HistoryToolbarProps {
@@ -66,18 +66,31 @@ export function HistoryToolbar({
           {selectedCount > 0 ? `${selectedCount} selected` : 'Select All'}
         </button>
 
-        {/* Favorites filter */}
-        <button
-          onClick={onToggleFavoritesFilter}
-          className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-            showFavoritesOnly
-              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-              : 'bg-zinc-700 text-zinc-400 hover:text-white'
-          }`}
-        >
-          <Heart className={`w-3 h-3 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-          Favorites
-        </button>
+        {/* History / Favorites Tabs */}
+        <div className="flex items-center rounded overflow-hidden border border-zinc-600">
+          <button
+            onClick={() => showFavoritesOnly && onToggleFavoritesFilter()}
+            className={`flex items-center gap-1 px-2 py-1 text-xs transition-colors ${
+              !showFavoritesOnly
+                ? 'bg-zinc-600 text-white'
+                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            <History className="w-3 h-3" />
+            History
+          </button>
+          <button
+            onClick={() => !showFavoritesOnly && onToggleFavoritesFilter()}
+            className={`flex items-center gap-1 px-2 py-1 text-xs transition-colors ${
+              showFavoritesOnly
+                ? 'bg-red-500/20 text-red-400'
+                : 'bg-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Heart className={`w-3 h-3 ${showFavoritesOnly ? 'fill-current' : ''}`} />
+            Favorites
+          </button>
+        </div>
 
         {/* Delete Selected button */}
         {selectedCount > 0 && (

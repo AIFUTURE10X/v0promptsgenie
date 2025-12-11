@@ -19,7 +19,7 @@ function getClient() {
 }
 
 export type ImageSize = "1K" | "2K" | "4K"
-export type GenerationModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview"
+export type GenerationModel = "gemini-2.5-flash-preview-image" | "gemini-3-pro-image-preview"
 
 export interface GenerateImageOptions {
   prompt: string
@@ -45,7 +45,7 @@ export async function generateImageWithRetry({
   referenceImage,
   referenceMode = "inspire",
   seed,
-  model = "gemini-2.5-flash-image",
+  model = "gemini-2.5-flash-preview-image",
   imageSize = "1K",
   disableSearch = false,
 }: {
@@ -63,7 +63,7 @@ export async function generateImageWithRetry({
   let delay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
 
   // Force 1K for Gemini 2.5 Flash (doesn't support higher resolutions)
-  const effectiveImageSize = model === "gemini-2.5-flash-image" ? "1K" : imageSize
+  const effectiveImageSize = model === "gemini-2.5-flash-preview-image" ? "1K" : imageSize
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {

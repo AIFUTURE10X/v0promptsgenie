@@ -15,7 +15,10 @@ import {
   Sparkles,
   Scissors,
   CreditCard,
-  ALargeSmall
+  ALargeSmall,
+  ChevronDown,
+  FileImage,
+  FileText
 } from 'lucide-react'
 import { GeneratedLogo } from '../../hooks/useLogoGeneration'
 
@@ -27,6 +30,8 @@ interface LogoActionButtonsProps {
   onDownload: () => void
   onExportSvg: () => void
   isExportingSvg: boolean
+  onExportPdf: () => void
+  isExportingPdf: boolean
   onCopyToClipboard: () => void
   copied: boolean
   onUpscale: (resolution: '2K' | '4K', method: 'ai' | 'fast') => void
@@ -48,6 +53,8 @@ export function LogoActionButtons({
   onDownload,
   onExportSvg,
   isExportingSvg,
+  onExportPdf,
+  isExportingPdf,
   onCopyToClipboard,
   copied,
   onUpscale,
@@ -61,6 +68,8 @@ export function LogoActionButtons({
   onShowRealFontOverlay,
 }: LogoActionButtonsProps) {
   const [showUpscaleMenu, setShowUpscaleMenu] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const isExporting = isExportingSvg || isExportingPdf
 
   const handleUpscale = (resolution: '2K' | '4K', method: 'ai' | 'fast') => {
     setShowUpscaleMenu(false)
@@ -68,7 +77,7 @@ export function LogoActionButtons({
   }
 
   return (
-    <div className="grid grid-cols-8 gap-1">
+    <div className="grid grid-cols-7 gap-1">
       <Button
         onClick={onShowTextEditor}
         size="sm"
@@ -98,27 +107,49 @@ export function LogoActionButtons({
         )}
         {isRemovingBackground ? '...' : 'BG'}
       </Button>
-      <Button
-        onClick={onDownload}
-        size="sm"
-        className="h-8 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 text-xs"
-      >
-        <Download className="w-3 h-3 mr-1" />
-        PNG
-      </Button>
-      <Button
-        onClick={onExportSvg}
-        disabled={isExportingSvg}
-        size="sm"
-        className="h-8 bg-zinc-800 hover:bg-zinc-700 text-white border border-zinc-700 text-xs"
-      >
-        {isExportingSvg ? (
-          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-        ) : (
-          <FileCode className="w-3 h-3 mr-1" />
+      {/* Export Dropdown */}
+      <div className="relative col-span-2">
+        <Button
+          onClick={() => setShowExportMenu(!showExportMenu)}
+          disabled={isExporting}
+          size="sm"
+          className="h-8 w-full bg-linear-to-r from-purple-500 to-pink-500 hover:opacity-90 text-white border-0 text-xs"
+        >
+          {isExporting ? (
+            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+          ) : (
+            <Download className="w-3 h-3 mr-1" />
+          )}
+          Export
+          <ChevronDown className="w-3 h-3 ml-1" />
+        </Button>
+
+        {showExportMenu && !isExporting && (
+          <div className="absolute bottom-full mb-1 left-0 bg-zinc-800 border border-zinc-700 rounded-lg shadow-xl z-30 overflow-hidden min-w-[130px]">
+            <button
+              onClick={() => { onDownload(); setShowExportMenu(false) }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white"
+            >
+              <FileImage className="w-4 h-4" />
+              PNG Image
+            </button>
+            <button
+              onClick={() => { onExportSvg(); setShowExportMenu(false) }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white"
+            >
+              <FileCode className="w-4 h-4" />
+              SVG Vector
+            </button>
+            <button
+              onClick={() => { onExportPdf(); setShowExportMenu(false) }}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white"
+            >
+              <FileText className="w-4 h-4" />
+              PDF Document
+            </button>
+          </div>
         )}
-        SVG
-      </Button>
+      </div>
       <Button
         onClick={onCopyToClipboard}
         size="sm"

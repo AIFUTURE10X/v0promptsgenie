@@ -101,7 +101,7 @@ export function RealisticTShirtMockup({ logoUrl, brandName = 'Brand', onExport, 
             <Maximize2 className="w-4 h-4" />
             <span className="text-[10px] font-medium">Zoom</span>
           </button>
-          <div className="absolute inset-0">
+          <div className="absolute inset-0" data-mockup-capture>
             <TShirtCanvas color={s.selectedColor} />
             <LogoDraggable
               ref={logoRef}

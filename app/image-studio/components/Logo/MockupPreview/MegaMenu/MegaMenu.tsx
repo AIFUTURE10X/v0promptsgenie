@@ -97,7 +97,7 @@ export function MegaMenu({ selectedSubCategoryId, onSelectSubCategory }: MegaMen
 
       {/* Dropdown Panel */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[900px]">
+        <div className="absolute top-full left-0 mt-2 border border-zinc-700 rounded-xl shadow-2xl z-50 overflow-hidden min-w-[900px]" style={{ backgroundColor: '#555555' }}>
           {/* Top Row - 6 Categories */}
           <div className="grid grid-cols-6 gap-0 border-b border-zinc-800">
             {topRowCategories.map((category) => (

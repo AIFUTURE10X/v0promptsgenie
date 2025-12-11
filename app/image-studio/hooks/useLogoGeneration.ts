@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { downloadLogo as downloadLogoUtil } from '../utils/export-utils'
 
 // Extended logo styles including new 3D options
 export type LogoStyle =
@@ -114,17 +115,13 @@ export function useLogoGeneration() {
     setError(null)
   }
 
-  const downloadLogo = (logo: GeneratedLogo) => {
-    const link = document.createElement('a')
-    link.href = logo.url
-    const sanitizedPrompt = logo.prompt
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .substring(0, 30)
-    link.download = `logo-${sanitizedPrompt}-${Date.now()}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+  const downloadLogo = async (logo: GeneratedLogo) => {
+    try {
+      // Use utility function - see EXPORT_FIX_REFERENCE.md for why this pattern is needed
+      await downloadLogoUtil(logo.url, logo.prompt)
+    } catch (err) {
+      console.error('[Logo] Download failed:', err)
+    }
   }
 
   // Allow setting a logo directly (for background removal only mode)

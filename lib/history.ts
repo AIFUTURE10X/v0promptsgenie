@@ -1,3 +1,5 @@
+import { getUserId } from '@/lib/user-id'
+
 export type HistoryItem = {
   id: string
   prompt: string
@@ -241,11 +243,4 @@ export async function clearHistory(): Promise<void> {
   }
 }
 
-function getUserId(): string {
-  let userId = localStorage.getItem('user_id')
-  if (!userId) {
-    userId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    localStorage.setItem('user_id', userId)
-  }
-  return userId
-}
+// User ID now imported from unified @/lib/user-id

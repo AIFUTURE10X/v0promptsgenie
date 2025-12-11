@@ -53,8 +53,8 @@ export function LogoPanel({
   const { toggleFavorite, isFavorite, isToggling: isFavoriteToggling } = useFavorites()
 
   const {
-    isRemovingLogoBg, isUpscaling, isExportingSvg, copied: handlerCopied, isRemovingRefBg,
-    handleRemoveLogoBackground, handleUpscale, handleCopyToClipboard, handleExportSvg, handleRemoveRefBackground
+    isRemovingLogoBg, isUpscaling, isExportingSvg, isExportingPdf, copied: handlerCopied, isRemovingRefBg,
+    handleRemoveLogoBackground, handleUpscale, handleCopyToClipboard, handleExportSvg, handleExportPdf, handleRemoveRefBackground
   } = useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod: state.bgRemovalMethod, onLogoGenerated, addToHistory })
 
   // Track color filter from LogoPreviewPanel for mockups
@@ -195,6 +195,8 @@ export function LogoPanel({
               onDownload={() => downloadLogo(generatedLogo)}
               onExportSvg={handleExportSvg}
               isExportingSvg={isExportingSvg}
+              onExportPdf={handleExportPdf}
+              isExportingPdf={isExportingPdf}
               onCopyToClipboard={handleCopyToClipboard}
               copied={handlerCopied}
               onUpscale={handleUpscale}
@@ -238,6 +240,19 @@ export function LogoPanel({
               }
               if (item.presetId) state.setSelectedPresetId(item.presetId)
               toast.success('Image loaded! You can now preview on mockups.', { duration: 3000 })
+            }}
+            onSendToMockups={(item) => {
+              // Load the image and directly open mockups
+              setLogo({
+                url: item.imageUrl,
+                prompt: item.prompt,
+                style: item.style || '',
+                bgRemovalMethod: item.config?.bgRemovalMethod || 'none',
+                timestamp: item.timestamp,
+                seed: item.seed
+              })
+              state.setShowMockupPreview(true)
+              toast.success('Logo sent to mockups!')
             }}
             onCompare={(items) => {
               state.setComparisonItems(items)

@@ -2,8 +2,12 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextResponse } from "next/server"
 import { buildLogoSystemPrompt } from "@/app/image-studio/constants/ai-logo-knowledge"
 
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+// Initialize Gemini with API key check
+const apiKey = process.env.GEMINI_API_KEY
+if (!apiKey) {
+  console.error("[v0 API] GEMINI_API_KEY is not set in environment variables")
+}
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null
 
 export async function POST(request: Request) {
   try {
@@ -29,12 +33,21 @@ export async function POST(request: Request) {
       mode: mode || 'image',
     })
 
+    // Check if Gemini is available
+    if (!genAI) {
+      console.error("[v0 API] Gemini API not initialized - missing GEMINI_API_KEY")
+      return NextResponse.json(
+        { error: "AI service not configured", details: "GEMINI_API_KEY environment variable is not set" },
+        { status: 500 }
+      )
+    }
+
     // Handle logo mode separately
     if (mode === 'logo') {
       return handleLogoMode(message, conversationHistory, logoAnalysis)
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
     // Build conversation context
     const contextMessages = conversationHistory
@@ -134,10 +147,30 @@ Available style strengths: subtle, moderate, strong`
         styleStrength: styleStrength || "moderate",
       },
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0 API] Error generating prompt suggestion:", error)
+
+    // Check for specific Gemini API errors
+    const errorMessage = error?.message || String(error)
+    const isRateLimit = errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate")
+    const isAuthError = errorMessage.includes("401") || errorMessage.includes("403") || errorMessage.includes("API key")
+
+    if (isRateLimit) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", details: "Please wait a moment and try again" },
+        { status: 429 }
+      )
+    }
+
+    if (isAuthError) {
+      return NextResponse.json(
+        { error: "API authentication failed", details: "Check your GEMINI_API_KEY configuration" },
+        { status: 401 }
+      )
+    }
+
     return NextResponse.json(
-      { error: "Failed to generate suggestion", details: error instanceof Error ? error.message : String(error) },
+      { error: "Failed to generate suggestion", details: errorMessage },
       { status: 500 },
     )
   }
@@ -152,7 +185,16 @@ async function handleLogoMode(
   logoAnalysis?: string
 ) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+    // Check if Gemini is available
+    if (!genAI) {
+      console.error("[v0 API] Logo mode - Gemini API not initialized")
+      return NextResponse.json(
+        { error: "AI service not configured", details: "GEMINI_API_KEY environment variable is not set" },
+        { status: 500 }
+      )
+    }
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
     // Build conversation context
     const contextMessages = conversationHistory
@@ -215,10 +257,30 @@ Remember to respond with a JSON object containing "message" and "logoConfig" as 
       logoConfig: {},
       mode: 'logo'
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("[v0 API] Logo mode error:", error)
+
+    // Check for specific Gemini API errors
+    const errorMessage = error?.message || String(error)
+    const isRateLimit = errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate")
+    const isAuthError = errorMessage.includes("401") || errorMessage.includes("403") || errorMessage.includes("API key")
+
+    if (isRateLimit) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", details: "Please wait a moment and try again" },
+        { status: 429 }
+      )
+    }
+
+    if (isAuthError) {
+      return NextResponse.json(
+        { error: "API authentication failed", details: "Check your GEMINI_API_KEY configuration" },
+        { status: 401 }
+      )
+    }
+
     return NextResponse.json(
-      { error: "Failed to generate logo suggestions", details: error instanceof Error ? error.message : String(error) },
+      { error: "Failed to generate logo suggestions", details: errorMessage },
       { status: 500 },
     )
   }

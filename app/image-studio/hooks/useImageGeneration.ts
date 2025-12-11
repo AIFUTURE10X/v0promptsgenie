@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 export type ImageSize = "1K" | "2K" | "4K"
-export type GenerationModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview"
+export type GenerationModel = "gemini-2.5-flash-preview-image" | "gemini-3-pro-image"
 export type ReferenceMode = "replicate" | "inspire"
 
 export interface GenerationOptions {

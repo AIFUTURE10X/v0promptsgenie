@@ -1,5 +1,7 @@
 // History Service Layer - follows same pattern as dbService.ts for favorites
 
+import { getUserId } from '@/lib/user-id'
+
 export interface HistoryItem {
   id: string
   prompt: string
@@ -11,23 +13,6 @@ export interface HistoryItem {
     dimensions?: string
     fileSize?: string
   }
-}
-
-// Get or create user ID (same pattern as dbService.ts)
-function getUserId(): string {
-  if (typeof window === 'undefined') return 'anon-default'
-
-  // Check for existing user_id first (used by old history.ts)
-  let userId = localStorage.getItem('user_id')
-  if (!userId) {
-    // Also check anonymous-user-id (used by favorites)
-    userId = localStorage.getItem('anonymous-user-id')
-  }
-  if (!userId) {
-    userId = `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`
-    localStorage.setItem('user_id', userId)
-  }
-  return userId
 }
 
 export async function addToHistory(

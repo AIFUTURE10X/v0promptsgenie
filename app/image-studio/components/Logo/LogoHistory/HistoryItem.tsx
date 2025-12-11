@@ -31,6 +31,8 @@ interface HistoryItemProps {
   onDelete: () => void
   onUseSettings: () => void
   onLoadImage?: () => void
+  /** Send this logo directly to the mockups panel */
+  onSendToMockups?: () => void
   canSelect: boolean
   /** Hide the "Use Settings" button (for mockups that don't have generation settings) */
   hideUseSettings?: boolean
@@ -45,6 +47,7 @@ export function HistoryItem({
   onDelete,
   onUseSettings,
   onLoadImage,
+  onSendToMockups,
   canSelect,
   hideUseSettings = false
 }: HistoryItemProps) {
@@ -200,6 +203,15 @@ export function HistoryItem({
               title="Load image to preview"
             >
               <ImagePlus className="w-3.5 h-3.5" />
+            </button>
+          )}
+          {onSendToMockups && (
+            <button
+              onClick={onSendToMockups}
+              className="p-1 rounded text-cyan-400/70 hover:text-cyan-400 transition-colors"
+              title="Send to mockups"
+            >
+              <Layout className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

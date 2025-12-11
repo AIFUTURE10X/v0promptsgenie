@@ -28,7 +28,7 @@ export function WeightSelector({
 
   return (
     <div className="w-full space-y-1.5">
-      <div className="text-[9px] text-zinc-500 font-extralight uppercase">Weight</div>
+      <div className="text-[10px] text-zinc-300 font-normal uppercase">Weight</div>
       <div className="grid grid-cols-4 gap-1">
         {fontWeights.map((weight) => (
           <button

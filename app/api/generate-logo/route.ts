@@ -72,8 +72,8 @@ export async function POST(request: NextRequest) {
     console.log("[Logo API] Enhanced prompt:", enhancedPrompt.substring(0, 200) + "...")
 
     // Determine model - default to pro for quality, but allow override to flash for speed
-    const model: GenerationModel = modelParam === 'gemini-2.5-flash-image'
-      ? 'gemini-2.5-flash-image'
+    const model: GenerationModel = modelParam === 'gemini-2.5-flash-preview-image'
+      ? 'gemini-2.5-flash-preview-image'
       : 'gemini-3-pro-image-preview'
 
     // Generate the logo image with Gemini

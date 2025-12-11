@@ -22,11 +22,11 @@ function normalizeImageSize(input: string | null): ImageSize {
 }
 
 function normalizeModel(input: string | null): GenerationModel {
-  const allowed: GenerationModel[] = ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"]
+  const allowed: GenerationModel[] = ["gemini-2.5-flash-preview-image", "gemini-3-pro-image-preview"]
   if (input && allowed.includes(input as GenerationModel)) {
     return input as GenerationModel
   }
-  return "gemini-2.5-flash-image"
+  return "gemini-2.5-flash-preview-image"
 }
 
 export async function POST(request: NextRequest) {

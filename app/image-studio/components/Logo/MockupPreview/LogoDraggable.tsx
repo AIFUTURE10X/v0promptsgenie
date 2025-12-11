@@ -23,12 +23,15 @@ export const LogoDraggable = forwardRef<HTMLDivElement, LogoDraggableProps>(
       <div
         ref={ref}
         data-draggable="logo"
-        className={`absolute cursor-move transition-transform ${isDragging ? 'scale-105' : ''}`}
+        className={`absolute cursor-move transition-transform ${isDragging ? 'opacity-90' : ''}`}
         style={{
           left: `${position.x}%`,
           top: `${position.y}%`,
-          transform: `translate(-50%, -50%) scale(${scale})`,
-          maxWidth: '45%',
+          transform: 'translate(-50%, -50%)',
+          // Width matches export calculation: (printAreaWidth% * scale)
+          // Export uses: (mockupConfig.logoPrintArea.width / 100) * canvasWidth * scale
+          // For preview: use same percentage (50% base * scale)
+          width: `${50 * scale}%`,
           zIndex: 10,
         }}
         onMouseDown={onDragStart}
@@ -37,7 +40,7 @@ export const LogoDraggable = forwardRef<HTMLDivElement, LogoDraggableProps>(
         <img
           src={logoUrl}
           alt="Logo"
-          className="max-w-full max-h-40 object-contain pointer-events-none"
+          className="w-full h-auto object-contain pointer-events-none"
           style={{
             // Use screen blend on dark products, multiply on light products
             // This creates realistic logo integration with photo backgrounds

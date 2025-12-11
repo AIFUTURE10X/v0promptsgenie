@@ -102,7 +102,7 @@ export function BrandSidebar({
 
   return (
     <div className="flex flex-col gap-3 w-52 shrink-0 p-3 items-center justify-start max-h-[720px] overflow-y-auto scrollbar-hide">
-      <div className="text-[10px] text-zinc-500 font-extralight uppercase tracking-widest text-center w-full">Brand Settings</div>
+      <div className="text-[11px] text-zinc-200 font-medium uppercase tracking-wider text-center w-full py-1 bg-zinc-800/50 rounded-md border border-zinc-700/50">Brand Settings</div>
 
       {/* Show/Hide Toggle */}
       <button
@@ -131,7 +131,7 @@ export function BrandSidebar({
 
           {/* Current Text Edit */}
           <div className="w-full space-y-1.5">
-            <div className="text-[9px] text-zinc-500 font-extralight uppercase">Text Content</div>
+            <div className="text-[10px] text-zinc-300 font-normal uppercase">Text Content</div>
             <input
               type="text"
               value={editableBrandName}

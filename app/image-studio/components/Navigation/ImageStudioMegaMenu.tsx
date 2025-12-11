@@ -4,15 +4,15 @@
  * ImageStudioMegaMenu Component
  *
  * Single dropdown mega menu that opens when clicking "Image Studio".
- * Image Generator on left, Logo Studio (Logo + Mockups connected) on right.
+ * Three columns: Image Generator, Logo Studio (Logo + Mockups), Background Remover
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ChevronDown, Wand2, ImageIcon, Layers, Package, Check } from 'lucide-react'
+import { ChevronDown, Wand2, ImageIcon, Layers, Package, Check, Eraser } from 'lucide-react'
 
 // ============ Types ============
 
-export type ActiveTab = 'generate' | 'logo' | 'mockups'
+export type ActiveTab = 'generate' | 'logo' | 'mockups' | 'bg-remover'
 
 // ============ Component ============
 
@@ -71,6 +71,8 @@ export function ImageStudioMegaMenu({
         return 'Logo Generator'
       case 'mockups':
         return 'Product Mockups'
+      case 'bg-remover':
+        return 'Background Remover'
       default:
         return 'Image Studio'
     }
@@ -116,155 +118,185 @@ export function ImageStudioMegaMenu({
         <ChevronDown className={`w-4 h-4 text-zinc-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Mega Menu Dropdown - pt-2 creates visual gap while maintaining hover area */}
+      {/* Mega Menu Dropdown - centered */}
       {isOpen && (
-        <div className="absolute top-full left-0 pt-2 w-[580px] z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200">
-            <div className="grid grid-cols-2 gap-4 p-4">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[720px] z-50">
+          <div className="border border-zinc-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200" style={{ backgroundColor: '#555555' }}>
+            {/* 3-column grid */}
+            <div className="grid grid-cols-3 gap-4 p-4">
 
-            {/* Left: Image Generator - Standalone App */}
-            <div>
-              <div className="px-1 py-1.5 mb-2">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                  Image Generation
-                </span>
-              </div>
-              <button
-                onClick={() => handleSelect('generate')}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all group border ${
-                  activeTab === 'generate'
-                    ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] border-[#dbb56e] shadow-lg shadow-amber-500/20'
-                    : 'bg-zinc-800/80 border-zinc-700 hover:bg-zinc-700/80 hover:border-zinc-600'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    activeTab === 'generate' ? 'bg-black/20' : ''
-                  }`}
-                  style={activeTab !== 'generate' ? {
-                    background: "linear-gradient(135deg, #c99850 0%, #dbb56e 50%, #c99850 100%)",
-                  } : undefined}
-                >
-                  <ImageIcon className="w-4 h-4 text-black" />
+              {/* Column 1: Image Generator */}
+              <div>
+                <div className="px-1 py-1.5 mb-2">
+                  <span className="text-xs font-semibold text-white uppercase tracking-wider">
+                    Create
+                  </span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm font-semibold ${
-                      activeTab === 'generate' ? 'text-black' : 'text-white'
-                    }`}>
-                      Image Generator
-                    </span>
-                    {activeTab === 'generate' && <Check className="w-4 h-4 text-black" />}
-                  </div>
-                  <p className={`text-xs mt-0.5 ${
-                    activeTab === 'generate' ? 'text-black/70' : 'text-zinc-400'
-                  }`}>
-                    Generate images from text prompts
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            {/* Right: Logo Studio - Connected Apps */}
-            <div>
-              <div className="px-1 py-1.5 mb-2">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
-                  Logo Studio
-                </span>
-              </div>
-
-              {/* Connected container for Logo + Mockups */}
-              <div className={`rounded-lg border overflow-hidden ${
-                isLogoStudioActive
-                  ? 'border-[#dbb56e] shadow-lg shadow-amber-500/20'
-                  : 'border-zinc-700'
-              }`}>
-                {/* Logo Generator */}
                 <button
-                  onClick={() => handleSelect('logo')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all group ${
-                    activeTab === 'logo'
-                      ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e]'
-                      : 'bg-zinc-800/80 hover:bg-zinc-700/80'
+                  onClick={() => handleSelect('generate')}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all group border ${
+                    activeTab === 'generate'
+                      ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] border-[#dbb56e] shadow-lg shadow-amber-500/20'
+                      : 'bg-zinc-800/80 border-zinc-700 hover:bg-zinc-700/80 hover:border-zinc-600'
                   }`}
                 >
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      activeTab === 'logo' ? 'bg-black/20' : ''
+                      activeTab === 'generate' ? 'bg-black/20' : 'bg-zinc-700'
                     }`}
-                    style={activeTab !== 'logo' ? {
-                      background: "linear-gradient(135deg, #c99850 0%, #dbb56e 50%, #c99850 100%)",
-                    } : undefined}
                   >
-                    <Layers className="w-4 h-4 text-black" />
+                    <ImageIcon className="w-4 h-4" style={{ color: activeTab === 'generate' ? '#000' : '#3b82f6' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${
-                        activeTab === 'logo' ? 'text-black' : 'text-white'
+                        activeTab === 'generate' ? 'text-black' : 'text-white'
                       }`}>
-                        Logo Generator
+                        Image Generator
                       </span>
-                      {activeTab === 'logo' && <Check className="w-4 h-4 text-black" />}
+                      {activeTab === 'generate' && <Check className="w-4 h-4 text-black" />}
                     </div>
                     <p className={`text-xs mt-0.5 ${
-                      activeTab === 'logo' ? 'text-black/70' : 'text-zinc-400'
+                      activeTab === 'generate' ? 'text-black/70' : 'text-white/70'
                     }`}>
-                      3D logos with Dot Matrix effects
+                      AI images from prompts
                     </p>
                   </div>
                 </button>
+              </div>
 
-                {/* Divider */}
-                <div className={`h-px ${isLogoStudioActive ? 'bg-black/20' : 'bg-zinc-700'}`} />
+              {/* Column 2: Logo Studio (Logo + Mockups connected) */}
+              <div>
+                <div className="px-1 py-1.5 mb-2">
+                  <span className="text-xs font-semibold text-white uppercase tracking-wider">
+                    Logo Studio
+                  </span>
+                </div>
+                <div className={`rounded-lg border overflow-hidden ${
+                  isLogoStudioActive
+                    ? 'border-[#dbb56e] shadow-lg shadow-amber-500/20'
+                    : 'border-zinc-700'
+                }`}>
+                  {/* Logo Generator */}
+                  <button
+                    onClick={() => handleSelect('logo')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all group ${
+                      activeTab === 'logo'
+                        ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e]'
+                        : 'bg-zinc-800/80 hover:bg-zinc-700/80'
+                    }`}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        activeTab === 'logo' ? 'bg-black/20' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" style={{ color: activeTab === 'logo' ? '#5c3d1e' : '#dbb56e' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-sm font-semibold ${
+                          activeTab === 'logo' ? 'text-black' : 'text-white'
+                        }`}>
+                          Logo Generator
+                        </span>
+                        {activeTab === 'logo' && <Check className="w-3.5 h-3.5 text-black" />}
+                      </div>
+                      <p className={`text-[11px] ${
+                        activeTab === 'logo' ? 'text-black/70' : 'text-white/70'
+                      }`}>
+                        3D logos & effects
+                      </p>
+                    </div>
+                  </button>
 
-                {/* Product Mockups */}
+                  {/* Divider */}
+                  <div className={`h-px ${isLogoStudioActive ? 'bg-black/20' : 'bg-zinc-700'}`} />
+
+                  {/* Product Mockups */}
+                  <button
+                    onClick={() => handleSelect('mockups')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-all group ${
+                      activeTab === 'mockups'
+                        ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e]'
+                        : 'bg-zinc-800/80 hover:bg-zinc-700/80'
+                    }`}
+                  >
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        activeTab === 'mockups' ? 'bg-black/20' : 'bg-zinc-700'
+                      }`}
+                    >
+                      <Package className="w-3.5 h-3.5" style={{ color: activeTab === 'mockups' ? '#000' : '#a855f7' }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`text-sm font-semibold ${
+                          activeTab === 'mockups' ? 'text-black' : 'text-white'
+                        }`}>
+                          Product Mockups
+                        </span>
+                        {activeTab === 'mockups' && <Check className="w-3.5 h-3.5 text-black" />}
+                      </div>
+                      <p className={`text-[11px] ${
+                        activeTab === 'mockups' ? 'text-black/70' : 'text-white/70'
+                      }`}>
+                        T-shirts, mugs & more
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Column 3: Background Remover */}
+              <div>
+                <div className="px-1 py-1.5 mb-2">
+                  <span className="text-xs font-semibold text-white uppercase tracking-wider">
+                    Edit
+                  </span>
+                </div>
                 <button
-                  onClick={() => handleSelect('mockups')}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-all group ${
-                    activeTab === 'mockups'
-                      ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e]'
-                      : 'bg-zinc-800/80 hover:bg-zinc-700/80'
+                  onClick={() => handleSelect('bg-remover')}
+                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left transition-all group border ${
+                    activeTab === 'bg-remover'
+                      ? 'bg-linear-to-r from-[#c99850] to-[#dbb56e] border-[#dbb56e] shadow-lg shadow-amber-500/20'
+                      : 'bg-zinc-800/80 border-zinc-700 hover:bg-zinc-700/80 hover:border-zinc-600'
                   }`}
                 >
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      activeTab === 'mockups' ? 'bg-black/20' : ''
+                      activeTab === 'bg-remover' ? 'bg-black/20' : 'bg-zinc-700'
                     }`}
-                    style={activeTab !== 'mockups' ? {
-                      background: "linear-gradient(135deg, #c99850 0%, #dbb56e 50%, #c99850 100%)",
-                    } : undefined}
                   >
-                    <Package className="w-4 h-4 text-black" />
+                    <Eraser className="w-4 h-4" style={{ color: activeTab === 'bg-remover' ? '#000' : '#f43f5e' }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${
-                        activeTab === 'mockups' ? 'text-black' : 'text-white'
+                        activeTab === 'bg-remover' ? 'text-black' : 'text-white'
                       }`}>
-                        Product Mockups
+                        BG Remover
                       </span>
-                      {activeTab === 'mockups' && <Check className="w-4 h-4 text-black" />}
+                      {activeTab === 'bg-remover' && <Check className="w-4 h-4 text-black" />}
                     </div>
                     <p className={`text-xs mt-0.5 ${
-                      activeTab === 'mockups' ? 'text-black/70' : 'text-zinc-400'
+                      activeTab === 'bg-remover' ? 'text-black/70' : 'text-white/70'
                     }`}>
-                      T-shirts, mugs, business cards
+                      Remove backgrounds
                     </p>
                   </div>
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Footer hint */}
-          <div className="px-4 py-2 bg-zinc-800/50 border-t border-zinc-700/50">
-            <p className="text-xs text-zinc-500 text-center">
-              Logo Studio apps work together for complete brand design
-            </p>
+            {/* Footer hint */}
+            <div className="px-4 py-2 bg-zinc-800/50 border-t border-zinc-700/50">
+              <p className="text-xs text-white text-center">
+                Logo Studio apps work together for complete brand design
+              </p>
+            </div>
           </div>
         </div>
-      </div>
       )}
     </div>
   )

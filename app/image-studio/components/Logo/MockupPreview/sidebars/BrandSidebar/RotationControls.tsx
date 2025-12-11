@@ -19,8 +19,8 @@ export function RotationControls({
   return (
     <div className="w-full space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-zinc-500 font-extralight uppercase">Rotation</span>
-        <span className="text-[10px] text-zinc-400 font-extralight">{brandRotation}°</span>
+        <span className="text-[10px] text-zinc-300 font-normal uppercase">Rotation</span>
+        <span className="text-[10px] text-zinc-300 font-normal">{brandRotation}°</span>
       </div>
       <div className="grid grid-cols-5 gap-1">
         {ROTATION_PRESETS.map((preset) => (

@@ -29,11 +29,11 @@ export function LogoSidebar({
 }: LogoSidebarProps) {
   return (
     <div className="flex flex-col gap-3 w-40 shrink-0 p-3 items-center justify-start max-h-[520px] overflow-y-auto scrollbar-hide">
-      <div className="text-[10px] text-zinc-500 font-extralight uppercase tracking-widest text-center w-full">Logo Settings</div>
+      <div className="text-[11px] text-zinc-200 font-medium uppercase tracking-wider text-center w-full py-1 bg-zinc-800/50 rounded-md border border-zinc-700/50">Logo Settings</div>
 
       {/* T-Shirt Color - Grid */}
       <div className="w-full space-y-2">
-        <div className="text-[9px] text-zinc-500 font-extralight uppercase">T-Shirt Color</div>
+        <div className="text-[10px] text-zinc-300 font-normal uppercase">T-Shirt Color</div>
         <div className="grid grid-cols-4 gap-1.5">
           {TSHIRT_COLORS.slice(0, 12).map((color) => (
             <button
@@ -74,7 +74,7 @@ export function LogoSidebar({
 
       {/* Logo Scale Controls */}
       <div className="w-full space-y-2">
-        <div className="text-[9px] text-zinc-500 font-extralight uppercase">Logo Size</div>
+        <div className="text-[10px] text-zinc-300 font-normal uppercase">Logo Size</div>
         <div className="flex items-center gap-2">
           <button
             onClick={onScaleDecrease}

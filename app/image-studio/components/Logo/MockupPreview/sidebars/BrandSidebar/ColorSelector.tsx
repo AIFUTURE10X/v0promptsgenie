@@ -85,7 +85,7 @@ export function ColorSelector({
         className="w-full flex items-center justify-between px-3 py-2 bg-zinc-800/50 border border-zinc-700/50 rounded-lg hover:bg-zinc-700/50 transition-colors"
       >
         <div className="flex items-center gap-2">
-          <span className="text-[9px] text-zinc-500 font-extralight uppercase">Color</span>
+          <span className="text-[10px] text-zinc-300 font-normal uppercase">Color</span>
           <div
             className="w-5 h-5 rounded border border-zinc-600"
             style={{ backgroundColor: brandColor }}

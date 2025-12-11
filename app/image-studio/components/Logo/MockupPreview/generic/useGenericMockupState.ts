@@ -3,12 +3,14 @@
 /**
  * Generic Mockup State Hook
  *
- * Manages all state for the GenericMockup component.
- * Extracted to keep the main component under 300 lines.
+ * Manages all state for the GenericMockup component using useReducer.
+ * Provides batched updates and memoized setters for performance.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useReducer, useEffect, useRef, useCallback, useMemo } from 'react'
 import type { MockupConfig, ProductColor, Position, TextEffect, TextItem, MockupView, BrandSettings } from './mockup-types'
+import { mockupReducer } from './mockupReducer'
+import { createInitialState } from './mockupReducer.utils'
 
 export interface UseGenericMockupStateConfig {
   config: MockupConfig
@@ -17,7 +19,6 @@ export interface UseGenericMockupStateConfig {
   logoUrl?: string
   customProductImageUrl?: string
   onProcessedLogoChange?: (url: string | null) => void
-  /** Saved brand settings to restore when loading a preset */
   savedBrandSettings?: BrandSettings | null
 }
 
@@ -30,195 +31,266 @@ export function useGenericMockupState({
   onProcessedLogoChange,
   savedBrandSettings,
 }: UseGenericMockupStateConfig) {
-  // Product color
-  const [selectedColor, setSelectedColor] = useState<ProductColor>(
-    config.colors.find(c => c.id === config.defaultColorId) || config.colors[0]
+  // Single reducer for all state
+  const [state, dispatch] = useReducer(
+    mockupReducer,
+    { config, brandName },
+    ({ config, brandName }) => createInitialState(config, brandName)
   )
-  const [showColorPicker, setShowColorPicker] = useState(false)
 
-  // Logo state
-  const [logoPosition, setLogoPosition] = useState<Position>(config.defaultLogoPosition)
-  const [logoScale, setLogoScale] = useState(config.defaultLogoScale)
-
-  // Brand text state
-  const [showBrandName, setShowBrandName] = useState(true)
-  const [editableBrandName, setEditableBrandName] = useState(brandName)
-  const [brandPosition, setBrandPosition] = useState<Position>(config.defaultTextPosition)
-  const [brandScale, setBrandScale] = useState(config.defaultTextScale)
-  const [brandFont, setBrandFont] = useState<string>('montserrat')
-  const [brandColor, setBrandColor] = useState<string>('#ffffff')
-  const [brandEffect, setBrandEffect] = useState<TextEffect>('none')
-  const [brandRotation, setBrandRotation] = useState(0)
-  const [brandWeight, setBrandWeight] = useState(400)
-  const [showFontPicker, setShowFontPicker] = useState(false)
-
-  // Multiple text items
-  const [textItems, setTextItems] = useState<TextItem[]>([])
-  const [selectedTextId, setSelectedTextId] = useState<string | null>(null)
-
-  // Background removal state
-  const [isRemovingBg, setIsRemovingBg] = useState(false)
-  const [processedLogoUrl, setProcessedLogoUrl] = useState<string | null>(null)
-  const [processedProductUrl, setProcessedProductUrl] = useState<string | null>(null)
-
-  // View state (front/back for apparel)
-  const [selectedView, setSelectedView] = useState<MockupView>('front')
-  const hasMultipleViews = (config.features?.multipleViews?.length ?? 0) > 1
-
-  // Photo URL state
-  const [photoLoadFailed, setPhotoLoadFailed] = useState(false)
-
-  // Use ref to always have latest callback - update SYNCHRONOUSLY during render
-  // (useEffect updates happen AFTER render, causing stale closure issues)
+  // Ref for callback to avoid stale closure
   const onProcessedLogoChangeRef = useRef(onProcessedLogoChange)
-  // Update ref synchronously on every render to avoid timing issues
   onProcessedLogoChangeRef.current = onProcessedLogoChange
 
+  // ============ Memoized Setters (dispatch wrappers) ============
+
+  // Color setters
+  const setSelectedColor = useCallback((color: ProductColor) => {
+    dispatch({ type: 'SET_COLOR', payload: color })
+  }, [])
+
+  const setShowColorPicker = useCallback((show: boolean) => {
+    dispatch({ type: 'SET_SHOW_COLOR_PICKER', payload: show })
+  }, [])
+
+  // Logo setters
+  const setLogoPosition = useCallback((pos: Position) => {
+    dispatch({ type: 'SET_LOGO_POSITION', payload: pos })
+  }, [])
+
+  const setLogoScale = useCallback((scale: number) => {
+    dispatch({ type: 'SET_LOGO_SCALE', payload: scale })
+  }, [])
+
+  // Brand setters
+  const setShowBrandName = useCallback((show: boolean) => {
+    dispatch({ type: 'SET_SHOW_BRAND_NAME', payload: show })
+  }, [])
+
+  const setEditableBrandName = useCallback((name: string) => {
+    dispatch({ type: 'SET_BRAND_NAME', payload: name })
+  }, [])
+
+  const setBrandPosition = useCallback((pos: Position) => {
+    dispatch({ type: 'SET_BRAND_POSITION', payload: pos })
+  }, [])
+
+  const setBrandScale = useCallback((scale: number) => {
+    dispatch({ type: 'SET_BRAND_SCALE', payload: scale })
+  }, [])
+
+  const setBrandFont = useCallback((font: string) => {
+    dispatch({ type: 'SET_BRAND_FONT', payload: font })
+  }, [])
+
+  const setBrandColor = useCallback((color: string) => {
+    dispatch({ type: 'SET_BRAND_COLOR', payload: color })
+  }, [])
+
+  const setBrandEffect = useCallback((effect: TextEffect) => {
+    dispatch({ type: 'SET_BRAND_EFFECT', payload: effect })
+  }, [])
+
+  const setBrandRotation = useCallback((rotation: number) => {
+    dispatch({ type: 'SET_BRAND_ROTATION', payload: rotation })
+  }, [])
+
+  const setBrandWeight = useCallback((weight: number) => {
+    dispatch({ type: 'SET_BRAND_WEIGHT', payload: weight })
+  }, [])
+
+  const setShowFontPicker = useCallback((show: boolean) => {
+    dispatch({ type: 'SET_SHOW_FONT_PICKER', payload: show })
+  }, [])
+
+  // Text items setters
+  const setTextItems = useCallback((items: TextItem[] | ((prev: TextItem[]) => TextItem[])) => {
+    if (typeof items === 'function') {
+      // For functional updates, we need current state
+      dispatch({ type: 'SET_TEXT_ITEMS', payload: items(state.textItems.items) })
+    } else {
+      dispatch({ type: 'SET_TEXT_ITEMS', payload: items })
+    }
+  }, [state.textItems.items])
+
+  const setSelectedTextId = useCallback((id: string | null) => {
+    dispatch({ type: 'SET_SELECTED_TEXT_ID', payload: id })
+  }, [])
+
+  // Background removal setters
+  const setIsRemovingBg = useCallback((isRemoving: boolean) => {
+    dispatch({ type: 'SET_IS_REMOVING_BG', payload: isRemoving })
+  }, [])
+
+  const setProcessedLogoUrl = useCallback((url: string | null) => {
+    dispatch({ type: 'SET_PROCESSED_LOGO_URL', payload: url })
+  }, [])
+
+  const setProcessedProductUrl = useCallback((url: string | null) => {
+    dispatch({ type: 'SET_PROCESSED_PRODUCT_URL', payload: url })
+  }, [])
+
+  // Canvas setters
+  const setSelectedView = useCallback((view: MockupView) => {
+    dispatch({ type: 'SET_VIEW', payload: view })
+  }, [])
+
+  const setCanvasZoom = useCallback((zoom: number) => {
+    dispatch({ type: 'SET_ZOOM', payload: zoom })
+  }, [])
+
+  const setShowGrid = useCallback((show: boolean) => {
+    dispatch({ type: 'SET_SHOW_GRID', payload: show })
+  }, [])
+
+  const setShowRulers = useCallback((show: boolean) => {
+    dispatch({ type: 'SET_SHOW_RULERS', payload: show })
+  }, [])
+
+  // UI setters
+  const setPhotoLoadFailed = useCallback((failed: boolean) => {
+    dispatch({ type: 'SET_PHOTO_LOAD_FAILED', payload: failed })
+  }, [])
+
+  // ============ Effects ============
+
   // Reset processed logo when original logo changes
-  // BUT don't reset if we have an external processed URL (from parent/lightbox)
-  // This prevents clearing the BG-removed state when opening the lightbox
   useEffect(() => {
     if (!externalProcessedLogoUrl) {
-      setProcessedLogoUrl(null)
+      dispatch({ type: 'SET_PROCESSED_LOGO_URL', payload: null })
     }
   }, [logoUrl, externalProcessedLogoUrl])
 
   // Reset processed product when original product changes
   useEffect(() => {
-    setProcessedProductUrl(null)
+    dispatch({ type: 'SET_PROCESSED_PRODUCT_URL', payload: null })
   }, [customProductImageUrl])
 
-  // Reset photo load state when color changes
-  useEffect(() => {
-    setPhotoLoadFailed(false)
-  }, [selectedColor.id])
-
-  // Use external processed URL (from parent), then local processed, then original
-  // Priority: externalProcessedLogoUrl > processedLogoUrl > logoUrl
-  const effectiveLogoUrl = externalProcessedLogoUrl || processedLogoUrl || logoUrl
-
-  // Debug logging for effectiveLogoUrl computation (helps diagnose lightbox issues)
-  console.log('[useGenericMockupState] effectiveLogoUrl computed:', {
-    hasExternal: !!externalProcessedLogoUrl,
-    hasLocal: !!processedLogoUrl,
-    hasOriginal: !!logoUrl,
-    using: externalProcessedLogoUrl ? 'EXTERNAL (parent BG-removed)' :
-           processedLogoUrl ? 'LOCAL (this component BG-removed)' :
-           logoUrl ? 'ORIGINAL (no BG removal)' : 'NONE',
-    url: effectiveLogoUrl?.substring(0, 60),
-  })
-
-  // Use processed product image if available
-  const effectiveProductImageUrl = processedProductUrl || customProductImageUrl
-
-  // Reset handler
-  const handleReset = useCallback(() => {
-    console.log('[GenericMockup] Reset triggered - resetting all positions and settings')
-    setLogoPosition(config.defaultLogoPosition)
-    setLogoScale(config.defaultLogoScale)
-    setEditableBrandName(brandName)
-    setBrandPosition(config.defaultTextPosition)
-    setBrandScale(config.defaultTextScale)
-    setBrandFont('montserrat')
-    setBrandColor('#ffffff')
-    setBrandEffect('none')
-    setBrandRotation(0)
-    setBrandWeight(400)
-    setTextItems([])
-    setSelectedTextId(null)
-    const defaultColor = config.colors.find(c => c.id === config.defaultColorId) || config.colors[0]
-    setSelectedColor(defaultColor)
-    setPhotoLoadFailed(false)
-    setSelectedView('front')
-  }, [config, brandName])
-
-  // Get current brand settings for preset saving
-  const getBrandSettings = useCallback((): BrandSettings => ({
-    editableBrandName,
-    brandPosition,
-    brandScale,
-    brandFont,
-    brandColor,
-    brandEffect,
-    brandRotation,
-    brandWeight,
-    showBrandName,
-    textItems,
-  }), [editableBrandName, brandPosition, brandScale, brandFont, brandColor, brandEffect, brandRotation, brandWeight, showBrandName, textItems])
-
-  // Restore brand settings when loading a saved preset
+  // Restore brand settings from preset (batched update)
   useEffect(() => {
     if (savedBrandSettings) {
       console.log('[useGenericMockupState] Restoring brand settings from preset:', savedBrandSettings)
-      setEditableBrandName(savedBrandSettings.editableBrandName)
-      setBrandPosition(savedBrandSettings.brandPosition)
-      setBrandScale(savedBrandSettings.brandScale)
-      setBrandFont(savedBrandSettings.brandFont)
-      setBrandColor(savedBrandSettings.brandColor)
-      setBrandEffect(savedBrandSettings.brandEffect)
-      setBrandRotation(savedBrandSettings.brandRotation)
-      setBrandWeight(savedBrandSettings.brandWeight)
-      setShowBrandName(savedBrandSettings.showBrandName)
-      setTextItems(savedBrandSettings.textItems || [])
+      dispatch({ type: 'RESTORE_BRAND_SETTINGS', payload: savedBrandSettings })
     }
   }, [savedBrandSettings])
 
+  // ============ Computed Values ============
+
+  const hasMultipleViews = (config.features?.multipleViews?.length ?? 0) > 1
+
+  // Effective logo URL: external > local processed > original
+  const effectiveLogoUrl = externalProcessedLogoUrl || state.backgroundRemoval.processedLogoUrl || logoUrl
+
+  // Effective product URL: processed > original
+  const effectiveProductImageUrl = state.backgroundRemoval.processedProductUrl || customProductImageUrl
+
+  // Debug logging
+  console.log('[useGenericMockupState] effectiveLogoUrl computed:', {
+    hasExternal: !!externalProcessedLogoUrl,
+    hasLocal: !!state.backgroundRemoval.processedLogoUrl,
+    hasOriginal: !!logoUrl,
+    using: externalProcessedLogoUrl ? 'EXTERNAL' : state.backgroundRemoval.processedLogoUrl ? 'LOCAL' : logoUrl ? 'ORIGINAL' : 'NONE',
+  })
+
+  // ============ Handlers ============
+
+  const handleReset = useCallback(() => {
+    console.log('[GenericMockup] Reset triggered')
+    dispatch({ type: 'RESET', payload: { config, brandName } })
+  }, [config, brandName])
+
+  const getBrandSettings = useCallback((): BrandSettings => ({
+    editableBrandName: state.brand.name,
+    brandPosition: state.brand.position,
+    brandScale: state.brand.scale,
+    brandFont: state.brand.font,
+    brandColor: state.brand.color,
+    brandEffect: state.brand.effect,
+    brandRotation: state.brand.rotation,
+    brandWeight: state.brand.weight,
+    showBrandName: state.brand.show,
+    textItems: state.textItems.items,
+  }), [state.brand, state.textItems.items])
+
+  // ============ Return Interface (backward compatible) ============
+
   return {
     // Color state
-    selectedColor,
+    selectedColor: state.color.selected,
     setSelectedColor,
-    showColorPicker,
+    showColorPicker: state.color.showPicker,
     setShowColorPicker,
+
     // Logo state
-    logoPosition,
+    logoPosition: state.logo.position,
     setLogoPosition,
-    logoScale,
+    logoScale: state.logo.scale,
     setLogoScale,
+
     // Brand text state
-    showBrandName,
+    showBrandName: state.brand.show,
     setShowBrandName,
-    editableBrandName,
+    editableBrandName: state.brand.name,
     setEditableBrandName,
-    brandPosition,
+    brandPosition: state.brand.position,
     setBrandPosition,
-    brandScale,
+    brandScale: state.brand.scale,
     setBrandScale,
-    brandFont,
+    brandFont: state.brand.font,
     setBrandFont,
-    brandColor,
+    brandColor: state.brand.color,
     setBrandColor,
-    brandEffect,
+    brandEffect: state.brand.effect,
     setBrandEffect,
-    brandRotation,
+    brandRotation: state.brand.rotation,
     setBrandRotation,
-    brandWeight,
+    brandWeight: state.brand.weight,
     setBrandWeight,
-    showFontPicker,
+    showFontPicker: state.brand.showFontPicker,
     setShowFontPicker,
+
     // Text items
-    textItems,
+    textItems: state.textItems.items,
     setTextItems,
-    selectedTextId,
+    selectedTextId: state.textItems.selectedId,
     setSelectedTextId,
+
     // Background removal
-    isRemovingBg,
+    isRemovingBg: state.backgroundRemoval.isRemoving,
     setIsRemovingBg,
-    processedLogoUrl,
+    processedLogoUrl: state.backgroundRemoval.processedLogoUrl,
     setProcessedLogoUrl,
-    processedProductUrl,
+    processedProductUrl: state.backgroundRemoval.processedProductUrl,
     setProcessedProductUrl,
+
     // View state
-    selectedView,
+    selectedView: state.canvas.view,
     setSelectedView,
     hasMultipleViews,
+
+    // Canvas zoom
+    canvasZoom: state.canvas.zoom,
+    setCanvasZoom,
+
+    // Grid overlay
+    showGrid: state.canvas.showGrid,
+    setShowGrid,
+
+    // Rulers
+    showRulers: state.canvas.showRulers,
+    setShowRulers,
+
     // Photo state
-    photoLoadFailed,
+    photoLoadFailed: state.ui.photoLoadFailed,
     setPhotoLoadFailed,
+
     // Computed values
     effectiveLogoUrl,
     effectiveProductImageUrl,
+
     // Refs
     onProcessedLogoChangeRef,
+
     // Handlers
     handleReset,
     getBrandSettings,

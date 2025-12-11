@@ -77,7 +77,7 @@ export async function generateImageWithRetry(
   const config = { ...DEFAULT_RETRY_CONFIG, ...retryConfig }
 
   const client = new GoogleGenAI({ apiKey })
-  const model = "gemini-2.5-flash-image"
+  const model = "gemini-2.5-flash-preview-image"
 
   let currentDelay = config.initialDelay
   let totalDelay = 0
@@ -185,7 +185,7 @@ export function formatGeminiError(error: any): { message: string; statusCode: nu
     statusCode = 429
   } else if (error.message?.includes("404") || error.status === 404) {
     message =
-      "Model not found. The Nano Banana model (gemini-2.5-flash-image) may not be available for your API key yet."
+      "Model not found. The model (gemini-2.5-flash-preview-image) may not be available for your API key yet."
     statusCode = 404
   } else if (error.message?.includes("401") || error.status === 401) {
     message = "Invalid API key. Please check your GEMINI_API_KEY environment variable."

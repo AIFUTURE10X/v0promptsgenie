@@ -31,7 +31,7 @@ export function buildTextOnlyNegativePrompt(existingNegative: string): string {
 /**
  * Default replication prompt for reference-based logos
  */
-export const REPLICATION_PROMPT = 'Faithfully replicate this exact logo. Preserve all visual elements exactly: colors, typography, iconography, shapes, layout, proportions, and style. Create an exact reproduction without modifications.'
+export const REPLICATION_PROMPT = 'Create an EXACT pixel-perfect replica of this logo. Copy EVERYTHING precisely: exact font/typeface, exact colors and gradients, exact spacing and positioning, exact proportions, exact effects (shadows, 3D, metallic, etc.). Do not interpret or reimagine - DUPLICATE exactly as shown. Match the exact text content, letter shapes, and visual treatment. This must be indistinguishable from the original.'
 
 /**
  * Default inspire prompt for reference-based logos

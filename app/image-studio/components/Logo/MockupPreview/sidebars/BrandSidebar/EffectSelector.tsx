@@ -18,7 +18,7 @@ export function EffectSelector({
 }: EffectSelectorProps) {
   return (
     <div className="w-full space-y-1.5">
-      <div className="text-[9px] text-zinc-500 font-extralight uppercase">Effect</div>
+      <div className="text-[10px] text-zinc-300 font-normal uppercase">Effect</div>
       <div className="grid grid-cols-3 gap-1">
         {(Object.keys(TEXT_EFFECTS) as TextEffect[]).map((effectKey) => {
           const effect = TEXT_EFFECTS[effectKey]

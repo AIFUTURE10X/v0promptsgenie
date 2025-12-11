@@ -28,7 +28,7 @@ export function TestGeneratePanelComponents() {
 
   const [combinedPrompt, setCombinedPrompt] = useState('A cute orange cat sitting on a windowsill in a cozy living room, soft watercolor style.')
 
-  const [selectedModel, setSelectedModel] = useState<GenerationModel>('gemini-2.5-flash-image')
+  const [selectedModel, setSelectedModel] = useState<GenerationModel>('gemini-2.5-flash-preview-image')
   const [imageSize, setImageSize] = useState<ImageSize>('1K')
 
   const [referenceImage, setReferenceImage] = useState<ReferenceImage | null>(null)

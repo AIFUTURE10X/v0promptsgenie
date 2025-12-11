@@ -2,16 +2,41 @@
  * Canvas Export Utilities
  * Reliable image export using manual Canvas API drawing
  * Bypasses html2canvas issues with Tailwind 4 oklch/oklab colors
+ *
+ * See EXPORT_FIX_REFERENCE.md for documentation on the preloadImage pattern
  */
 
-// Preload image utility - waits for image to fully load
-export function preloadImage(url: string): Promise<HTMLImageElement> {
+/**
+ * Preload image utility - waits for image to fully load
+ * Uses fetch+blob pattern to handle Vercel Blob URLs reliably
+ */
+export async function preloadImage(url: string): Promise<HTMLImageElement> {
+  // Handle data URLs directly (already local)
+  if (url.startsWith('data:')) {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error('Image failed to load'))
+      img.src = url
+    })
+  }
+
+  // Fetch remote URLs (Vercel Blob, etc.) and convert to blob URL
+  const response = await fetch(url)
+  const blob = await response.blob()
+  const blobUrl = URL.createObjectURL(blob)
+
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.crossOrigin = 'anonymous'  // Set BEFORE src for CORS
-    img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Image failed to load'))
-    img.src = url
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl)  // Clean up
+      resolve(img)
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl)
+      reject(new Error('Image failed to load'))
+    }
+    img.src = blobUrl
   })
 }
 

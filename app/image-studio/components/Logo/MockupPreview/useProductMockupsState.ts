@@ -188,6 +188,12 @@ export function useProductMockupsState({ brandName, onLogoUrlChange }: UseProduc
     setLoadedBrandSettings(null)
   }, [])
 
+  // Clear selection entirely (deselect product, show empty panel)
+  const clearSelection = useCallback(() => {
+    setSelectedMockupId('')
+    setSelectedSubCategoryId('')
+  }, [])
+
   // Get product config (handles both built-in and custom)
   const getProductConfig = useCallback((mockupId: string) => {
     const builtIn = getMockupConfig(mockupId)
@@ -321,5 +327,6 @@ export function useProductMockupsState({ brandName, onLogoUrlChange }: UseProduc
     setLoadedLogoUrl,
     loadedBrandSettings,
     clearLoadedMockup,
+    clearSelection,
   }
 }

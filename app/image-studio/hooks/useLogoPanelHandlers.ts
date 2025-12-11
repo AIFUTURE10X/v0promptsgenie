@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { BgRemovalMethod, type GeneratedLogo, type LogoStyle } from './useLogoGeneration'
 import type { LogoHistoryItem } from '../components/Logo/LogoHistory'
 import { getUserId } from '../components/Logo/LogoHistory/useLogoHistoryData'
+import { urlToBase64 } from '../utils/export-utils'
 
 interface LogoPanelHandlersProps {
   generatedLogo: GeneratedLogo | null
@@ -18,6 +19,7 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
   const [isRemovingLogoBg, setIsRemovingLogoBg] = useState(false)
   const [isUpscaling, setIsUpscaling] = useState(false)
   const [isExportingSvg, setIsExportingSvg] = useState(false)
+  const [isExportingPdf, setIsExportingPdf] = useState(false)
   const [copied, setCopied] = useState(false)
   const [isRemovingRefBg, setIsRemovingRefBg] = useState(false)
 
@@ -84,8 +86,11 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
     if (!generatedLogo) return
     setIsUpscaling(true)
     try {
+      // Use utility function - see EXPORT_FIX_REFERENCE.md for why this pattern is needed
+      const imageBase64 = await urlToBase64(generatedLogo.url)
+
       const formData = new FormData()
-      formData.append('imageBase64', generatedLogo.url)
+      formData.append('imageBase64', imageBase64)
       formData.append('targetResolution', targetResolution)
       formData.append('method', method)
       const response = await fetch('/api/upscale-logo', { method: 'POST', body: formData })
@@ -123,10 +128,14 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
     if (!generatedLogo) return
     setIsExportingSvg(true)
     try {
+      // Use utility function - see EXPORT_FIX_REFERENCE.md for why this pattern is needed
+      const imageBase64 = await urlToBase64(generatedLogo.url)
+
       const formData = new FormData()
-      formData.append('imageBase64', generatedLogo.url)
+      formData.append('imageBase64', imageBase64)
       formData.append('mode', 'auto')
       formData.append('colorCount', '16')
+      formData.append('removeBackground', 'true') // Remove background paths from SVG for transparency
       const response = await fetch('/api/vectorize-logo', { method: 'POST', body: formData })
       if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Failed')
       const svgContent = await response.text()
@@ -145,6 +154,54 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
       toast.error(`SVG export failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setIsExportingSvg(false)
+    }
+  }, [generatedLogo])
+
+  const handleExportPdf = useCallback(async () => {
+    if (!generatedLogo) return
+    setIsExportingPdf(true)
+    try {
+      const jsPDF = (await import('jspdf')).default
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          try {
+            const pdf = new jsPDF('p', 'mm', 'a4')
+            const pdfWidth = pdf.internal.pageSize.getWidth()
+            const pdfHeight = pdf.internal.pageSize.getHeight()
+            const imgAspect = img.width / img.height
+            const maxWidth = pdfWidth - 40
+            const maxHeight = pdfHeight - 40
+            let imgWidth = maxWidth
+            let imgHeight = imgWidth / imgAspect
+            if (imgHeight > maxHeight) {
+              imgHeight = maxHeight
+              imgWidth = imgHeight * imgAspect
+            }
+            const x = (pdfWidth - imgWidth) / 2
+            const y = (pdfHeight - imgHeight) / 2
+
+            // Draw the logo on the PDF (transparent areas will show PDF's default white background)
+            pdf.addImage(img, 'PNG', x, y, imgWidth, imgHeight)
+            const fileName = `logo-${generatedLogo.prompt.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30)}-${Date.now()}.pdf`
+            pdf.save(fileName)
+            resolve()
+          } catch (err) {
+            reject(err)
+          }
+        }
+        img.onerror = () => reject(new Error('Failed to load image'))
+        img.src = generatedLogo.url
+      })
+
+      toast.success('PDF exported successfully!')
+    } catch (err) {
+      console.error('Failed to export PDF:', err)
+      toast.error(`PDF export failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setIsExportingPdf(false)
     }
   }, [generatedLogo])
 
@@ -188,7 +245,7 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
   }, [bgRemovalMethod, setLogo, onLogoGenerated])
 
   return {
-    isRemovingLogoBg, isUpscaling, isExportingSvg, copied, isRemovingRefBg,
-    handleRemoveLogoBackground, handleUpscale, handleCopyToClipboard, handleExportSvg, handleRemoveRefBackground
+    isRemovingLogoBg, isUpscaling, isExportingSvg, isExportingPdf, copied, isRemovingRefBg,
+    handleRemoveLogoBackground, handleUpscale, handleCopyToClipboard, handleExportSvg, handleExportPdf, handleRemoveRefBackground
   }
 }

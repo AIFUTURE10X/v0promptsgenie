@@ -13,9 +13,9 @@ interface UseBackgroundRemovalConfig {
   effectiveLogoUrl: string | undefined
   effectiveProductImageUrl: string | undefined
   isRemovingBg: boolean
-  setIsRemovingBg: React.Dispatch<React.SetStateAction<boolean>>
-  setProcessedLogoUrl: React.Dispatch<React.SetStateAction<string | null>>
-  setProcessedProductUrl: React.Dispatch<React.SetStateAction<string | null>>
+  setIsRemovingBg: (isRemoving: boolean) => void
+  setProcessedLogoUrl: (url: string | null) => void
+  setProcessedProductUrl: (url: string | null) => void
   onProcessedLogoChangeRef: MutableRefObject<((url: string | null) => void) | undefined>
 }
 

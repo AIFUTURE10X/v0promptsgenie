@@ -56,7 +56,7 @@ export function TShirtShape({ color, view = 'front', className, style }: ShapeRe
         viewBox={TSHIRT_VIEWBOX}
         className="w-full h-full drop-shadow-2xl"
         style={{ filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.4))' }}
-        preserveAspectRatio="xMidYMid slice"
+        preserveAspectRatio="xMidYMid meet"
       >
         {/* Fabric texture gradient */}
         <defs>
@@ -96,20 +96,19 @@ export function TShirtShape({ color, view = 'front', className, style }: ShapeRe
               stroke={isDark ? '#222' : '#ccc'}
               strokeWidth="2"
             />
-            {/* Back view: center seam */}
+            {/* Back view: center seam - matches front styling */}
             <path
               d={TSHIRT_PATHS.backSeam}
-              stroke={isDark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.1)'}
+              stroke={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}
               strokeWidth="1"
-              strokeDasharray="4,4"
             />
           </>
         ) : (
           <>
-            {/* Front view: center fold line */}
+            {/* Front view: center fold line - subtle */}
             <path
               d={TSHIRT_PATHS.centerFold}
-              stroke={isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}
+              stroke={isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}
               strokeWidth="1"
             />
             {/* Front view: collar detail */}
@@ -147,6 +146,10 @@ export function TShirtShape({ color, view = 'front', className, style }: ShapeRe
 
 /**
  * Draw T-shirt shape to canvas context (for export)
+ *
+ * ViewBox is '-40 115 480 335' meaning:
+ * - minX = -40, minY = 115
+ * - width = 480, height = 335
  */
 export function drawTShirtToCanvas(
   ctx: CanvasRenderingContext2D,
@@ -158,14 +161,20 @@ export function drawTShirtToCanvas(
   const isDark = color.textColor === 'light'
   const isBack = view === 'back'
 
-  // Scale factor from SVG viewBox (400x360) to canvas size
-  const scaleX = width / 400
-  const scaleY = height / 360
+  // ViewBox dimensions from TSHIRT_VIEWBOX = '-40 115 480 335'
+  const viewBoxX = -40
+  const viewBoxY = 115
+  const viewBoxWidth = 480
+  const viewBoxHeight = 335
+
+  // Scale from viewBox dimensions to canvas size
+  const scaleX = width / viewBoxWidth
+  const scaleY = height / viewBoxHeight
 
   ctx.save()
   ctx.scale(scaleX, scaleY)
-  // Offset for viewBox starting at y=100
-  ctx.translate(0, -100)
+  // Translate to account for viewBox origin
+  ctx.translate(-viewBoxX, -viewBoxY)
 
   // Main body (narrower)
   ctx.beginPath()
@@ -195,15 +204,13 @@ export function drawTShirtToCanvas(
   ctx.stroke()
 
   if (isBack) {
-    // Back seam (dashed)
+    // Back seam - matches front styling
     ctx.beginPath()
     ctx.moveTo(200, 150)
     ctx.lineTo(200, 440)
-    ctx.strokeStyle = isDark ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.1)'
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
     ctx.lineWidth = 1
-    ctx.setLineDash([4, 4])
     ctx.stroke()
-    ctx.setLineDash([])
 
     // Neck line
     ctx.beginPath()
@@ -214,11 +221,11 @@ export function drawTShirtToCanvas(
     ctx.lineWidth = 2
     ctx.stroke()
   } else {
-    // Front center fold
+    // Front center fold - matches back styling
     ctx.beginPath()
     ctx.moveTo(200, 175)
     ctx.lineTo(200, 440)
-    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'
     ctx.lineWidth = 1
     ctx.stroke()
 

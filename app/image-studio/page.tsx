@@ -10,6 +10,7 @@ import { ImageStudioHeader } from './components/ImageStudioHeader'
 import { ImageLightbox } from './components/ImageLightbox'
 import { GeneratePanel } from './components/GeneratePanel'
 import { LogoPanel } from './components/LogoPanel'
+import { BackgroundRemoverPanel } from './components/BackgroundRemover'
 import { AIHelperSidebar } from './components/AIHelperSidebar'
 import type { DotMatrixConfig } from './constants/dot-matrix-config'
 import { ImageStudioToolbar } from './components/ImageStudioToolbar'
@@ -252,10 +253,15 @@ export default function ImageStudioPage() {
           />
         )}
 
-        {state.activeTab === 'mockups' && (
-          <Card className="bg-zinc-900/90 border border-zinc-800 overflow-hidden" style={{ height: 'calc(100vh - 120px)' }}>
-            <ProductMockupsPanel />
-          </Card>
+        <Card
+          className={`bg-zinc-900/90 border border-zinc-800 overflow-hidden ${state.activeTab !== 'mockups' ? 'hidden' : ''}`}
+          style={{ height: 'calc(100vh - 120px)' }}
+        >
+          <ProductMockupsPanel />
+        </Card>
+
+        {state.activeTab === 'bg-remover' && (
+          <BackgroundRemoverPanel />
         )}
       </main>
 

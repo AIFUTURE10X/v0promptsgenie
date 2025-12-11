@@ -31,8 +31,8 @@ export interface ImageStudioState {
   setShowAIHelper: (show: boolean) => void
   showUploadSection: boolean
   setShowUploadSection: (show: boolean) => void
-  activeTab: 'generate' | 'logo' | 'mockups'
-  setActiveTab: (tab: 'generate' | 'logo' | 'mockups') => void
+  activeTab: 'generate' | 'logo' | 'mockups' | 'bg-remover'
+  setActiveTab: (tab: 'generate' | 'logo' | 'mockups' | 'bg-remover') => void
   pendingLogoConfig: Partial<DotMatrixConfig> | null
   setPendingLogoConfig: (config: Partial<DotMatrixConfig> | null) => void
 
@@ -63,8 +63,8 @@ export interface ImageStudioState {
   setSeed: (seed: number | null) => void
   imageSize: '1K' | '2K' | '4K'
   setImageSize: (size: '1K' | '2K' | '4K') => void
-  selectedModel: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
-  setSelectedModel: (model: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview') => void
+  selectedModel: 'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image'
+  setSelectedModel: (model: 'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image') => void
 
   // Camera settings
   selectedCameraAngle: string
@@ -94,7 +94,7 @@ export function useImageStudioState(): ImageStudioState {
   // UI state
   const [showAIHelper, setShowAIHelper] = useState(false)
   const [showUploadSection, setShowUploadSection] = useState(true)
-  const [activeTab, setActiveTab] = useState<'generate' | 'logo' | 'mockups'>('generate')
+  const [activeTab, setActiveTab] = useState<'generate' | 'logo' | 'mockups' | 'bg-remover'>('generate')
   const [pendingLogoConfig, setPendingLogoConfig] = useState<Partial<DotMatrixConfig> | null>(null)
 
   // Lightbox state
@@ -123,7 +123,7 @@ export function useImageStudioState(): ImageStudioState {
 
   const [seed, setSeed] = useState<number | null>(null)
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K')
-  const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'>('gemini-2.5-flash-image')
+  const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image'>('gemini-2.5-flash-preview-image')
 
   // Debug: Log whenever mainPrompt changes
   useEffect(() => {

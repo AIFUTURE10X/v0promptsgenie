@@ -10,6 +10,7 @@ import { useImageGeneration } from '../hooks/useImageGeneration'
 import { GeneratedImageCard } from './GeneratedImageCard'
 import { useGenerationHistory } from '../hooks/useGenerationHistory'
 import { SeedControlDropdown } from './SeedControlDropdown'
+import { RemoveBgButton } from './RemoveBgButton'
 import { AnalysisCard } from './GeneratePanel/AnalysisCard'
 import { CombinedPromptCard } from './GeneratePanel/CombinedPromptCard'
 import { ModelSelector, type GenerationModel, type ImageSize } from './GeneratePanel/ModelSelector'
@@ -67,7 +68,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
       isFavorite, toggleFavorite, onParametersSave, onClearPrompt, onRestoreParameters,
       generatedImages, setGeneratedImages, onOpenLightbox,
       seed: controlledSeed, setSeed: setControlledSeed,
-      imageSize = '1K', setImageSize, selectedModel = 'gemini-2.5-flash-image', setSelectedModel,
+      imageSize = '1K', setImageSize, selectedModel = 'gemini-2.5-flash-preview-image', setSelectedModel,
     } = props
 
     const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)
@@ -75,6 +76,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
     const { saveToHistory } = useGenerationHistory()
 
     const [showAdvanced, setShowAdvanced] = useState(true)
+    const [isRemovingBg, setIsRemovingBg] = useState(false)
     const [seed, setSeedInternal] = useState<number | null>(controlledSeed ?? null)
     const [editedSubject, setEditedSubject] = useState('')
     const [editedScene, setEditedScene] = useState('')
@@ -168,6 +170,16 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
       }
     }
 
+    const handleBulkRemoveBackground = async () => {
+      if (generatedImages.length === 0) return
+      setIsRemovingBg(true)
+      try {
+        await handleRemoveBackground(0)
+      } finally {
+        setIsRemovingBg(false)
+      }
+    }
+
     useImperativeHandle(ref, () => ({ triggerGenerate: handleGenerate, isGenerating }), [isGenerating])
 
     const toggleSection = () => setShowAdvanced(!showAdvanced)
@@ -206,7 +218,10 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
             <div className="p-4 pt-0 space-y-4">
               <PromptInputs mainPrompt={mainPrompt} negativePrompt={negativePrompt} onMainPromptChange={setMainPrompt} onNegativePromptChange={setNegativePrompt} />
               <ModelSelector selectedModel={selectedModel} onModelChange={m => setSelectedModel?.(m)} imageSize={imageSize} onImageSizeChange={s => setImageSize?.(s)} />
-              <SeedControlDropdown seed={activeSeed} onSeedChange={setSeed} />
+              <div className="flex items-center gap-2">
+                <SeedControlDropdown seed={activeSeed} onSeedChange={setSeed} />
+                <RemoveBgButton onRemoveBackground={handleBulkRemoveBackground} isRemovingBg={isRemovingBg} disabled={generatedImages.length === 0} />
+              </div>
               <ReferenceImageUpload referenceImage={referenceImage} onImageChange={setReferenceImage} />
               {generatedImages.length > 0 && (
                 <div className="flex justify-end pt-4 border-t border-zinc-800">

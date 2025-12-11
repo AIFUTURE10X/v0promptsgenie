@@ -23,8 +23,8 @@ export function SizeControls({
   return (
     <div className="w-full space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-[9px] text-zinc-500 font-extralight uppercase">Size</span>
-        <span className="text-[10px] text-zinc-400 font-extralight">{Math.round(brandScale * 100)}%</span>
+        <span className="text-[10px] text-zinc-300 font-normal uppercase">Size</span>
+        <span className="text-[10px] text-zinc-300 font-normal">{Math.round(brandScale * 100)}%</span>
       </div>
       <div className="flex items-center gap-2">
         <button

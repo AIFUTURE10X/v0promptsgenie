@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { vectorizeLogo, VectorizationMode } from "@/lib/vectorization"
+import { vectorizeLogo, VectorizationMode, removeBackgroundFromSvg } from "@/lib/vectorization"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,12 +10,14 @@ export async function POST(request: NextRequest) {
     const imageBase64 = formData.get('imageBase64') as string | null
     const mode = (formData.get('mode') as VectorizationMode) || 'auto'
     const colorCount = parseInt(formData.get('colorCount') as string) || 16
+    const removeBackground = formData.get('removeBackground') === 'true'
 
     console.log("[Vectorize API] Request:", {
       hasFile: !!imageFile,
       hasBase64: !!imageBase64,
       mode,
-      colorCount
+      colorCount,
+      removeBackground
     })
 
     let imageBuffer: Buffer
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest) {
     console.log("[Vectorize API] Processing image, size:", imageBuffer.length)
 
     // Vectorize the logo
-    const svgString = await vectorizeLogo(imageBuffer, {
+    let svgString = await vectorizeLogo(imageBuffer, {
       mode,
       colorCount,
       filterSpeckle: 4,
@@ -46,6 +48,12 @@ export async function POST(request: NextRequest) {
     })
 
     console.log("[Vectorize API] SVG generated successfully")
+
+    // Remove background paths if requested (for transparent PNG exports)
+    if (removeBackground) {
+      console.log("[Vectorize API] Removing background from SVG")
+      svgString = removeBackgroundFromSvg(svgString)
+    }
 
     // Return SVG as response
     return new Response(svgString, {
