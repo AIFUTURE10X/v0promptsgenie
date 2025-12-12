@@ -11,7 +11,7 @@ import { useState, useCallback } from 'react'
 
 // ============ Types ============
 
-export type BgRemovalMethod = 'replicate' | 'pixelcut' | 'photoroom' | 'smart' | 'auto'
+export type BgRemovalMethod = 'replicate' | 'photoroom' | 'smart' | 'auto'
 
 export interface QueueItem {
   id: string

@@ -1,7 +1,27 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import type { DotMatrixConfig } from '../constants/dot-matrix-config'
+import { SETTINGS_STORAGE_KEY } from '../constants/settings-defaults'
+
+type ActiveTab = 'generate' | 'logo' | 'mockups' | 'bg-remover' | 'settings'
+
+// Read defaultTab from localStorage settings (called in useEffect to avoid hydration mismatch)
+function getStoredDefaultTab(): ActiveTab | null {
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      const defaultTab = parsed.ui?.defaultTab
+      if (defaultTab && ['generate', 'logo', 'mockups', 'bg-remover'].includes(defaultTab)) {
+        return defaultTab as ActiveTab
+      }
+    }
+  } catch (e) {
+    console.error('Failed to read defaultTab from settings:', e)
+  }
+  return null
+}
 
 export interface AnalysisResultsState {
   subjects: any[]
@@ -31,8 +51,8 @@ export interface ImageStudioState {
   setShowAIHelper: (show: boolean) => void
   showUploadSection: boolean
   setShowUploadSection: (show: boolean) => void
-  activeTab: 'generate' | 'logo' | 'mockups' | 'bg-remover'
-  setActiveTab: (tab: 'generate' | 'logo' | 'mockups' | 'bg-remover') => void
+  activeTab: 'generate' | 'logo' | 'mockups' | 'bg-remover' | 'settings'
+  setActiveTab: (tab: 'generate' | 'logo' | 'mockups' | 'bg-remover' | 'settings') => void
   pendingLogoConfig: Partial<DotMatrixConfig> | null
   setPendingLogoConfig: (config: Partial<DotMatrixConfig> | null) => void
 
@@ -63,8 +83,8 @@ export interface ImageStudioState {
   setSeed: (seed: number | null) => void
   imageSize: '1K' | '2K' | '4K'
   setImageSize: (size: '1K' | '2K' | '4K') => void
-  selectedModel: 'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image'
-  setSelectedModel: (model: 'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image') => void
+  selectedModel: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+  setSelectedModel: (model: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview') => void
 
   // Camera settings
   selectedCameraAngle: string
@@ -94,8 +114,17 @@ export function useImageStudioState(): ImageStudioState {
   // UI state
   const [showAIHelper, setShowAIHelper] = useState(false)
   const [showUploadSection, setShowUploadSection] = useState(true)
-  const [activeTab, setActiveTab] = useState<'generate' | 'logo' | 'mockups' | 'bg-remover'>('generate')
+  // Start with 'generate' to match server render, then update from localStorage in useEffect
+  const [activeTab, setActiveTab] = useState<ActiveTab>('generate')
   const [pendingLogoConfig, setPendingLogoConfig] = useState<Partial<DotMatrixConfig> | null>(null)
+
+  // Load defaultTab from localStorage after hydration to avoid mismatch
+  useEffect(() => {
+    const storedTab = getStoredDefaultTab()
+    if (storedTab) {
+      setActiveTab(storedTab)
+    }
+  }, [])
 
   // Lightbox state
   const [lightboxOpen, setLightboxOpen] = useState(false)
@@ -108,22 +137,23 @@ export function useImageStudioState(): ImageStudioState {
   const [stylePopoverOpen, setStylePopoverOpen] = useState(false)
   const [ratiosPopoverOpen, setRatiosPopoverOpen] = useState(false)
   const [imageCount, setImageCount] = useState(1)
-  const [negativePrompt, setNegativePrompt] = useState('')
+  const [negativePromptState, setNegativePromptState] = useState('')
   const [mainPromptState, setMainPromptState] = useState('')
 
-  // Debug wrapper for main prompt
-  const setMainPrompt = (value: string) => {
+  // Stable setters for prompts (wrapped in useCallback to prevent stale closures)
+  const setMainPrompt = useCallback((value: string) => {
     console.log('[v0] setMainPrompt called with:', value?.substring(0, 50) + '...')
-    console.log('[v0] Current mainPrompt before update:', mainPromptState?.substring(0, 50) + '...')
     setMainPromptState(value)
-    setTimeout(() => {
-      console.log('[v0] mainPrompt should now be updated')
-    }, 100)
-  }
+  }, [])
+
+  const setNegativePrompt = useCallback((value: string) => {
+    console.log('[v0] setNegativePrompt called with:', value?.substring(0, 50) + '...')
+    setNegativePromptState(value)
+  }, [])
 
   const [seed, setSeed] = useState<number | null>(null)
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K')
-  const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image'>('gemini-2.5-flash-preview-image')
+  const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'>('gemini-2.5-flash-image')
 
   // Debug: Log whenever mainPrompt changes
   useEffect(() => {
@@ -162,7 +192,7 @@ export function useImageStudioState(): ImageStudioState {
     stylePopoverOpen, setStylePopoverOpen,
     ratiosPopoverOpen, setRatiosPopoverOpen,
     imageCount, setImageCount,
-    negativePrompt, setNegativePrompt,
+    negativePrompt: negativePromptState, setNegativePrompt,
     mainPrompt: mainPromptState, setMainPrompt,
     seed, setSeed,
     imageSize, setImageSize,

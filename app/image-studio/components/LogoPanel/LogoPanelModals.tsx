@@ -118,10 +118,12 @@ export function LogoPanelModals({
     }
   }
 
-  const handleWizardGenerateNow = async (presetId: string, config: Record<string, any>) => {
+  const handleWizardGenerateNow = async (presetId: string, config: Record<string, any>, wizardResolution?: LogoResolution) => {
     const generatedPrompt = buildFullPrompt(presetId, config as Partial<UnifiedLogoConfig>)
     const generatedNegativePrompt = buildNegativePromptForPreset(config as Partial<UnifiedLogoConfig>)
     const shouldRemoveBg = config.removeBackground === true
+    // Use wizard-selected resolution if provided, otherwise fall back to panel resolution
+    const effectiveResolution = wizardResolution || resolution
 
     setPrompt(generatedPrompt)
     setNegativePrompt(generatedNegativePrompt)
@@ -137,7 +139,7 @@ export function LogoPanelModals({
         style: 'modern+3d-metallic' as any,
         bgRemovalMethod: shouldRemoveBg ? bgRemovalMethod : 'none',
         skipBgRemoval: !shouldRemoveBg,
-        resolution,
+        resolution: effectiveResolution,
         seed: seedLocked ? seedValue : undefined
       })
       if (logo.seed !== undefined) {
@@ -150,7 +152,12 @@ export function LogoPanelModals({
         negativePrompt: generatedNegativePrompt,
         seed: logo.seed,
         style: 'modern+3d-metallic',
-        presetId: presetId
+        presetId: presetId,
+        config: {
+          wasBackgroundRemoval: shouldRemoveBg,
+          bgRemovalMethod: shouldRemoveBg ? bgRemovalMethod : undefined,
+          resolution: effectiveResolution,
+        }
       })
 
       onLogoGenerated?.(logo.url)
@@ -229,6 +236,7 @@ export function LogoPanelModals({
           setShowLogoWizard(false)
           setLogoMode('expert')
         }}
+        resolution={resolution}
       />
 
       {/* Batch Generator Modal */}
@@ -244,6 +252,19 @@ export function LogoPanelModals({
             setLogo(logo)
             setSeedValue(logo.seed)
             onLogoGenerated?.(logo.url)
+
+            // Save batch-generated logo to history
+            addToHistory({
+              imageUrl: logo.url,
+              prompt: logo.prompt || batchOptions?.prompt || '',
+              seed: logo.seed,
+              style: logo.style || batchOptions?.style || '',
+              config: {
+                wasBatchGeneration: true,
+                resolution: batchOptions?.resolution,
+                bgRemovalMethod: batchOptions?.bgRemovalMethod,
+              }
+            })
           }}
         />
       )}

@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { Loader2, Download, Trash2, Eraser } from 'lucide-react'
 import JSZip from 'jszip'
+import { compositeBackground } from './utils/compositeBackground'
 
 interface BgRemoverControlsProps {
   onProcessSelected: () => void
@@ -21,6 +22,7 @@ interface BgRemoverControlsProps {
   completeItems: { processedUrl: string | null; fileName: string }[]
   isProcessing: boolean
   isProcessingAll: boolean
+  backgroundColor?: string | null
 }
 
 export function BgRemoverControls({
@@ -33,6 +35,7 @@ export function BgRemoverControls({
   completeItems,
   isProcessing,
   isProcessingAll,
+  backgroundColor,
 }: BgRemoverControlsProps) {
   const [isDownloadingZip, setIsDownloadingZip] = useState(false)
 
@@ -41,20 +44,28 @@ export function BgRemoverControls({
   const canDownloadSelected = selectedItem?.processedUrl
   const canDownloadAll = completeCount > 0
 
-  // Download single image
+  // Download single image (with background color if selected)
   const handleDownloadSelected = async () => {
     if (!selectedItem?.processedUrl) return
 
     try {
-      // Fetch the image as blob to force download instead of opening in browser
-      const response = await fetch(selectedItem.processedUrl)
-      const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
+      let blob: Blob
 
+      // If background color is selected, composite it onto the image
+      if (backgroundColor) {
+        blob = await compositeBackground(selectedItem.processedUrl, backgroundColor)
+      } else {
+        // Fetch the original transparent image
+        const response = await fetch(selectedItem.processedUrl)
+        blob = await response.blob()
+      }
+
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       const baseName = selectedItem.fileName.replace(/\.[^.]+$/, '')
-      link.download = `${baseName}_no_bg.png`
+      const suffix = backgroundColor ? '_with_bg' : '_no_bg'
+      link.download = `${baseName}${suffix}.png`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
@@ -64,24 +75,31 @@ export function BgRemoverControls({
     }
   }
 
-  // Download all as ZIP
+  // Download all as ZIP (with background color if selected)
   const handleDownloadAll = async () => {
     if (completeItems.length === 0) return
 
     setIsDownloadingZip(true)
     try {
       const zip = new JSZip()
+      const suffix = backgroundColor ? '_with_bg' : '_no_bg'
 
       await Promise.all(
-        completeItems.map(async (item, index) => {
+        completeItems.map(async (item) => {
           if (!item.processedUrl) return
 
-          // Fetch the image as blob
-          const response = await fetch(item.processedUrl)
-          const blob = await response.blob()
+          let blob: Blob
+
+          // If background color is selected, composite it onto the image
+          if (backgroundColor) {
+            blob = await compositeBackground(item.processedUrl, backgroundColor)
+          } else {
+            const response = await fetch(item.processedUrl)
+            blob = await response.blob()
+          }
 
           const baseName = item.fileName.replace(/\.[^.]+$/, '')
-          zip.file(`${baseName}_no_bg.png`, blob)
+          zip.file(`${baseName}${suffix}.png`, blob)
         })
       )
 

@@ -5,6 +5,16 @@
  */
 
 export interface AnalysisResult {
+  // NEW: Text extraction fields
+  brandName: string          // Extracted text from logo (e.g., "PROMPTS GENIE")
+  initials: string           // Initials if detectable (e.g., "PG")
+  textArrangement: string    // single-line/stacked/circular/curved/arc
+
+  // NEW: Frame detection fields
+  frameShape: string         // circle/oval/rectangle/shield/badge/none
+  frameMaterial: string      // chrome/gold/bronze/silver/plain/none
+
+  // Existing fields
   industry: string
   style: string
   colors: string[]
@@ -14,8 +24,8 @@ export interface AnalysisResult {
   glow: string
   fontStyle: string
   fontWeight: string
-  pattern: string
-  iconType: string
+  pattern: string            // Default to "none" - only set if clearly visible
+  iconType: string           // More specific (e.g., "genie lamp", "crown")
   presetMatch: string
   confidence: number
   rawAnalysis: string
@@ -129,6 +139,14 @@ function detectDepth(lowerText: string): string {
 
 export function parseAnalysis(text: string): AnalysisResult {
   const result: AnalysisResult = {
+    // NEW fields with defaults
+    brandName: '',
+    initials: '',
+    textArrangement: 'single-line',
+    frameShape: 'none',
+    frameMaterial: 'none',
+
+    // Existing fields
     industry: 'tech',
     style: 'modern',
     colors: [],
@@ -138,7 +156,7 @@ export function parseAnalysis(text: string): AnalysisResult {
     glow: 'none',
     fontStyle: 'modern-geometric',
     fontWeight: 'bold',
-    pattern: 'none',
+    pattern: 'none',  // Default to none - only set if AI explicitly confirms pattern
     iconType: 'none',
     presetMatch: '',
     confidence: 50,
@@ -152,6 +170,17 @@ export function parseAnalysis(text: string): AnalysisResult {
   if (jsonMatch) {
     try {
       const parsed = JSON.parse(jsonMatch[1])
+
+      // NEW fields - text extraction
+      if (parsed.brandName) result.brandName = parsed.brandName
+      if (parsed.initials) result.initials = parsed.initials
+      if (parsed.textArrangement) result.textArrangement = parsed.textArrangement
+
+      // NEW fields - frame detection
+      if (parsed.frameShape) result.frameShape = parsed.frameShape
+      if (parsed.frameMaterial) result.frameMaterial = parsed.frameMaterial
+
+      // Existing fields
       if (parsed.industry) result.industry = parsed.industry
       if (parsed.style) result.style = parsed.style
       if (parsed.colors && Array.isArray(parsed.colors)) result.colors = parsed.colors
@@ -161,7 +190,12 @@ export function parseAnalysis(text: string): AnalysisResult {
       if (parsed.glow) result.glow = parsed.glow
       if (parsed.fontStyle) result.fontStyle = parsed.fontStyle
       if (parsed.fontWeight) result.fontWeight = parsed.fontWeight
-      if (parsed.pattern) result.pattern = parsed.pattern
+
+      // FIXED: Only set pattern if AI explicitly confirmed it (not "none")
+      if (parsed.pattern && parsed.pattern.toLowerCase() !== 'none') {
+        result.pattern = parsed.pattern
+      }
+
       if (parsed.iconType) result.iconType = parsed.iconType
       if (parsed.presetMatch) result.presetMatch = parsed.presetMatch
       if (typeof parsed.confidence === 'number') result.confidence = parsed.confidence
@@ -216,14 +250,27 @@ export function parseAnalysis(text: string): AnalysisResult {
     result.fontWeight = 'regular'
   }
 
-  // Detect pattern
-  const patternTypes = ['circuit', 'neural', 'grid', 'hexagon', 'dot matrix', 'halftone', 'radial']
-  for (const pattern of patternTypes) {
-    if (lowerText.includes(pattern)) {
-      result.pattern = pattern.replace(' ', '-')
+  // Detect pattern - FIXED: Much stricter to avoid false positives
+  // Only detect patterns if explicitly stated as present (not just mentioned)
+  // Look for positive indicators like "pattern visible", "has pattern", "contains dots"
+  const patternIndicators = [
+    { pattern: 'dot-matrix', checks: ['dot matrix pattern: yes', 'dot matrix visible', 'has dot matrix', 'contains dots'] },
+    { pattern: 'circuit', checks: ['circuit pattern visible', 'has circuit pattern', 'circuit board pattern'] },
+    { pattern: 'neural', checks: ['neural pattern visible', 'has neural pattern'] },
+    { pattern: 'grid', checks: ['grid pattern visible', 'has grid pattern'] },
+    { pattern: 'hexagon', checks: ['hexagon pattern visible', 'has hexagon pattern'] },
+    { pattern: 'halftone', checks: ['halftone pattern visible', 'has halftone'] },
+    { pattern: 'radial', checks: ['radial pattern visible', 'has radial pattern'] },
+  ]
+
+  // Only set pattern if we find a POSITIVE indicator (not just the word mentioned)
+  for (const { pattern, checks } of patternIndicators) {
+    if (checks.some(check => lowerText.includes(check))) {
+      result.pattern = pattern
       break
     }
   }
+  // If no positive indicator found, pattern stays as 'none' (the default)
 
   // Detect preset match
   for (const presetId of PRESET_IDS) {

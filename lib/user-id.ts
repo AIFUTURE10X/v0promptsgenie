@@ -3,6 +3,7 @@
  *
  * Consolidates all user ID generation into one shared utility.
  * Auto-migrates from legacy localStorage keys to prevent data orphaning.
+ * Supports merging multiple user accounts into one.
  */
 
 const USER_ID_KEY = 'genie-user-id'
@@ -77,4 +78,68 @@ export function setUserId(userId: string): void {
   if (typeof window === 'undefined') return
   localStorage.setItem(USER_ID_KEY, userId)
   console.log(`[User ID] Manually set user ID: ${userId}`)
+}
+
+/**
+ * Fetch all user accounts from the database with their logo counts
+ */
+export async function fetchAllUserAccounts(): Promise<{
+  userId: string
+  count: number
+  lastCreated: string
+}[]> {
+  try {
+    const response = await fetch('/api/logo-history/debug')
+    if (!response.ok) throw new Error('Failed to fetch user accounts')
+    const data = await response.json()
+    return data.userCounts || []
+  } catch (error) {
+    console.error('[User ID] Failed to fetch accounts:', error)
+    return []
+  }
+}
+
+/**
+ * Merge all user accounts into the current user ID
+ * All logos from other accounts will be moved to the current account
+ */
+export async function mergeAllAccounts(): Promise<{
+  success: boolean
+  merged: number
+  error?: string
+}> {
+  const currentUserId = getUserId()
+
+  try {
+    const response = await fetch('/api/logo-history/debug', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ targetUserId: currentUserId })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Merge failed')
+    }
+
+    const result = await response.json()
+    console.log(`[User ID] Merged ${result.merged} logos into ${currentUserId}`)
+    return { success: true, merged: result.merged }
+  } catch (error) {
+    console.error('[User ID] Merge failed:', error)
+    return {
+      success: false,
+      merged: 0,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
+
+/**
+ * Switch to a different user account
+ */
+export function switchToAccount(userId: string): void {
+  setUserId(userId)
+  // Reload to fetch the new account's data
+  window.location.reload()
 }

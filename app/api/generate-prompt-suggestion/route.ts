@@ -49,11 +49,23 @@ export async function POST(request: Request) {
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-    // Build conversation context
+    // Build conversation context WITH generated prompts (so AI can reference previous suggestions)
     const contextMessages = conversationHistory
       ?.slice(-5) // Last 5 messages for context
-      .map((msg: any) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
-      .join("\n")
+      .map((msg: any) => {
+        let context = `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+        // Include the actual generated prompt if present (critical for "add to previous" requests)
+        if (msg.role === "assistant" && msg.suggestions?.prompt) {
+          context += `\n  [Generated Prompt: "${msg.suggestions.prompt}"]`
+        }
+        return context
+      })
+      .join("\n\n")
+
+    // Extract the LAST generated prompt for explicit reference
+    const lastAssistantMsg = conversationHistory
+      ?.slice().reverse().find((m: any) => m.role === "assistant" && m.suggestions?.prompt)
+    const lastGeneratedPrompt = lastAssistantMsg?.suggestions?.prompt || null
 
     const hasImageAnalysis = message?.includes("REFERENCE IMAGES ANALYSIS")
 
@@ -71,6 +83,13 @@ Current Settings:
 
 Recent Conversation:
 ${contextMessages || "None"}
+
+${lastGeneratedPrompt ? `
+PREVIOUS GENERATED PROMPT (reference for "add to this", "make it more X", etc.):
+"${lastGeneratedPrompt}"
+
+IMPORTANT: If the user's request references the previous prompt (e.g., "add sparkles", "make it darker", "include a dog", "now add X"), BUILD UPON the previous prompt by incorporating their additions/changes rather than creating something entirely new. Preserve what worked and add the new elements they request.
+` : ''}
 
 User Request: ${message}
 
@@ -196,11 +215,32 @@ async function handleLogoMode(
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" })
 
-    // Build conversation context
+    // Build conversation context WITH logo configs (so AI can reference previous suggestions)
     const contextMessages = conversationHistory
       ?.slice(-5)
-      .map((msg: any) => `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`)
-      .join("\n")
+      .map((msg: any) => {
+        let context = `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
+        // Include key logo config settings if present (critical for "add to previous" requests)
+        if (msg.role === "assistant" && msg.logoConfig) {
+          const cfg = msg.logoConfig
+          const keySettings = []
+          if (cfg.brandName) keySettings.push(`brandName: "${cfg.brandName}"`)
+          if (cfg.textColor) keySettings.push(`textColor: ${cfg.textColor}`)
+          if (cfg.metallicFinish && cfg.metallicFinish !== 'none') keySettings.push(`metallic: ${cfg.metallicFinish}`)
+          if (cfg.glowEffect && cfg.glowEffect !== 'none') keySettings.push(`glow: ${cfg.glowEffect}`)
+          if (cfg.depthLevel) keySettings.push(`depth: ${cfg.depthLevel}`)
+          if (keySettings.length > 0) {
+            context += `\n  [Generated Config: ${keySettings.join(', ')}]`
+          }
+        }
+        return context
+      })
+      .join("\n\n")
+
+    // Extract the LAST generated logoConfig for explicit reference
+    const lastAssistantMsg = conversationHistory
+      ?.slice().reverse().find((m: any) => m.role === "assistant" && m.logoConfig)
+    const lastLogoConfig = lastAssistantMsg?.logoConfig || null
 
     // Get the dynamic system prompt from ai-logo-knowledge.ts
     const logoSystemPrompt = buildLogoSystemPrompt()
@@ -221,9 +261,16 @@ Recent Conversation:
 ${contextMessages}
 ` : ''}
 
+${lastLogoConfig ? `
+PREVIOUS GENERATED CONFIG (reference for "add glow", "make it gold", "change the color", etc.):
+${JSON.stringify(lastLogoConfig, null, 2)}
+
+IMPORTANT: If the user wants to ADD or MODIFY settings (e.g., "add more glow", "make it gold", "change the color to blue", "now add sparkles"), START with the previous config and incorporate their changes. Don't create from scratch unless they explicitly ask for something completely different. Preserve the settings that worked and add/modify only what they request.
+` : ''}
+
 User Request: ${message}
 
-Based on the user's request${logoAnalysis ? ' and the reference logo analysis' : ''}, suggest appropriate Dot Matrix 3D logo settings.
+Based on the user's request${logoAnalysis ? ' and the reference logo analysis' : ''}${lastLogoConfig ? ' (building upon the previous config if applicable)' : ''}, suggest appropriate Dot Matrix 3D logo settings.
 Remember to respond with a JSON object containing "message" and "logoConfig" as specified above.`
 
     console.log("[v0 API] Logo mode - calling Gemini with dynamic system prompt")

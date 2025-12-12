@@ -16,7 +16,7 @@ interface UseParameterHandlersOptions {
   setAnalysisMode: (mode: 'fast' | 'quality') => void
   setSeed: (seed: number | null) => void
   setImageSize: (size: '1K' | '2K' | '4K') => void
-  setSelectedModel: (model: 'gemini-2.5-flash-preview-image' | 'gemini-3-pro-image') => void
+  setSelectedModel: (model: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview') => void
   setAnalysisResults: (results: AnalysisResultsState) => void
   setGeneratedImages: (images: any[]) => void
 }
@@ -89,7 +89,7 @@ export function useParameterHandlers({
     setStyleStrength('moderate')
     setSeed(null)
     setImageSize('1K')
-    setSelectedModel('gemini-2.5-flash-preview-image')
+    setSelectedModel('gemini-2.5-flash-image')
     setAnalysisResults({
       subjects: [],
       scene: null,

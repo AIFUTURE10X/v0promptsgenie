@@ -82,7 +82,7 @@ export function useLogoPanelState({
     setNegativePrompt('')
     setSelectedConcept(null)
     setSelectedRenders([])
-    setBgRemovalMethod('pixelcut')
+    setBgRemovalMethod('replicate')
     setResolution('1K')
     setShowAdvanced(false)
     setReferenceImage(null)

@@ -1,13 +1,19 @@
 {
+  "cleanupPeriodDays": 90,
   "permissions": {
     "allow": [
-      "Bash(git rev-parse:*)",
-      "Bash(cmd /c start \"\" \"http://localhost:3003\")",
+      "Bash(tasklist /FI \"WINDOWTITLE eq *3003*\")",
+      "Bash(cmd //c \"taskkill /F /PID 20556\")",
+      "Bash(start http://localhost:3003/app-tracker)",
+      "Bash(cat:*)",
+      "Bash(dir \"C:\\Users\\philg\\OneDrive\\a My Apps\\v0 prompts Genie\\app\" /b)",
+      "Bash(start http://localhost:3001/image-studio)",
+      "Bash(git config:*)",
       "Bash(npm run dev:*)",
-      "Bash(taskkill:*)",
+      "Bash(start http://localhost:3000/image-studio)",
       "Bash(wc:*)",
-      "Bash(find \"app/image-studio/components/Logo/MockupPreview\" -type f \\( -name \"*.tsx\" -o -name \"*.ts\" \\) -exec sh -c 'wc -l \"\"$1\"\" | awk \"\"{print \\$1, \\\"\"$1\\\"\"}\"\"' _ {} ;)",
-      "Bash(npx tsc:*)"
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

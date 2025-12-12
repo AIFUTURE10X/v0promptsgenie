@@ -2,6 +2,7 @@
  * useQuestionnaireFlow Hook
  *
  * Manages the questionnaire state, navigation, and answer processing
+ * Supports Quick/Advanced modes with AI suggestion tracking
  */
 
 import { useState, useCallback, useMemo } from 'react'
@@ -11,6 +12,10 @@ import {
   calculatePresetScores,
   getTopPresets,
   buildConfigFromAnswers,
+  WizardMode,
+  QUICK_MODE_QUESTIONS,
+  QUICK_MODE_DEFAULTS,
+  getDefaultFontForStyle,
 } from './questionnaire-data'
 
 export interface UseQuestionnaireFlowReturn {
@@ -22,6 +27,8 @@ export interface UseQuestionnaireFlowReturn {
   currentQuestion: typeof WIZARD_QUESTIONS[0] | null
   extrusionDepth: number
   tiltAngle: number
+  mode: WizardMode
+  aiFilledFields: Set<string>
 
   // Navigation
   goToStep: (step: number) => void
@@ -29,6 +36,9 @@ export interface UseQuestionnaireFlowReturn {
   prevStep: () => void
   canGoNext: boolean
   canGoPrev: boolean
+
+  // Mode
+  setMode: (mode: WizardMode) => void
 
   // Answers
   setAnswer: (questionId: string, value: string | string[] | undefined) => void
@@ -38,29 +48,47 @@ export interface UseQuestionnaireFlowReturn {
   setExtrusionDepth: (value: number) => void
   setTiltAngle: (value: number) => void
 
+  // AI Tracking
+  isAIFilled: (questionId: string) => boolean
+  undoAISuggestions: () => void
+  hasAISuggestions: boolean
+
   // Results
   getRecommendedPresets: () => Array<{ presetId: string; score: number }>
   getConfigFromAnswers: () => Record<string, any>
   resetWizard: () => void
 }
 
-export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
+export function useQuestionnaireFlow(initialMode: WizardMode = 'quick'): UseQuestionnaireFlowReturn {
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState<WizardAnswers>({})
   const [extrusionDepth, setExtrusionDepth] = useState(50)
   const [tiltAngle, setTiltAngle] = useState(0)
+  const [mode, setModeState] = useState<WizardMode>(initialMode)
 
-  const totalSteps = WIZARD_QUESTIONS.length
+  // AI suggestion tracking
+  const [aiFilledFields, setAiFilledFields] = useState<Set<string>>(new Set())
+  const [preAIAnswers, setPreAIAnswers] = useState<WizardAnswers | null>(null)
+
+  // Get filtered questions based on mode
+  const filteredQuestions = useMemo(() => {
+    if (mode === 'quick') {
+      return WIZARD_QUESTIONS.filter(q => QUICK_MODE_QUESTIONS.includes(q.id))
+    }
+    return WIZARD_QUESTIONS
+  }, [mode])
+
+  const totalSteps = filteredQuestions.length
   const isComplete = currentStep >= totalSteps
 
   // Find next valid step (skipping questions with skipIf returning true)
   const findNextValidStep = useCallback((fromStep: number, direction: 'forward' | 'backward'): number => {
     let step = fromStep
     const increment = direction === 'forward' ? 1 : -1
-    const limit = direction === 'forward' ? WIZARD_QUESTIONS.length : -1
+    const limit = direction === 'forward' ? filteredQuestions.length : -1
 
     while (step !== limit) {
-      const question = WIZARD_QUESTIONS[step]
+      const question = filteredQuestions[step]
       if (question && question.skipIf) {
         if (question.skipIf(answers)) {
           step += increment
@@ -70,14 +98,14 @@ export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
       return step
     }
     return step
-  }, [answers])
+  }, [answers, filteredQuestions])
 
   const currentQuestion = useMemo(() => {
-    if (currentStep >= 0 && currentStep < WIZARD_QUESTIONS.length) {
-      return WIZARD_QUESTIONS[currentStep]
+    if (currentStep >= 0 && currentStep < filteredQuestions.length) {
+      return filteredQuestions[currentStep]
     }
     return null
-  }, [currentStep])
+  }, [currentStep, filteredQuestions])
 
   // Check if current step has a valid answer
   const canGoNext = useMemo(() => {
@@ -131,6 +159,12 @@ export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
       }
       return { ...prev, [questionId]: value }
     })
+    // Clear AI-filled status when user manually changes
+    setAiFilledFields(prev => {
+      const next = new Set(prev)
+      next.delete(questionId)
+      return next
+    })
   }, [])
 
   const getAnswer = useCallback(
@@ -144,7 +178,7 @@ export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
       const currentArray = Array.isArray(current) ? current : []
 
       // Find the question to check maxSelections
-      const question = WIZARD_QUESTIONS.find((q) => q.id === questionId)
+      const question = filteredQuestions.find((q) => q.id === questionId)
       const maxSelections = question?.maxSelections || Infinity
 
       if (currentArray.includes(optionId)) {
@@ -158,7 +192,13 @@ export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
       }
       return prev
     })
-  }, [])
+    // Clear AI-filled status when user manually changes
+    setAiFilledFields(prev => {
+      const next = new Set(prev)
+      next.delete(questionId)
+      return next
+    })
+  }, [filteredQuestions])
 
   // Results
   const getRecommendedPresets = useCallback(() => {
@@ -178,12 +218,40 @@ export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
     setTiltAngle(0)
   }, [])
 
-  // Set all answers at once from analysis results
+  // Set all answers at once from analysis results (with AI tracking)
   const setAnswersFromAnalysis = useCallback((analysisAnswers: WizardAnswers) => {
-    setAnswers(analysisAnswers)
+    // Store pre-AI state for undo
+    setPreAIAnswers({ ...answers })
+
+    // Track which fields AI filled
+    setAiFilledFields(new Set(Object.keys(analysisAnswers)))
+
+    // Apply answers
+    setAnswers(prev => ({ ...prev, ...analysisAnswers }))
+  }, [answers])
+
+  // Undo all AI suggestions and restore previous state
+  const undoAISuggestions = useCallback(() => {
+    if (preAIAnswers) {
+      setAnswers(preAIAnswers)
+      setAiFilledFields(new Set())
+      setPreAIAnswers(null)
+    }
+  }, [preAIAnswers])
+
+  // Check if a specific field was filled by AI
+  const isAIFilled = useCallback((questionId: string) => {
+    return aiFilledFields.has(questionId)
+  }, [aiFilledFields])
+
+  // Mode setter with step reset
+  const setMode = useCallback((newMode: WizardMode) => {
+    setModeState(newMode)
+    setCurrentStep(0) // Reset to beginning when mode changes
   }, [])
 
   return {
+    // State
     currentStep,
     totalSteps,
     answers,
@@ -191,17 +259,33 @@ export function useQuestionnaireFlow(): UseQuestionnaireFlowReturn {
     currentQuestion,
     extrusionDepth,
     tiltAngle,
+    mode,
+    aiFilledFields,
+
+    // Navigation
     goToStep,
     nextStep,
     prevStep,
     canGoNext,
     canGoPrev,
+
+    // Mode
+    setMode,
+
+    // Answers
     setAnswer,
     getAnswer,
     toggleMultiAnswer,
     setAnswersFromAnalysis,
     setExtrusionDepth,
     setTiltAngle,
+
+    // AI Tracking
+    isAIFilled,
+    undoAISuggestions,
+    hasAISuggestions: aiFilledFields.size > 0,
+
+    // Results
     getRecommendedPresets,
     getConfigFromAnswers,
     resetWizard,

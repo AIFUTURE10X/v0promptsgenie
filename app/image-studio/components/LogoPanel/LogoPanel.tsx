@@ -272,6 +272,16 @@ export function LogoPanel({
           onClearLogo={clearLogo}
           onPreviewMockups={generatedLogo ? () => state.setShowMockupPreview(true) : undefined}
           onFilterChange={setLogoFilter}
+          onRecolored={(newUrl) => {
+            // Update the logo with the recolored version
+            if (generatedLogo) {
+              setLogo({
+                ...generatedLogo,
+                url: newUrl,
+              })
+              onLogoGenerated?.(newUrl)
+            }
+          }}
         />
       </div>
 

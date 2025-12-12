@@ -7,15 +7,20 @@
  * preview, and controls into a cohesive batch processing interface.
  */
 
+import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { useBackgroundRemoverState } from '../../hooks/useBackgroundRemoverState'
 import { BgRemoverUpload } from './BgRemoverUpload'
 import { BgRemoverQueue } from './BgRemoverQueue'
 import { BgRemoverPreview } from './BgRemoverPreview'
 import { BgRemoverControls } from './BgRemoverControls'
+import { BgRemoverLightbox } from './BgRemoverLightbox'
 import { Eraser } from 'lucide-react'
 
 export function BackgroundRemoverPanel() {
+  const [showLightbox, setShowLightbox] = useState(false)
+  const [backgroundColor, setBackgroundColor] = useState<string | null>(null)
+
   const {
     queue,
     selectedId,
@@ -78,6 +83,13 @@ export function BackgroundRemoverPanel() {
               processed={selectedItem?.processedUrl}
               status={selectedItem?.status}
               error={selectedItem?.error}
+              onOpenLightbox={
+                selectedItem?.status === 'complete' && selectedItem?.processedUrl
+                  ? () => setShowLightbox(true)
+                  : undefined
+              }
+              backgroundColor={backgroundColor}
+              onBackgroundColorChange={setBackgroundColor}
             />
 
             {/* Controls */}
@@ -91,10 +103,23 @@ export function BackgroundRemoverPanel() {
               completeItems={completeItems}
               isProcessing={isProcessingSelected}
               isProcessingAll={isProcessingAll}
+              backgroundColor={backgroundColor}
             />
           </>
         )}
       </Card>
+
+      {/* Before/After Lightbox */}
+      {selectedItem?.originalUrl && selectedItem?.processedUrl && (
+        <BgRemoverLightbox
+          isOpen={showLightbox}
+          onClose={() => setShowLightbox(false)}
+          originalUrl={selectedItem.originalUrl}
+          processedUrl={selectedItem.processedUrl}
+          fileName={selectedItem.fileName}
+          backgroundColor={backgroundColor}
+        />
+      )}
     </div>
   )
 }

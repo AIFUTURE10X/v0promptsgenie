@@ -6,7 +6,7 @@
  * Single history entry with thumbnail, actions, and comparison checkbox
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Heart,
   Star,
@@ -53,6 +53,20 @@ export function HistoryItem({
 }: HistoryItemProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [fileSize, setFileSize] = useState<string | null>(null)
+
+  // Calculate file size on mount
+  useEffect(() => {
+    if (item.imageUrl) {
+      fetch(item.imageUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const mb = blob.size / (1024 * 1024)
+          setFileSize(mb >= 1 ? `${mb.toFixed(1)} MB` : `${(blob.size / 1024).toFixed(0)} KB`)
+        })
+        .catch(() => setFileSize(null))
+    }
+  }, [item.imageUrl])
 
   const handleCopyPrompt = async () => {
     try {
@@ -135,6 +149,15 @@ export function HistoryItem({
             <span className="flex items-center gap-0.5 px-1 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[8px]" title={`${item.config.mockupType} mockup`}>
               <Layout className="w-2 h-2" />
               Mockup
+            </span>
+          )}
+          {fileSize && (
+            <span
+              className="px-1 py-0.5 rounded text-[8px] font-medium"
+              style={{ background: 'linear-gradient(135deg, #c99850 0%, #dbb56e 50%, #c99850 100%)', color: '#000' }}
+              title="File size"
+            >
+              {fileSize}
             </span>
           )}
         </div>

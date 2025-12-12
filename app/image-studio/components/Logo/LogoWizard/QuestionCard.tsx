@@ -3,12 +3,13 @@
 /**
  * QuestionCard Component
  *
- * Renders a single question with its options
+ * Renders a single question with its options.
+ * Displays AI-suggested badge when the answer was auto-filled.
  */
 
 import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
-import { TooltipProvider } from '@/components/ui/tooltip'
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { WizardQuestion } from './questions/questionnaire-data'
 import { OptionCard } from './OptionCard'
 import { DepthSlider, TiltSlider } from './QuestionSliders'
@@ -22,6 +23,7 @@ interface QuestionCardProps {
   onExtrusionChange?: (value: number) => void
   tiltAngle?: number
   onTiltAngleChange?: (value: number) => void
+  isAIFilled?: boolean
 }
 
 export function QuestionCard({
@@ -33,6 +35,7 @@ export function QuestionCard({
   onExtrusionChange,
   tiltAngle,
   onTiltAngleChange,
+  isAIFilled = false,
 }: QuestionCardProps) {
   const [isEnhancing, setIsEnhancing] = useState(false)
 
@@ -92,23 +95,30 @@ export function QuestionCard({
           )}
 
           {question.hasAIEnhance && (
-            <button
-              onClick={handleAIEnhance}
-              disabled={isEnhancing || !((answer as string) || '').trim()}
-              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
-            >
-              {isEnhancing ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Enhancing...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  AI Enhance Prompt
-                </>
-              )}
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleAIEnhance}
+                  disabled={isEnhancing || !((answer as string) || '').trim()}
+                  className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-zinc-700 disabled:to-zinc-700 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-all"
+                >
+                  {isEnhancing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Enhancing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      AI Enhance Prompt
+                    </>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                Improve your description with AI suggestions
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -161,10 +171,28 @@ export function QuestionCard({
     }
   }
 
+  // AI Suggested Badge Component
+  const AIFilledBadge = () => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 ml-2 text-xs bg-purple-500/20 text-purple-300 rounded-full cursor-help">
+          <Sparkles className="w-3 h-3" />
+          AI Suggested
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        This was auto-filled based on logo analysis. Click any option to change it.
+      </TooltipContent>
+    </Tooltip>
+  )
+
   return (
     <div className="space-y-4">
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-bold text-white mb-2">{question.title}</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">
+          {question.title}
+          {isAIFilled && <AIFilledBadge />}
+        </h2>
         <p className="text-sm text-zinc-400">
           {question.subtitle}
           {isMulti && question.maxSelections && (

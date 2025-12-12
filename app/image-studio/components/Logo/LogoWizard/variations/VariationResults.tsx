@@ -6,14 +6,18 @@
  * Displays recommended logo presets based on questionnaire answers
  */
 
-import { ArrowRight, Sparkles, Wand2, Settings } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowRight, Sparkles, Wand2, Settings, Maximize2 } from 'lucide-react'
 import { LOGO_PRESETS } from '../../../../constants/logo-presets'
+import { LogoResolution, RESOLUTION_OPTIONS } from '../../../../constants/logo-constants'
 
 interface VariationResultsProps {
   recommendedPresets: Array<{ presetId: string; score: number }>
   baseConfig: Record<string, any>
   onSelectVariation: (presetId: string) => void
   onGenerateNow?: (presetId: string, config: Record<string, any>) => void
+  resolution?: LogoResolution
+  onResolutionChange?: (resolution: LogoResolution) => void
 }
 
 export function VariationResults({
@@ -21,7 +25,17 @@ export function VariationResults({
   baseConfig,
   onSelectVariation,
   onGenerateNow,
+  resolution = '1K',
+  onResolutionChange,
 }: VariationResultsProps) {
+  const [localResolution, setLocalResolution] = useState<LogoResolution>(resolution)
+
+  // Handle resolution change
+  const handleResolutionChange = (newRes: LogoResolution) => {
+    setLocalResolution(newRes)
+    onResolutionChange?.(newRes)
+  }
+
   // Get preset details from IDs
   const variations = recommendedPresets.map(({ presetId, score }) => {
     const preset = LOGO_PRESETS.find((p) => p.id === presetId)
@@ -37,6 +51,32 @@ export function VariationResults({
       <div className="text-center py-4">
         <p className="text-sm text-zinc-400 mb-2">Based on your answers, we recommend:</p>
         <h3 className="text-3xl font-bold text-white">{brandName}</h3>
+      </div>
+
+      {/* Resolution Selector */}
+      <div className="flex items-center justify-center gap-2 px-4 py-3 bg-zinc-800/50 rounded-lg border border-zinc-700">
+        <Maximize2 className="w-4 h-4 text-zinc-400" />
+        <span className="text-xs text-zinc-400 mr-2">Resolution:</span>
+        <div className="flex gap-1">
+          {RESOLUTION_OPTIONS.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleResolutionChange(option.value)}
+              className={`
+                px-3 py-1 rounded text-xs font-medium transition-all
+                ${localResolution === option.value
+                  ? 'bg-linear-to-r from-purple-500 to-pink-500 text-white'
+                  : 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
+                }
+              `}
+            >
+              {option.value}
+            </button>
+          ))}
+        </div>
+        <span className="text-[10px] text-zinc-500 ml-2">
+          Higher = cleaner BG removal
+        </span>
       </div>
 
       {/* Variation Cards */}

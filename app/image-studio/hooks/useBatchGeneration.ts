@@ -54,7 +54,7 @@ export function useBatchGeneration() {
     const formData = new FormData()
     formData.append('prompt', options.prompt)
     formData.append('style', options.style)
-    formData.append('bgRemovalMethod', options.bgRemovalMethod || 'pixelcut')
+    formData.append('bgRemovalMethod', options.bgRemovalMethod || 'replicate')
     formData.append('resolution', options.resolution || '1K')
     formData.append('seed', seed.toString())
     formData.append('skipBgRemoval', 'true')
@@ -87,7 +87,7 @@ export function useBatchGeneration() {
       url: data.image,
       prompt: options.prompt,
       style: options.style,
-      bgRemovalMethod: options.bgRemovalMethod || 'pixelcut',
+      bgRemovalMethod: options.bgRemovalMethod || 'replicate',
       timestamp: Date.now(),
       seed: data.seed || seed,
     }

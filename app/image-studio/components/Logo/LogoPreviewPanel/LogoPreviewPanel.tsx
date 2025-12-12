@@ -9,11 +9,12 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Trash2, ImageIcon, CreditCard, ZoomIn, Eye, EyeOff, Palette, RotateCcw, ChevronDown } from 'lucide-react'
+import { Trash2, ImageIcon, CreditCard, ZoomIn, Eye, EyeOff, Palette, RotateCcw, ChevronDown, Sparkles } from 'lucide-react'
 import { GeneratedLogo } from '../../../hooks/useLogoGeneration'
 import { transparencyGridStyle } from '../../../constants/logo-constants'
 import { LogoLightbox, LightboxBackground } from '../LogoLightbox'
 import { COLOR_PRESETS, getFilterStyle, type ColorPreset, type LogoFilterStyle } from './color-presets'
+import { RecolorModal } from './RecolorModal'
 
 // Re-export types for backward compatibility
 export type { LogoFilterStyle } from './color-presets'
@@ -23,14 +24,17 @@ interface LogoPreviewPanelProps {
   onClearLogo: () => void
   onPreviewMockups?: () => void
   onFilterChange?: (filter: LogoFilterStyle) => void
+  onRecolored?: (newUrl: string) => void
 }
 
-export function LogoPreviewPanel({ generatedLogo, onClearLogo, onPreviewMockups, onFilterChange }: LogoPreviewPanelProps) {
+export function LogoPreviewPanel({ generatedLogo, onClearLogo, onPreviewMockups, onFilterChange, onRecolored }: LogoPreviewPanelProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxBackground, setLightboxBackground] = useState<LightboxBackground>('transparent')
   const [showOriginal, setShowOriginal] = useState(false)
   const [colorPreset, setColorPreset] = useState<ColorPreset>(COLOR_PRESETS[0])
   const [colorDropdownOpen, setColorDropdownOpen] = useState(false)
+  const [recolorModalOpen, setRecolorModalOpen] = useState(false)
+  const [imageFileSize, setImageFileSize] = useState<string | null>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown when clicking outside
@@ -52,6 +56,21 @@ export function LogoPreviewPanel({ generatedLogo, onClearLogo, onPreviewMockups,
       onFilterChange(getFilterStyle(colorPreset))
     }
   }, [colorPreset, onFilterChange])
+
+  // Calculate file size when logo changes
+  useEffect(() => {
+    if (generatedLogo?.url) {
+      fetch(generatedLogo.url)
+        .then(res => res.blob())
+        .then(blob => {
+          const mb = blob.size / (1024 * 1024)
+          setImageFileSize(mb >= 1 ? `${mb.toFixed(1)} MB` : `${(blob.size / 1024).toFixed(0)} KB`)
+        })
+        .catch(() => setImageFileSize(null))
+    } else {
+      setImageFileSize(null)
+    }
+  }, [generatedLogo?.url])
 
   const filterStyle = getFilterStyle(colorPreset)
 
@@ -129,6 +148,13 @@ export function LogoPreviewPanel({ generatedLogo, onClearLogo, onPreviewMockups,
         <div className="relative" ref={dropdownRef}>
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-purple-400 font-medium">Color Shift - Preview different color variations</span>
+            <button
+              onClick={() => setRecolorModalOpen(true)}
+              className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-purple-300 rounded-md border border-purple-500/30 transition-colors"
+            >
+              <Sparkles className="w-3 h-3" />
+              AI Recolor
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -225,6 +251,12 @@ export function LogoPreviewPanel({ generatedLogo, onClearLogo, onPreviewMockups,
                 <ZoomIn className="w-6 h-6 text-white" />
               </div>
             </div>
+            {/* File size badge on hover */}
+            {imageFileSize && (
+              <div className="absolute top-3 right-3 px-2 py-1 bg-black/70 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                {imageFileSize}
+              </div>
+            )}
           </div>
         </div>
 
@@ -263,6 +295,18 @@ export function LogoPreviewPanel({ generatedLogo, onClearLogo, onPreviewMockups,
             <img src={displayUrl} alt="On gradient" className="w-full h-full object-contain group-hover:scale-[1.6] transition-all" style={{ transform: 'scale(1.5)', ...filterStyle }} />
           </div>
         </div>
+
+        {/* AI Recolor Modal */}
+        <RecolorModal
+          isOpen={recolorModalOpen}
+          onClose={() => setRecolorModalOpen(false)}
+          logoUrl={generatedLogo?.url || ''}
+          onRecolored={(newUrl) => {
+            if (onRecolored) {
+              onRecolored(newUrl)
+            }
+          }}
+        />
       </div>
     </div>
   )

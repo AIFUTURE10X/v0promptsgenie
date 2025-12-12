@@ -9,6 +9,7 @@
 
 import { ChevronLeft, Sparkles, X } from 'lucide-react'
 import { VariationResults } from './variations/VariationResults'
+import type { LogoResolution } from '../../../constants/logo-constants'
 
 interface WizardResultsViewProps {
   recommendedPresets: Array<{ presetId: string; score: number }>
@@ -19,6 +20,8 @@ interface WizardResultsViewProps {
   onClose: () => void
   onSelectVariation: (presetId: string) => void
   onGenerateNow?: (presetId: string, config: Record<string, any>) => void
+  resolution?: LogoResolution
+  onResolutionChange?: (resolution: LogoResolution) => void
 }
 
 export function WizardResultsView({
@@ -30,6 +33,8 @@ export function WizardResultsView({
   onClose,
   onSelectVariation,
   onGenerateNow,
+  resolution,
+  onResolutionChange,
 }: WizardResultsViewProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -76,6 +81,8 @@ export function WizardResultsView({
             baseConfig={baseConfig}
             onSelectVariation={onSelectVariation}
             onGenerateNow={onGenerateNow}
+            resolution={resolution}
+            onResolutionChange={onResolutionChange}
           />
         </div>
       </div>

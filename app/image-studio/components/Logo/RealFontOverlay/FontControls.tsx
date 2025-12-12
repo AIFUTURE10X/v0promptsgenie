@@ -31,7 +31,7 @@ export function FontControls({
   const currentFont = REAL_FONTS[selectedFont]
 
   return (
-    <div className="w-80 border-l border-zinc-800 p-4 overflow-y-auto flex-shrink-0">
+    <div className="w-80 border-l border-zinc-800 p-4 overflow-y-auto shrink-0">
       {/* Text Inputs */}
       <div className="space-y-4 mb-6">
         <div>
@@ -105,7 +105,7 @@ export function FontControls({
 
       {/* Color */}
       <div className="mb-4">
-        <label className="block text-xs text-zinc-400 mb-1.5 flex items-center gap-2">
+        <label className="flex text-xs text-zinc-400 mb-1.5 items-center gap-2">
           <Palette className="w-3 h-3" /> Color
         </label>
         <div className="flex gap-2">
@@ -161,11 +161,12 @@ export function FontControls({
 
       {/* Position */}
       <div className="mb-6">
-        <label className="block text-xs text-zinc-400 mb-1.5 flex items-center gap-2">
+        <label className="flex text-xs text-zinc-400 mb-1.5 items-center gap-2">
           <Move className="w-3 h-3" /> Position
         </label>
         <div className="grid grid-cols-3 gap-1">
-          {(['above', 'left', 'center', 'right', 'below'] as TextPosition[]).map((p) => (
+          {/* Row 1: Above, Left, Center */}
+          {(['above', 'left', 'center'] as TextPosition[]).map((p) => (
             <button
               key={p}
               onClick={() => setPosition(p)}
@@ -173,7 +174,21 @@ export function FontControls({
                 position === p
                   ? 'bg-purple-500 text-white'
                   : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-              } ${p === 'above' ? 'col-start-2' : ''} ${p === 'below' ? 'col-start-2' : ''}`}
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          {/* Row 2: Right, Below, (empty or duplicate center as "overlay") */}
+          {(['right', 'below'] as TextPosition[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPosition(p)}
+              className={`py-2 text-xs rounded capitalize ${
+                position === p
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
             >
               {p}
             </button>

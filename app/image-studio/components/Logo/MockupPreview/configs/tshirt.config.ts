@@ -91,12 +91,29 @@ export const tshirtConfig: MockupConfig = {
   photoAssets: {
     baseUrl: '/mockups/tshirt/',
     colorMap: {
+      // Neutrals
       'black': 'black.png',
       'white': 'white.png',
-      'navy': 'navy.png',
-      'red': 'red.png',
+      'charcoal': 'charcoal.png',
       'gray': 'gray.png',
-      // Additional colors fall back to SVG
+      'heather': 'heather.png',
+      // Blues
+      'navy': 'navy.png',
+      'royal': 'royal.png',
+      'sky': 'sky.png',
+      // Reds
+      'red': 'red.png',
+      'burgundy': 'burgundy.png',
+      'coral': 'coral.png',
+      // Greens
+      'forest': 'forest.png',
+      'olive': 'olive.png',
+      'teal': 'teal.png',
+      // Others
+      'purple': 'purple.png',
+      'pink': 'pink.png',
+      'orange': 'orange.png',
+      'yellow': 'yellow.png',
     },
     fallbackPhoto: 'white.png',
   },

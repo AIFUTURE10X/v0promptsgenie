@@ -211,8 +211,20 @@ export function buildLogoAnalysisPrompt(): string {
 - Use the EXACT option values provided in brackets
 - Analyze the ACTUAL image content, don't make assumptions
 - If uncertain about a value, state your confidence level
+- IMPORTANT: For patterns, only report a pattern if you can CLEARLY see repeating dots, lines, or geometric elements. Default to "none" if unsure.
 
 ## ANALYSIS CATEGORIES:
+
+### 0. TEXT CONTENT EXTRACTION (CRITICAL - REQUIRED FIRST)
+Extract ALL text visible in the logo using OCR:
+- **Main Text:** [exact text as shown in the logo - e.g., "PROMPTS GENIE", "ACME Corp"]
+- **Initials/Acronym:** [if the text can form initials - e.g., "PG" from "Prompts Genie"]
+- **Tagline:** [any secondary text/slogan if present]
+- **Text Arrangement:** [single-line/stacked/circular/curved/arc]
+- **Word Count:** [number of words in main text]
+
+**Extracted Brand Name:** [state the exact text]
+**Initials:** [state initials if detectable]
 
 ### 1. INDUSTRY IDENTIFICATION (REQUIRED)
 Examine the logo's visual language, iconography, and style to determine the industry:
@@ -302,24 +314,37 @@ Examine surface qualities:
 **Font Weight:** [state weight]
 **Text Treatment:** [any special effects]
 
-### 8. PATTERN & TEXTURE ANALYSIS
-- Dot matrix pattern: [yes/no]
-- Pattern style: [uniform/halftone/scatter/radial/circuit/neural/grid]
-- Pattern coverage: [full/partial-fade/edge-only/center-only]
+### 8. FRAME & BORDER ELEMENTS
+Analyze any framing or enclosing elements around the logo:
+- Frame shape: [circle/oval/rectangle/square/shield/hexagon/ribbon/badge/none]
+- Frame style: [solid/double-line/ornate/minimal/3d-ring/none]
+- Frame material: [chrome/gold/bronze/silver/plain/gradient/none]
+- Frame 3D depth: [flat/beveled/extruded/embossed/none]
+
+**Frame Shape:** [state shape or "none"]
+**Frame Material:** [state material or "none"]
+
+### 9. PATTERN & TEXTURE ANALYSIS
+CRITICAL: Only mark a pattern as present if you can CLEARLY SEE repeating dots, lines, or geometric elements filling areas of the logo. Do NOT guess patterns.
+- Dot matrix pattern visible: [yes ONLY if you see actual dots in a grid/pattern, otherwise no]
+- Pattern style: [uniform/halftone/scatter/radial/circuit/neural/grid/hexagon/NONE]
+- Pattern coverage: [full/partial-fade/edge-only/center-only/NONE]
 - Texture type: [smooth/textured/gradient/pixelated]
 
-**Pattern Present:** [describe any patterns]
-**Pattern Style:** [if present, which type]
+**Pattern Present:** [ONLY if clearly visible - state "none" if no clear pattern]
+**Pattern Style:** [if truly present, which type - default to "none"]
 
-### 9. DECORATIVE ELEMENTS
+### 10. DECORATIVE ELEMENTS & ICONS
 - Swoosh/arc: [none/circular/dynamic/ribbon/orbit]
 - Sparkle effects: [none/subtle/medium/dramatic]
-- Icons present: [describe any icons/symbols]
-- Geometric shapes: [describe any shapes]
+- Icon/Symbol present: [describe specifically - e.g., "genie lamp", "crown", "leaf", "star", "globe", "shield"]
+- Icon position: [left/right/above/below/integrated/none]
+- Geometric shapes: [describe any decorative shapes]
 
+**Icon Type:** [describe the specific icon if present, or "none"]
 **Decorative Elements:** [list all found]
 
-### 10. PRESET RECOMMENDATION
+### 11. PRESET RECOMMENDATION
 Based on ALL the above analysis, recommend the best matching presets:
 1. **Best Match:** [preset name] - Confidence: [percentage]
 2. **Second Choice:** [preset name] - Confidence: [percentage]
@@ -340,17 +365,22 @@ Available presets:
 Provide a JSON-formatted summary with your findings:
 \`\`\`json
 {
+  "brandName": "[exact text extracted from logo - e.g., 'PROMPTS GENIE']",
+  "initials": "[initials if detectable - e.g., 'PG', or empty string if none]",
+  "textArrangement": "[single-line/stacked/circular/curved/arc]",
+  "frameShape": "[circle/oval/rectangle/shield/badge/none]",
+  "frameMaterial": "[chrome/gold/bronze/silver/plain/none]",
   "industry": "[industry ID]",
   "style": "[style ID]",
-  "colors": ["primary", "secondary", "accent"],
+  "colors": ["primary hex", "secondary hex", "accent hex"],
   "depth": "[depth ID]",
   "effects": ["effect1", "effect2"],
-  "metallic": "[metallic type or none]",
+  "metallic": "[chrome/gold/bronze/rose-gold/platinum/copper/none]",
   "glow": "[glow type or none]",
   "fontStyle": "[font category]",
   "fontWeight": "[weight]",
-  "pattern": "[pattern type or none]",
-  "iconType": "[icon type or none]",
+  "pattern": "[ONLY if clearly visible: pattern type, otherwise 'none']",
+  "iconType": "[specific icon name - e.g., 'genie lamp', 'crown', or 'none']",
   "presetMatch": "[best preset ID]",
   "confidence": [0-100]
 }

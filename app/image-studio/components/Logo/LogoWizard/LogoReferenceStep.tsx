@@ -72,7 +72,8 @@ export function LogoReferenceStep({
   }, [previewUrl])
 
   const handleAnalyze = async () => {
-    if (!uploadedFile || !brandName.trim()) return
+    // Only require uploaded file - brand name can be extracted from analysis
+    if (!uploadedFile) return
     setAnalyzing(true)
     setError(null)
 
@@ -96,6 +97,11 @@ export function LogoReferenceStep({
       const parsed = parseAnalysis(data.analysis)
       setAnalysisResult(parsed)
       setAnalysisComplete(true)
+
+      // Auto-populate brand name if extracted and user hasn't entered one yet
+      if (parsed.brandName && (!brandName.trim() || brandName.trim() === '')) {
+        setBrandName(parsed.brandName)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to analyze logo')
     } finally {
@@ -109,7 +115,10 @@ export function LogoReferenceStep({
     }
   }
 
-  const canAnalyze = uploadedFile && brandName.trim().length > 0 && !analyzing
+  // Can analyze with just the image - brand name will be extracted
+  const canAnalyze = uploadedFile && !analyzing
+  // Continue requires brand name (either entered or extracted)
+  const canContinue = analysisComplete && brandName.trim().length > 0
 
   return (
     <div className="space-y-6">
@@ -184,6 +193,12 @@ export function LogoReferenceStep({
                     )}
                   </div>
                   <div className="text-xs text-zinc-400 grid grid-cols-2 gap-x-4 gap-y-1">
+                    {/* NEW: Show extracted brand name prominently */}
+                    {analysisResult.brandName && (
+                      <p className="col-span-2 text-sm mb-1">
+                        Brand Name: <span className="text-purple-400 font-medium">{analysisResult.brandName}</span>
+                      </p>
+                    )}
                     <p>Industry: <span className="text-zinc-200 capitalize">{analysisResult.industry}</span></p>
                     <p>Style: <span className="text-zinc-200 capitalize">{analysisResult.style}</span></p>
                     <p>Colors: <span className="text-zinc-200 capitalize">{analysisResult.colors.join(', ')}</span></p>
@@ -193,6 +208,18 @@ export function LogoReferenceStep({
                     )}
                     {analysisResult.glow !== 'none' && (
                       <p>Glow: <span className="text-zinc-200 capitalize">{analysisResult.glow}</span></p>
+                    )}
+                    {/* NEW: Show frame if detected */}
+                    {analysisResult.frameShape && analysisResult.frameShape !== 'none' && (
+                      <p>Frame: <span className="text-zinc-200 capitalize">
+                        {analysisResult.frameMaterial && analysisResult.frameMaterial !== 'none'
+                          ? `${analysisResult.frameMaterial} ${analysisResult.frameShape}`
+                          : analysisResult.frameShape}
+                      </span></p>
+                    )}
+                    {/* NEW: Show icon if detected */}
+                    {analysisResult.iconType && analysisResult.iconType !== 'none' && (
+                      <p>Icon: <span className="text-zinc-200 capitalize">{analysisResult.iconType}</span></p>
                     )}
                     {analysisResult.pattern !== 'none' && (
                       <p>Pattern: <span className="text-zinc-200 capitalize">{analysisResult.pattern}</span></p>
@@ -204,7 +231,7 @@ export function LogoReferenceStep({
                 </div>
               ) : (
                 <p className="text-sm text-zinc-400">
-                  Enter your brand name below and click Analyze
+                  Upload a logo to analyze - we&apos;ll extract the brand name automatically
                 </p>
               )}
             </div>
@@ -225,7 +252,9 @@ export function LogoReferenceStep({
           disabled={analyzing}
         />
         <p className="text-xs text-zinc-500">
-          This is the text that will appear in your logo
+          {analysisComplete && analysisResult?.brandName
+            ? "Extracted from your logo - edit if needed"
+            : "Enter manually or it will be extracted from your logo"}
         </p>
       </div>
 

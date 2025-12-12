@@ -15,6 +15,120 @@ export * from './questionnaire-types'
 export * from './questionnaire-helpers'
 
 // ============================================
+// WIZARD MODES
+// ============================================
+
+export type WizardMode = 'quick' | 'advanced'
+
+// Quick Mode shows only essential questions (6 questions, ~2 min)
+export const QUICK_MODE_QUESTIONS = [
+  'brandName',
+  'logoType',
+  'industry',
+  'style',
+  'imageColorPicker', // Simplified color selection
+  'outputSettings',
+]
+
+// Smart defaults applied in Quick Mode when questions are skipped
+export const QUICK_MODE_DEFAULTS: Record<string, any> = {
+  imageColorScheme: 'tricolor',
+  depth: 'medium',
+  textPlacement: 'center',
+  logoTilt: 'no-tilt',
+  textColorChoice: 'match-image',
+}
+
+// Style to Font Category mapping for Quick Mode auto-selection
+export const STYLE_TO_FONT_CATEGORY: Record<string, string> = {
+  modern: 'modern-clean',
+  elegant: 'elegant-serif',
+  bold: 'bold-display',
+  playful: 'script-handwritten',
+  organic: 'script-handwritten',
+  vintage: 'retro-decorative',
+  futuristic: 'tech-futuristic',
+  handcrafted: 'script-handwritten',
+}
+
+// ============================================
+// FONT CATEGORIES (for Quick Mode)
+// ============================================
+
+export interface FontCategory {
+  id: string
+  label: string
+  emoji: string
+  description: string
+  fonts: string[] // Font IDs from the full font list
+  defaultFont: string
+}
+
+export const FONT_CATEGORIES: FontCategory[] = [
+  {
+    id: 'elegant-serif',
+    label: 'Elegant & Luxury',
+    emoji: '👑',
+    description: 'Sophisticated, high-end feel',
+    fonts: ['didot', 'bodoni', 'playfair', 'cinzel'],
+    defaultFont: 'playfair',
+  },
+  {
+    id: 'modern-clean',
+    label: 'Modern & Clean',
+    emoji: '✨',
+    description: 'Minimalist, contemporary',
+    fonts: ['montserrat', 'futura', 'raleway'],
+    defaultFont: 'montserrat',
+  },
+  {
+    id: 'tech-futuristic',
+    label: 'Tech & Futuristic',
+    emoji: '🚀',
+    description: 'Cutting-edge, innovative',
+    fonts: ['orbitron', 'audiowide', 'exo-2'],
+    defaultFont: 'orbitron',
+  },
+  {
+    id: 'script-handwritten',
+    label: 'Script & Handwritten',
+    emoji: '✍️',
+    description: 'Personal, artistic touch',
+    fonts: ['great-vibes', 'dancing-script', 'allura', 'caveat'],
+    defaultFont: 'great-vibes',
+  },
+  {
+    id: 'bold-display',
+    label: 'Bold & Impactful',
+    emoji: '💪',
+    description: 'Strong, attention-grabbing',
+    fonts: ['bebas-neue', 'anton', 'black-ops-one'],
+    defaultFont: 'bebas-neue',
+  },
+  {
+    id: 'retro-decorative',
+    label: 'Retro & Decorative',
+    emoji: '🎭',
+    description: 'Vintage, nostalgic vibes',
+    fonts: ['righteous', 'lobster', 'poiret-one', 'monoton'],
+    defaultFont: 'righteous',
+  },
+]
+
+// Get font category by ID
+export function getFontCategory(categoryId: string): FontCategory | undefined {
+  return FONT_CATEGORIES.find(cat => cat.id === categoryId)
+}
+
+// Get default font for a style
+export function getDefaultFontForStyle(styleId: string): string {
+  const categoryId = STYLE_TO_FONT_CATEGORY[styleId]
+  if (!categoryId) return 'montserrat' // Default fallback
+  const category = getFontCategory(categoryId)
+  return category?.defaultFont || 'montserrat'
+}
+
+// ============================================
 // QUESTIONS DEFINITION
 // ============================================
 
@@ -643,28 +757,28 @@ export const WIZARD_QUESTIONS: WizardQuestion[] = [
     options: [
       {
         id: 'flat',
-        label: 'Flat 2D',
+        label: 'Flat 2D (0%)',
         emoji: '📄',
         description: 'Clean, simple, no depth',
         configValues: { depthLevel: 'flat' },
       },
       {
         id: 'subtle',
-        label: 'Subtle 3D',
+        label: 'Subtle (35%)',
         emoji: '📊',
         description: 'Slight depth, shadows',
         configValues: { depthLevel: 'subtle' },
       },
       {
         id: 'medium',
-        label: 'Medium 3D',
+        label: 'Medium (65%)',
         emoji: '📦',
         description: 'Noticeable extrusion',
         configValues: { depthLevel: 'medium' },
       },
       {
         id: 'dramatic',
-        label: 'Dramatic 3D',
+        label: 'Dramatic (100%)',
         emoji: '🎲',
         description: 'Bold, eye-catching depth',
         configValues: { depthLevel: 'deep' },
@@ -897,37 +1011,37 @@ export const WIZARD_QUESTIONS: WizardQuestion[] = [
     options: [
       {
         id: 'no-tilt',
-        label: 'No Tilt',
+        label: 'No Tilt (0°)',
         emoji: '➖',
         description: 'Keep logo straight',
         configValues: { tiltAngle: 0, hasTilt: false },
       },
       {
         id: 'slight-left',
-        label: 'Slight Left',
+        label: 'Left (-10°)',
         emoji: '↖️',
-        description: 'Tilt -5 to -15 degrees',
+        description: 'Slight counter-clockwise rotation',
         configValues: { tiltAngle: -10, hasTilt: true },
       },
       {
         id: 'slight-right',
-        label: 'Slight Right',
+        label: 'Right (+10°)',
         emoji: '↗️',
-        description: 'Tilt +5 to +15 degrees',
+        description: 'Slight clockwise rotation',
         configValues: { tiltAngle: 10, hasTilt: true },
       },
       {
         id: 'dynamic-left',
-        label: 'Dynamic Left',
+        label: 'Dynamic Left (-20°)',
         emoji: '⤴️',
-        description: 'Tilt -15 to -30 degrees',
+        description: 'Strong counter-clockwise rotation',
         configValues: { tiltAngle: -20, hasTilt: true },
       },
       {
         id: 'dynamic-right',
-        label: 'Dynamic Right',
+        label: 'Dynamic Right (+20°)',
         emoji: '⤵️',
-        description: 'Tilt +15 to +30 degrees',
+        description: 'Strong clockwise rotation',
         configValues: { tiltAngle: 20, hasTilt: true },
       },
     ],

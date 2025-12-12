@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Heart, X, Download, RotateCcw, Trash2, Check } from 'lucide-react'
 import { NeonStatusBadge } from '../NeonStatusBadge'
 import { Button } from '@/components/ui/button'
@@ -145,6 +145,23 @@ interface FavoriteCardProps {
 }
 
 function FavoriteCard({ fav, idx, isSelected, onToggleSelect, onDownload, onRemove, onRestore, hasRestoreHandler }: FavoriteCardProps) {
+  const [fileSize, setFileSize] = useState<string | null>(null)
+
+  // Calculate file size on mount (fallback if metadata.fileSize is missing)
+  useEffect(() => {
+    if (fav.metadata?.fileSize) {
+      setFileSize(fav.metadata.fileSize)
+    } else if (fav.url) {
+      fetch(fav.url)
+        .then(res => res.blob())
+        .then(blob => {
+          const mb = blob.size / (1024 * 1024)
+          setFileSize(mb >= 1 ? `${mb.toFixed(1)} MB` : `${(blob.size / 1024).toFixed(0)} KB`)
+        })
+        .catch(() => setFileSize(null))
+    }
+  }, [fav.url, fav.metadata?.fileSize])
+
   return (
     <div className="relative group">
       <div className="absolute top-2 left-2 z-20">
@@ -160,13 +177,14 @@ function FavoriteCard({ fav, idx, isSelected, onToggleSelect, onDownload, onRemo
 
       <img src={fav.url || "/placeholder.svg"} alt={`Favorite ${idx + 1}`} className={`w-full aspect-square object-cover rounded-lg transition-all ${isSelected ? 'ring-2 ring-[#c99850]' : ''}`} />
 
-      {fav.metadata && (
+      {(fav.metadata || fileSize) && (
         <div className="absolute bottom-0 left-0 right-0 p-2 bg-linear-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="flex flex-wrap gap-1">
-            {fav.metadata.ratio && <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">{fav.metadata.ratio}</span>}
-            {fav.metadata.style && <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">{fav.metadata.style}</span>}
-            {fav.metadata.dimensions && <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">{fav.metadata.dimensions}</span>}
-            {(fav.metadata.params || fav.metadata.parameters) && <span className="text-xs px-2 py-0.5 bg-green-600 text-white font-medium rounded">Has Parameters</span>}
+            {fav.metadata?.ratio && <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">{fav.metadata.ratio}</span>}
+            {fav.metadata?.style && <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">{fav.metadata.style}</span>}
+            {fav.metadata?.dimensions && <span className="text-xs px-2 py-0.5 bg-[#c99850] text-black font-medium rounded">{fav.metadata.dimensions}</span>}
+            {fileSize && <span className="text-xs px-2 py-0.5 font-medium rounded" style={{ background: 'linear-gradient(135deg, #c99850 0%, #dbb56e 50%, #c99850 100%)', color: '#000' }}>{fileSize}</span>}
+            {(fav.metadata?.params || fav.metadata?.parameters) && <span className="text-xs px-2 py-0.5 bg-green-600 text-white font-medium rounded">Has Parameters</span>}
           </div>
         </div>
       )}

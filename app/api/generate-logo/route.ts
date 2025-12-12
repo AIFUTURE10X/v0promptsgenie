@@ -2,7 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateImageWithRetry, type GenerationModel } from "@/lib/gemini-client"
 import { removeBackground, type BackgroundRemovalMethod } from "@/lib/background-removal"
 import { removeBackgroundCloud, removeBackgroundPixian } from "@/lib/cloud-bg-removal"
-import { removeBackgroundWithReplicate } from "@/lib/replicate-bg-removal"
+import { removeBackgroundWithReplicate, type ReplicateBgModel } from "@/lib/replicate-bg-removal"
 import { removeBackgroundWithPixelcut } from "@/lib/pixelcut-bg-removal"
 import { upscaleWithRealESRGAN, isReplicateAvailable } from "@/lib/replicate-upscaler"
 import { buildFreeFormLogoPrompt, buildLogoPrompt } from "./logo-prompts"
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Use free-form generation (no background constraints) when:
     // 1. Skipping BG removal (user will remove it later if needed)
     // 2. Using AI-based removal that can handle any background
-    const useCloudRemoval = bgRemovalMethod === 'pixelcut' || bgRemovalMethod === 'replicate' || ((bgRemovalMethod === 'pixian' || bgRemovalMethod === 'cloud') && cloudApiKey)
+    const useCloudRemoval = bgRemovalMethod === 'pixelcut' || bgRemovalMethod === 'replicate' || bgRemovalMethod === '851-labs' || ((bgRemovalMethod === 'pixian' || bgRemovalMethod === 'cloud') && cloudApiKey)
     const useFreeFormPrompt = skipBgRemoval || useCloudRemoval
     let enhancedPrompt = useFreeFormPrompt
       ? buildFreeFormLogoPrompt(prompt, style)
@@ -72,8 +72,9 @@ export async function POST(request: NextRequest) {
     console.log("[Logo API] Enhanced prompt:", enhancedPrompt.substring(0, 200) + "...")
 
     // Determine model - default to pro for quality, but allow override to flash for speed
-    const model: GenerationModel = modelParam === 'gemini-2.5-flash-preview-image'
-      ? 'gemini-2.5-flash-preview-image'
+    // Support old model names for backwards compatibility
+    const model: GenerationModel = (modelParam === 'gemini-2.5-flash-image' || modelParam === 'gemini-2.5-flash-preview-image')
+      ? 'gemini-2.5-flash-image'
       : 'gemini-3-pro-image-preview'
 
     // Generate the logo image with Gemini
@@ -109,8 +110,11 @@ export async function POST(request: NextRequest) {
         // Use Pixelcut API - optimized for logos with text preservation
         processedBase64 = await removeBackgroundWithPixelcut(result.imageBase64)
       } else if (bgRemovalMethod === 'replicate') {
-        // Use Replicate AI - works on any background color
-        processedBase64 = await removeBackgroundWithReplicate(result.imageBase64)
+        // Use Replicate AI (BRIA) - works on any background color with 256 levels of transparency
+        processedBase64 = await removeBackgroundWithReplicate(result.imageBase64, 'bria')
+      } else if (bgRemovalMethod === '851-labs') {
+        // Use 851-labs/background-remover - very cheap, good threshold control
+        processedBase64 = await removeBackgroundWithReplicate(result.imageBase64, '851-labs')
       } else if (bgRemovalMethod === 'pixian' && cloudApiKey) {
         // Use Pixian.ai API
         processedBase64 = await removeBackgroundPixian(result.imageBase64, cloudApiKey)

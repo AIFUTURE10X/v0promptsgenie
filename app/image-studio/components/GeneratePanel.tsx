@@ -4,6 +4,7 @@ import { useState, useRef, useMemo, forwardRef, useImperativeHandle, useEffect }
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Sparkles, Loader2, ChevronDown } from 'lucide-react'
+import { GeneratePreset, SavedGenerateParams } from '../constants/settings-defaults'
 import { UploadedImage, AnalysisResult } from '../types'
 import { usePromptBuilder } from '../hooks/usePromptBuilder'
 import { useImageGeneration } from '../hooks/useImageGeneration'
@@ -16,8 +17,8 @@ import { CombinedPromptCard } from './GeneratePanel/CombinedPromptCard'
 import { ModelSelector, type GenerationModel, type ImageSize } from './GeneratePanel/ModelSelector'
 import { ReferenceImageUpload, type ReferenceImage } from './GeneratePanel/ReferenceImageUpload'
 import { PromptInputs } from './GeneratePanel/PromptInputs'
+import { PresetControls } from './GeneratePanel/PresetControls'
 
-// Re-export types for convenience
 export type { GenerationModel, ImageSize, ReferenceImage }
 
 export interface GeneratePanelProps {
@@ -57,6 +58,11 @@ export interface GeneratePanelProps {
   setImageSize?: (size: ImageSize) => void
   selectedModel?: GenerationModel
   setSelectedModel?: (model: GenerationModel) => void
+  showAdvancedOptions?: boolean
+  onSaveGenerateParams?: (params: any) => void
+  presets?: GeneratePreset[]
+  onSavePreset?: (name: string, params: SavedGenerateParams) => void
+  onLoadPreset?: (preset: GeneratePreset) => void
 }
 
 export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerating: boolean }, GeneratePanelProps>(
@@ -68,14 +74,15 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
       isFavorite, toggleFavorite, onParametersSave, onClearPrompt, onRestoreParameters,
       generatedImages, setGeneratedImages, onOpenLightbox,
       seed: controlledSeed, setSeed: setControlledSeed,
-      imageSize = '1K', setImageSize, selectedModel = 'gemini-2.5-flash-preview-image', setSelectedModel,
+      imageSize = '1K', setImageSize, selectedModel = 'gemini-2.5-flash-image', setSelectedModel,
+      showAdvancedOptions = true, onSaveGenerateParams, presets = [], onSavePreset, onLoadPreset,
     } = props
 
     const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)
     const { isGenerating, error, generateImages, clearImages } = useImageGeneration(setGeneratedImages)
     const { saveToHistory } = useGenerationHistory()
 
-    const [showAdvanced, setShowAdvanced] = useState(true)
+    const [showAdvanced, setShowAdvanced] = useState(showAdvancedOptions)
     const [isRemovingBg, setIsRemovingBg] = useState(false)
     const [seed, setSeedInternal] = useState<number | null>(controlledSeed ?? null)
     const [editedSubject, setEditedSubject] = useState('')
@@ -113,6 +120,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
     const handleGenerate = async () => {
       const finalPrompt = mainPrompt.trim() || combinedPrompt.trim() || 'a beautiful scene'
       onParametersSave?.({ mainPrompt: finalPrompt, aspectRatio, selectedStylePreset, imageCount, negativePrompt, selectedCameraAngle, selectedCameraLens, styleStrength, seed: activeSeed })
+      onSaveGenerateParams?.({ mainPrompt: finalPrompt, negativePrompt, aspectRatio, selectedStylePreset, selectedCameraAngle, selectedCameraLens, styleStrength, imageSize, selectedModel })
 
       let prompt = finalPrompt
       if (selectedStylePreset !== 'Realistic') prompt += `. Style: ${selectedStylePreset}`
@@ -136,48 +144,26 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
     const handleRemoveBackground = async (index: number) => {
       const img = generatedImages[index]
       if (!img?.url) return
-
       try {
-        // Fetch the image and convert to File
         const response = await fetch(img.url)
         const blob = await response.blob()
         const file = new File([blob], 'image.png', { type: 'image/png' })
-
-        // Call the API with Replicate method
         const formData = new FormData()
         formData.append('image', file)
         formData.append('bgRemovalMethod', 'replicate')
-
-        const result = await fetch('/api/remove-background', {
-          method: 'POST',
-          body: formData,
-        })
-
+        const result = await fetch('/api/remove-background', { method: 'POST', body: formData })
         const data = await result.json()
-        if (!data.success || !data.image) {
-          throw new Error(data.error || 'Failed to remove background')
-        }
-
-        // Update the image in the array
+        if (!data.success || !data.image) throw new Error(data.error || 'Failed to remove background')
         const updatedImages = [...generatedImages]
-        updatedImages[index] = {
-          ...updatedImages[index],
-          url: data.image,
-        }
+        updatedImages[index] = { ...updatedImages[index], url: data.image }
         setGeneratedImages(updatedImages)
-      } catch (error) {
-        console.error('[v0] Background removal error:', error)
-      }
+      } catch (error) { console.error('[v0] Background removal error:', error) }
     }
 
     const handleBulkRemoveBackground = async () => {
       if (generatedImages.length === 0) return
       setIsRemovingBg(true)
-      try {
-        await handleRemoveBackground(0)
-      } finally {
-        setIsRemovingBg(false)
-      }
+      try { await handleRemoveBackground(0) } finally { setIsRemovingBg(false) }
     }
 
     useImperativeHandle(ref, () => ({ triggerGenerate: handleGenerate, isGenerating }), [isGenerating])
@@ -218,9 +204,25 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
             <div className="p-4 pt-0 space-y-4">
               <PromptInputs mainPrompt={mainPrompt} negativePrompt={negativePrompt} onMainPromptChange={setMainPrompt} onNegativePromptChange={setNegativePrompt} />
               <ModelSelector selectedModel={selectedModel} onModelChange={m => setSelectedModel?.(m)} imageSize={imageSize} onImageSizeChange={s => setImageSize?.(s)} />
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <SeedControlDropdown seed={activeSeed} onSeedChange={setSeed} />
                 <RemoveBgButton onRemoveBackground={handleBulkRemoveBackground} isRemovingBg={isRemovingBg} disabled={generatedImages.length === 0} />
+                <PresetControls
+                  mainPrompt={mainPrompt}
+                  negativePrompt={negativePrompt}
+                  aspectRatio={aspectRatio}
+                  selectedStylePreset={selectedStylePreset}
+                  selectedCameraAngle={selectedCameraAngle}
+                  selectedCameraLens={selectedCameraLens}
+                  styleStrength={styleStrength}
+                  imageSize={imageSize}
+                  selectedModel={selectedModel}
+                  presets={presets}
+                  onSavePreset={onSavePreset}
+                  onLoadPreset={onLoadPreset}
+                  onSetMainPrompt={setMainPrompt}
+                  onSetNegativePrompt={setNegativePrompt}
+                />
               </div>
               <ReferenceImageUpload referenceImage={referenceImage} onImageChange={setReferenceImage} />
               {generatedImages.length > 0 && (

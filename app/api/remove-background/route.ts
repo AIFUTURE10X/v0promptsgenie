@@ -3,7 +3,7 @@ import { put } from "@vercel/blob"
 import { neon } from "@neondatabase/serverless"
 import { removeBackground, type BackgroundRemovalMethod } from "@/lib/background-removal"
 import { removeBackgroundCloud, removeBackgroundPixian } from "@/lib/cloud-bg-removal"
-import { removeBackgroundWithReplicate } from "@/lib/replicate-bg-removal"
+import { removeBackgroundWithReplicate, type ReplicateBgModel } from "@/lib/replicate-bg-removal"
 import { removeBackgroundSmart } from "@/lib/smart-bg-removal"
 import { removeBackgroundWithPixelcut } from "@/lib/pixelcut-bg-removal"
 import { removeBackgroundWithPhotoRoom } from "@/lib/photoroom-bg-removal"
@@ -50,8 +50,11 @@ export async function POST(request: NextRequest) {
         edgeSmoothing: false,  // Disabled - causes artifacts
       })
     } else if (bgRemovalMethod === 'replicate') {
-      // Use Replicate AI - works on any background color
-      transparentBase64 = await removeBackgroundWithReplicate(imageBase64)
+      // Use Replicate AI (BRIA) - works on any background color with 256 levels of transparency
+      transparentBase64 = await removeBackgroundWithReplicate(imageBase64, 'bria')
+    } else if (bgRemovalMethod === '851-labs') {
+      // Use 851-labs/background-remover - very cheap, good threshold control
+      transparentBase64 = await removeBackgroundWithReplicate(imageBase64, '851-labs')
     } else if (bgRemovalMethod === 'pixelcut') {
       // Use Pixelcut API - logo-optimized, preserves text and fine details
       transparentBase64 = await removeBackgroundWithPixelcut(imageBase64, cloudApiKey || undefined)

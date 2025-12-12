@@ -7,16 +7,18 @@
  * - Home button (always first)
  * - Image Studio mega menu dropdown
  * - Context-specific buttons (only when Image Generator active)
+ * - Account manager (right side)
  */
 
 import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { ImageStudioMegaMenu } from './Navigation'
 import { HeaderContextButtons } from './HeaderContextButtons'
+import { AccountManager } from './AccountManager'
 
 interface ImageStudioHeaderProps {
-  activeTab: 'generate' | 'logo' | 'mockups'
-  onTabChange: (tab: 'generate' | 'logo' | 'mockups') => void
+  activeTab: 'generate' | 'logo' | 'mockups' | 'bg-remover' | 'settings'
+  onTabChange: (tab: 'generate' | 'logo' | 'mockups' | 'bg-remover' | 'settings') => void
   favoritesCount: number
   hasStoredParams: boolean
   onShowHistory: () => void
@@ -35,8 +37,11 @@ export function ImageStudioHeader({
 }: ImageStudioHeaderProps) {
   return (
     <header className="border-b border-zinc-800 px-6 py-2 bg-black/50 backdrop-blur-sm sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto flex items-center justify-center">
-        {/* Centered: Home + Image Studio Mega Menu */}
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        {/* Left spacer for balance */}
+        <div className="w-20" />
+
+        {/* Center: Home + Image Studio Mega Menu */}
         <div className="flex items-center gap-3">
           {/* Home Button - Always First (Gold Style) */}
           <Link
@@ -70,6 +75,11 @@ export function ImageStudioHeader({
               onShowFavorites={onShowFavorites}
             />
           )}
+        </div>
+
+        {/* Right: Account Manager */}
+        <div className="w-20 flex justify-end">
+          <AccountManager />
         </div>
       </div>
     </header>

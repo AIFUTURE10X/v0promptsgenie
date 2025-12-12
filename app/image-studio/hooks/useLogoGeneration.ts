@@ -7,7 +7,7 @@ export type LogoStyle =
   | '3d-metallic' | '3d-crystal' | '3d-gradient' | 'neon'
 
 // Background removal methods ('none' = skip removal)
-export type BgRemovalMethod = 'none' | 'auto' | 'ai-local' | 'simple' | 'cloud' | 'pixian' | 'replicate' | 'smart' | 'pixelcut' | 'photoroom'
+export type BgRemovalMethod = 'none' | 'auto' | 'ai-local' | 'simple' | 'cloud' | 'pixian' | 'replicate' | 'smart' | 'photoroom' | '851-labs'
 
 // Resolution options
 export type LogoResolution = '1K' | '2K' | '4K'
@@ -47,7 +47,7 @@ export function useLogoGeneration() {
       const formData = new FormData()
       formData.append('prompt', options.prompt)
       formData.append('style', options.style)
-      formData.append('bgRemovalMethod', options.bgRemovalMethod || 'pixelcut')
+      formData.append('bgRemovalMethod', options.bgRemovalMethod || 'replicate')
       formData.append('resolution', options.resolution || '1K')
 
       if (options.negativePrompt) {

@@ -66,14 +66,30 @@ export async function POST(request: NextRequest) {
     let blobUrl: string
 
     try {
-      console.log('[v0] API: Fetching image from URL...')
-      const response = await fetch(imageUrl)
-      const blob = await response.blob()
-      console.log('[v0] API: Image fetched, size:', blob.size, 'bytes')
+      let imageBuffer: Buffer
+
+      // Handle data URIs directly (from batch generation)
+      if (imageUrl.startsWith('data:')) {
+        console.log('[v0] API: Processing data URI...')
+        // Extract base64 data from data URI
+        const base64Match = imageUrl.match(/^data:image\/\w+;base64,(.+)$/)
+        if (!base64Match) {
+          throw new Error('Invalid data URI format')
+        }
+        imageBuffer = Buffer.from(base64Match[1], 'base64')
+        console.log('[v0] API: Data URI decoded, size:', imageBuffer.length, 'bytes')
+      } else {
+        // Fetch from URL
+        console.log('[v0] API: Fetching image from URL...')
+        const response = await fetch(imageUrl)
+        const arrayBuffer = await response.arrayBuffer()
+        imageBuffer = Buffer.from(arrayBuffer)
+        console.log('[v0] API: Image fetched, size:', imageBuffer.length, 'bytes')
+      }
       
       const fileName = `favorites/${tempId}.png`
       console.log('[v0] API: Uploading to Blob as:', fileName)
-      const uploadResult = await put(fileName, blob, {
+      const uploadResult = await put(fileName, imageBuffer, {
         access: 'public',
         contentType: 'image/png'
       })

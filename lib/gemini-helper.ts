@@ -77,7 +77,7 @@ export async function generateImageWithRetry(
   const config = { ...DEFAULT_RETRY_CONFIG, ...retryConfig }
 
   const client = new GoogleGenAI({ apiKey })
-  const model = "gemini-2.5-flash-preview-image"
+  const model = "gemini-2.5-flash-image"
 
   let currentDelay = config.initialDelay
   let totalDelay = 0

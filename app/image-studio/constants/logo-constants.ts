@@ -44,16 +44,16 @@ export const BG_REMOVAL_METHODS: Array<{
   badge?: string
 }> = [
   {
-    value: 'pixelcut',
-    label: 'Pixelcut AI',
-    description: 'Logo-optimized, preserves fine lines & text',
+    value: 'replicate',
+    label: 'BRIA AI',
+    description: 'Best for logos - 256 levels of transparency for clean text edges',
     badge: 'Recommended'
   },
   {
-    value: 'replicate',
-    label: 'Replicate AI',
-    description: 'High-quality ML model, works on any background',
-    badge: 'AI'
+    value: '851-labs',
+    label: '851-labs',
+    description: 'Very cheap (~$0.0005/run), good for general use',
+    badge: 'Budget'
   },
   {
     value: 'smart',

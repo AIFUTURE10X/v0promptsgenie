@@ -22,6 +22,16 @@ import {
 } from '../../../constants/logo-analysis-mappings'
 
 export interface AnalysisResult {
+  // NEW: Text extraction fields
+  brandName: string          // Extracted text from logo (e.g., "PROMPTS GENIE")
+  initials: string           // Initials if detectable (e.g., "PG")
+  textArrangement: string    // single-line/stacked/circular/curved/arc
+
+  // NEW: Frame detection fields
+  frameShape: string         // circle/oval/rectangle/shield/badge/none
+  frameMaterial: string      // chrome/gold/bronze/silver/plain/none
+
+  // Existing fields
   industry: string
   style: string
   colors: string[]
@@ -66,11 +76,15 @@ export function mapAnalysisToWizardAnswers(
   const depthKey = analysis.depth.toLowerCase()
   answers.depth = DEPTH_MAP[depthKey] || 'medium'
 
-  // Default icon preference based on industry
-  answers.icon = INDUSTRY_TO_ICON_MAP[answers.industry as string] || 'none'
+  // Default icon preference based on industry, but use detected icon if available
+  if (analysis.iconType && analysis.iconType !== 'none') {
+    answers.icon = analysis.iconType
+  } else {
+    answers.icon = INDUSTRY_TO_ICON_MAP[answers.industry as string] || 'none'
+  }
 
-  // Brand name
-  answers.brandName = brandName
+  // Brand name - use extracted name from analysis if available, fallback to user input
+  answers.brandName = analysis.brandName || brandName
 
   return answers
 }
@@ -83,7 +97,31 @@ export function mapAnalysisToConfig(
   brandName: string
 ): Record<string, any> {
   const config: Record<string, any> = {
-    brandName,
+    // Use extracted brand name from analysis if available
+    brandName: analysis.brandName || brandName,
+  }
+
+  // NEW: Map frame shape to swoosh style
+  if (analysis.frameShape && analysis.frameShape !== 'none') {
+    // Map frame shapes to swoosh/decorative styles
+    const frameToSwoosh: Record<string, string> = {
+      'circle': 'circular',
+      'oval': 'circular',
+      'rectangle': 'none',
+      'shield': 'dynamic',
+      'badge': 'circular',
+      'hexagon': 'dynamic',
+      'ribbon': 'ribbon',
+    }
+    config.swooshStyle = frameToSwoosh[analysis.frameShape] || 'circular'
+  }
+
+  // NEW: Map frame material to metallic finish (if not already set by metallic analysis)
+  if (analysis.frameMaterial && analysis.frameMaterial !== 'none' && analysis.frameMaterial !== 'plain') {
+    // Frame material can also indicate metallic finish
+    if (!analysis.metallic || analysis.metallic === 'none') {
+      config.metallicFinish = analysis.frameMaterial
+    }
   }
 
   // Map depth level
