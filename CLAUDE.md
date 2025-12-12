@@ -1,8 +1,37 @@
-\# v0 Prompts Genie - Project Notes
+# v0 Prompts Genie - Project Notes
 
+## 🚀 Deployment Workflow
 
+### Branches
+- **`master`** - Production branch (Vercel deploys from here)
+- **`Main-GeniePrompts`** - Backup/sync branch
 
-&nbsp; ## Mockup Photo Generator
+### To Deploy to Production
+```bash
+git add .
+git commit -m "your commit message"
+git push origin master:master
+```
+
+### Required Vercel Environment Variables
+These MUST be set in Vercel → Settings → Environment Variables (for ALL environments: Production, Preview, Development):
+
+| Variable | Description |
+|----------|-------------|
+| `NEON_DATABASE_URL` | Neon PostgreSQL connection string |
+| `REPLICATE_API_TOKEN` | Replicate API key |
+| `GOOGLE_AI_API_KEY` | Google Gemini API key |
+
+### Deployment Checklist
+1. ✅ Test locally with `npm run build`
+2. ✅ Commit changes to `master`
+3. ✅ Push to `origin master:master`
+4. ✅ Check Vercel dashboard for successful build
+5. ✅ Hard refresh (Ctrl+Shift+R) to see changes
+
+---
+
+## Mockup Photo Generator
 
 
 
