@@ -31,6 +31,90 @@ These MUST be set in Vercel → Settings → Environment Variables (for ALL envi
 
 ---
 
+## 💻 Coding Preferences
+
+### General Style
+- Use TypeScript strict mode - no `any` types
+- Prefer `const` over `let`, never use `var`
+- Use arrow functions for components and callbacks
+- Destructure props and state
+- Use early returns to reduce nesting
+
+### React Patterns
+- Functional components only (no class components)
+- Custom hooks for reusable logic (`use` prefix)
+- Keep components focused - one responsibility each
+- Colocate state with the component that uses it
+- Use `useMemo` and `useCallback` for expensive operations
+
+### Import Order
+1. React imports
+2. Third-party libraries
+3. UI components (`@/components/ui/*`)
+4. Local components
+5. Hooks
+6. Constants/types
+7. Utilities
+
+### Comments
+- Only add comments for complex logic ("why" not "what")
+- Use JSDoc for exported functions/components
+- No commented-out code - delete it
+
+---
+
+## 🧪 Testing Requirements
+
+### Before Marking Feature Complete
+1. **Happy path** - Does it work with normal input?
+2. **Edge cases** - Empty state, null values, long text
+3. **State updates** - Does UI reflect changes immediately?
+4. **Persistence** - Refresh page, is data restored?
+5. **Error handling** - What happens when API fails?
+
+### When to Test
+- After implementing any new feature
+- After fixing a bug (verify fix works)
+- After refactoring (verify nothing broke)
+- Before deploying to production
+
+### Local Testing Commands
+```bash
+npm run dev      # Development server
+npm run build    # Production build (catches type errors)
+```
+
+---
+
+## 📝 Naming Conventions
+
+### Files & Folders
+| Type | Convention | Example |
+|------|------------|---------|
+| Components | PascalCase | `LogoPanel.tsx`, `ImageStudioHeader.tsx` |
+| Hooks | camelCase with `use` | `useLogoGeneration.ts`, `useImageStudio.ts` |
+| Constants | kebab-case | `logo-constants.ts`, `ai-logo-knowledge.ts` |
+| Utilities | kebab-case | `image-utils.ts`, `format-helpers.ts` |
+| Types | kebab-case or with component | `types.ts`, `LogoPanel.types.ts` |
+
+### Variables & Functions
+| Type | Convention | Example |
+|------|------------|---------|
+| Variables | camelCase | `selectedImage`, `isLoading` |
+| Constants | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`, `DEFAULT_COLORS` |
+| Functions | camelCase | `handleSubmit`, `formatDate` |
+| Event handlers | `handle` prefix | `handleClick`, `handleChange` |
+| Booleans | `is`/`has`/`should` prefix | `isOpen`, `hasError`, `shouldRender` |
+
+### Components
+| Type | Convention | Example |
+|------|------------|---------|
+| Props interface | `ComponentNameProps` | `LogoPanelProps`, `ButtonProps` |
+| State interface | `ComponentNameState` | `FormState`, `ModalState` |
+| Context | `ComponentNameContext` | `ThemeContext`, `AuthContext` |
+
+---
+
 ## Mockup Photo Generator
 
 
