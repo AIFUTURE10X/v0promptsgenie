@@ -35,6 +35,7 @@ export function useLogoPanelState({
   const [removeBackgroundOnly, setRemoveBackgroundOnly] = useState(false)
   const [seedLocked, setSeedLocked] = useState(false)
   const [seedValue, setSeedValue] = useState<number | undefined>()
+  const [aspectRatio, setAspectRatio] = useState('1:1')
 
   // Mode state
   const [logoMode, setLogoMode] = useState<'guided' | 'expert'>('guided')
@@ -91,6 +92,7 @@ export function useLogoPanelState({
     setRemoveBackgroundOnly(false)
     setSeedLocked(false)
     setSeedValue(undefined)
+    setAspectRatio('1:1')
     setIsEraserMode(false)
   }, [])
 
@@ -118,6 +120,7 @@ export function useLogoPanelState({
     removeBackgroundOnly, setRemoveBackgroundOnly,
     seedLocked, setSeedLocked,
     seedValue, setSeedValue,
+    aspectRatio, setAspectRatio,
 
     // Mode state
     logoMode, setLogoMode,

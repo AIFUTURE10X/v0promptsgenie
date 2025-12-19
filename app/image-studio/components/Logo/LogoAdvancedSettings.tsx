@@ -7,6 +7,7 @@ import {
   RESOLUTION_OPTIONS,
   BG_REMOVAL_METHODS
 } from '../../constants/logo-constants'
+import { ASPECT_RATIO_OPTIONS } from '../../constants/toolbar-options'
 
 interface LogoAdvancedSettingsProps {
   showAdvanced: boolean
@@ -19,6 +20,8 @@ interface LogoAdvancedSettingsProps {
   setSeedValue: (value: number | undefined) => void
   bgRemovalMethod: BgRemovalMethod
   setBgRemovalMethod: (method: BgRemovalMethod) => void
+  aspectRatio: string
+  setAspectRatio: (ratio: string) => void
   isGenerating: boolean
   isRemovingBackground: boolean
 }
@@ -34,6 +37,8 @@ export function LogoAdvancedSettings({
   setSeedValue,
   bgRemovalMethod,
   setBgRemovalMethod,
+  aspectRatio,
+  setAspectRatio,
   isGenerating,
   isRemovingBackground,
 }: LogoAdvancedSettingsProps) {
@@ -80,6 +85,33 @@ export function LogoAdvancedSettings({
             <p className="text-[9px] text-zinc-500">
               Switch to Gemini 3 Pro for 2K/4K resolution
             </p>
+          </div>
+
+          {/* Aspect Ratio Setting */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] text-zinc-400">Aspect Ratio</label>
+            <div className="grid grid-cols-5 gap-1">
+              {ASPECT_RATIO_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setAspectRatio(option.value)}
+                  disabled={isGenerating || isRemovingBackground}
+                  className={`
+                    flex flex-col items-center py-1.5 px-1 rounded-lg border transition-all
+                    ${aspectRatio === option.value
+                      ? 'border-[#c99850] bg-linear-to-b from-[#c99850] to-[#a67c3d] text-black'
+                      : 'border-zinc-700 bg-zinc-800/50 hover:border-zinc-600 text-white'
+                    }
+                    ${(isGenerating || isRemovingBackground) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                  `}
+                >
+                  <span className="text-[10px] font-semibold">{option.label}</span>
+                  <span className={`text-[8px] ${aspectRatio === option.value ? 'text-black/70' : 'text-zinc-500'}`}>
+                    {option.description}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Seed Lock Setting */}

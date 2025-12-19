@@ -160,6 +160,8 @@ export function LogoPanel({
             setSeedValue={state.setSeedValue}
             bgRemovalMethod={state.bgRemovalMethod}
             setBgRemovalMethod={state.setBgRemovalMethod}
+            aspectRatio={state.aspectRatio}
+            setAspectRatio={state.setAspectRatio}
             isGenerating={isGenerating}
             isRemovingBackground={isRemovingRefBg}
           />
