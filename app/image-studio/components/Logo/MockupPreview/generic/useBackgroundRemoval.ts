@@ -46,6 +46,7 @@ export function useBackgroundRemoval({
       const formData = new FormData()
       formData.append('image', file)
       formData.append('bgRemovalMethod', 'replicate')
+      formData.append('isLogoContext', 'true') // Enable text-preserving params for logos with taglines
 
       const result = await fetch('/api/remove-background', {
         method: 'POST',

@@ -125,9 +125,18 @@ async function tryRecraftAI(replicate: Replicate, imageBase64: string): Promise<
 
 /**
  * Try BRIA RMBG 2.0 model - primary choice for text and fine details
- * Uses preserve_alpha: true for 256 levels of transparency
+ *
+ * For logos/text: Uses preserve_alpha: false + custom_threshold: 0.55
+ *   - Solid edges preserve text better
+ *   - custom_threshold keeps fine details like taglines
+ *
+ * For photos: Uses preserve_alpha: true for 256 levels of transparency
  */
-async function tryBRIA(replicate: Replicate, imageBase64: string): Promise<string> {
+async function tryBRIA(
+  replicate: Replicate,
+  imageBase64: string,
+  options?: { isLogoContext?: boolean }
+): Promise<string> {
   console.log("[Replicate BG Removal] ========================================")
   console.log("[Replicate BG Removal] === USING BRIA RMBG 2.0 MODEL ===")
   console.log("[Replicate BG Removal] ========================================")
@@ -135,16 +144,30 @@ async function tryBRIA(replicate: Replicate, imageBase64: string): Promise<strin
   const mimeType = detectMimeType(imageBase64)
   console.log(`[Replicate BG Removal] Input image MIME type: ${mimeType}`)
   console.log(`[Replicate BG Removal] Input base64 length: ${imageBase64.length}`)
-  console.log("[Replicate BG Removal] preserve_alpha: true (256 levels of transparency)")
+
+  // Use text-preserving settings for logo context
+  const isLogoMode = options?.isLogoContext === true
+
+  const inputParams = isLogoMode
+    ? {
+        image: `data:${mimeType};base64,${imageBase64}`,
+        preserve_alpha: false,      // Solid edges for text
+        custom_threshold: 0.55      // Preserve fine details like taglines
+      }
+    : {
+        image: `data:${mimeType};base64,${imageBase64}`,
+        preserve_alpha: true        // Smooth transparency for photos
+      }
+
+  console.log(`[Replicate BG Removal] Logo mode: ${isLogoMode}`)
+  console.log(`[Replicate BG Removal] preserve_alpha: ${inputParams.preserve_alpha}`)
+  if (isLogoMode) {
+    console.log(`[Replicate BG Removal] custom_threshold: 0.55 (text preservation)`)
+  }
 
   const output = await replicate.run(
     "bria/remove-background:4ed060b3587b7c3912353dd7d59000c883a6e1c5c9181ed7415c2624c2e8e392",
-    {
-      input: {
-        image: `data:${mimeType};base64,${imageBase64}`,
-        preserve_alpha: true
-      }
-    }
+    { input: inputParams }
   )
 
   console.log("[Replicate BG Removal] === BRIA COMPLETED SUCCESSFULLY ===")
@@ -160,6 +183,14 @@ async function tryBRIA(replicate: Replicate, imageBase64: string): Promise<strin
 export type ReplicateBgModel = 'bria' | '851-labs' | 'recraft'
 
 /**
+ * Options for background removal
+ */
+export interface BgRemovalOptions {
+  /** When true, use text-preserving settings (solid edges + custom_threshold) */
+  isLogoContext?: boolean
+}
+
+/**
  * Remove background from an image using Replicate AI models
  *
  * Supports multiple models:
@@ -169,11 +200,13 @@ export type ReplicateBgModel = 'bria' | '851-labs' | 'recraft'
  *
  * @param imageBase64 - Base64 encoded image (without data URL prefix)
  * @param model - Which model to use (default: 'bria')
+ * @param options - Optional settings (e.g., isLogoContext for text preservation)
  * @returns Base64 encoded PNG with transparent background
  */
 export async function removeBackgroundWithReplicate(
   imageBase64: string,
-  model: ReplicateBgModel = 'bria'
+  model: ReplicateBgModel = 'bria',
+  options?: BgRemovalOptions
 ): Promise<string> {
   const apiToken = process.env.REPLICATE_API_TOKEN
 
@@ -183,6 +216,9 @@ export async function removeBackgroundWithReplicate(
 
   console.log("[Replicate BG Removal] Starting background removal...")
   console.log(`[Replicate BG Removal] Using model: ${model}`)
+  if (options?.isLogoContext) {
+    console.log("[Replicate BG Removal] Logo context detected - using text-preserving settings")
+  }
 
   const replicate = new Replicate({
     auth: apiToken,
@@ -201,7 +237,7 @@ export async function removeBackgroundWithReplicate(
       break
     case 'bria':
     default:
-      result = await tryBRIA(replicate, imageBase64)
+      result = await tryBRIA(replicate, imageBase64, options)
       console.log(`[Replicate BG Removal] Complete (BRIA), output size: ${result.length}`)
       break
   }
