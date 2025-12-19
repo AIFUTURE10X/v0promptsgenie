@@ -3,7 +3,7 @@ import { put } from "@vercel/blob"
 import { neon } from "@neondatabase/serverless"
 import { removeBackground, type BackgroundRemovalMethod } from "@/lib/background-removal"
 import { removeBackgroundCloud, removeBackgroundPixian } from "@/lib/cloud-bg-removal"
-import { removeBackgroundWithReplicate, type ReplicateBgModel } from "@/lib/replicate-bg-removal"
+import { removeBackgroundWithReplicate, type ReplicateBgModel, type BgRemovalOptions } from "@/lib/replicate-bg-removal"
 import { removeBackgroundSmart } from "@/lib/smart-bg-removal"
 import { removeBackgroundWithPixelcut } from "@/lib/pixelcut-bg-removal"
 import { removeBackgroundWithPhotoRoom } from "@/lib/photoroom-bg-removal"
@@ -22,12 +22,18 @@ export async function POST(request: NextRequest) {
     const style = formData.get('style') as string | null
     const originalUrl = formData.get('originalUrl') as string | null
 
+    // Detect if called from logo context (explicit param, referer, or custom header)
+    const isLogoContext = formData.get('isLogoContext') === 'true'
+      || request.headers.get('referer')?.includes('/logo')
+      || request.headers.get('x-context') === 'logo'
+
     console.log("[Remove BG API] Request received:", {
       hasImage: !!imageFile,
       imageSize: imageFile?.size,
       bgRemovalMethod,
       hasApiKey: !!cloudApiKey,
       hasMetadata: !!(userId && prompt),
+      isLogoContext,
     })
 
     if (!imageFile || imageFile.size === 0) {
@@ -51,7 +57,8 @@ export async function POST(request: NextRequest) {
       })
     } else if (bgRemovalMethod === 'replicate') {
       // Use Replicate AI (BRIA) - works on any background color with 256 levels of transparency
-      transparentBase64 = await removeBackgroundWithReplicate(imageBase64, 'bria')
+      // Pass isLogoContext for text-preserving settings when in logo context
+      transparentBase64 = await removeBackgroundWithReplicate(imageBase64, 'bria', { isLogoContext })
     } else if (bgRemovalMethod === '851-labs') {
       // Use 851-labs/background-remover - very cheap, good threshold control
       transparentBase64 = await removeBackgroundWithReplicate(imageBase64, '851-labs')

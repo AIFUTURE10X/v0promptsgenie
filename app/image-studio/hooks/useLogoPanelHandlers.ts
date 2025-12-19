@@ -41,6 +41,7 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
       const formData = new FormData()
       formData.append('image', file)
       formData.append('bgRemovalMethod', bgRemovalMethod)
+      formData.append('isLogoContext', 'true') // Enable text-preserving params for taglines
 
       // Pass metadata for server-side history save (more reliable than client-side)
       const userId = getUserId()
@@ -50,7 +51,7 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
       if (generatedLogo.style) formData.append('style', generatedLogo.style)
       formData.append('originalUrl', generatedLogo.originalUrl || generatedLogo.url)
 
-      console.log('[RB-Logo v8] Sending request with metadata, userId:', userId)
+      console.log('[RB-Logo v8] Sending request with metadata, userId:', userId, 'isLogoContext: true')
       const apiResponse = await fetch('/api/remove-background', { method: 'POST', body: formData })
       if (!apiResponse.ok) throw new Error((await apiResponse.json().catch(() => ({}))).error || 'Failed')
       const data = await apiResponse.json()
@@ -212,6 +213,7 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
       const formData = new FormData()
       formData.append('image', referenceImage.file)
       formData.append('bgRemovalMethod', bgRemovalMethod)
+      formData.append('isLogoContext', 'true') // Enable text-preserving params for taglines
 
       // Pass metadata for server-side history save
       const userId = getUserId()
@@ -219,7 +221,7 @@ export function useLogoPanelHandlers({ generatedLogo, setLogo, bgRemovalMethod, 
       formData.append('prompt', 'Background removed (reference)')
       formData.append('style', 'flat')
 
-      console.log('[RB-Ref v2] Sending request with metadata, userId:', userId)
+      console.log('[RB-Ref v2] Sending request with metadata, userId:', userId, 'isLogoContext: true')
       const response = await fetch('/api/remove-background', { method: 'POST', body: formData })
       if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Failed')
       const data = await response.json()
