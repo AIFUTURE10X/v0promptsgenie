@@ -70,12 +70,16 @@ async function fetchResultAsBase64(outputUrl: string): Promise<string> {
 
 /**
  * Try 851-labs/background-remover model
- * Very cheap (~$0.00055/run), has threshold control for edge quality
+ * Very cheap (~$0.00055/run), has WORKING threshold control for text preservation
  * Uses transparent-background python package
+ *
+ * NOTE: This is the BEST model for logos with text because it actually supports
+ * the threshold parameter (unlike BRIA which silently ignores custom_threshold)
  */
 async function try851Labs(replicate: Replicate, imageBase64: string): Promise<string> {
   console.log("[Replicate BG Removal] ========================================")
   console.log("[Replicate BG Removal] === USING 851-LABS BACKGROUND REMOVER ===")
+  console.log("[Replicate BG Removal] === BEST FOR LOGOS WITH TEXT ===")
   console.log("[Replicate BG Removal] ========================================")
 
   const mimeType = detectMimeType(imageBase64)
@@ -89,7 +93,7 @@ async function try851Labs(replicate: Replicate, imageBase64: string): Promise<st
         image: `data:${mimeType};base64,${imageBase64}`,
         background_type: "rgba",
         format: "png",
-        threshold: 0 // Default threshold for best edge detection
+        threshold: 0 // 0 = best edge detection, preserves text and fine details
       }
     }
   )
@@ -126,9 +130,10 @@ async function tryRecraftAI(replicate: Replicate, imageBase64: string): Promise<
 /**
  * Try BRIA RMBG 2.0 model - primary choice for text and fine details
  *
- * For logos/text: Uses preserve_alpha: false + custom_threshold: 0.55
+ * For logos/text: Uses preserve_alpha: false + custom_threshold: 0.15
  *   - Solid edges preserve text better
- *   - custom_threshold keeps fine details like taglines
+ *   - VERY LOW threshold (0.15) is critical to preserve ALL logo content
+ *   - Higher thresholds (0.5+) cause the model to remove text as "background"
  *
  * For photos: Uses preserve_alpha: true for 256 levels of transparency
  */
@@ -148,11 +153,13 @@ async function tryBRIA(
   // Use text-preserving settings for logo context
   const isLogoMode = options?.isLogoContext === true
 
+  // Logo mode: Use ULTRA low threshold (0.05) to preserve ALL logo content including text
+  // Higher thresholds cause the model to classify text as "background" and remove it
   const inputParams = isLogoMode
     ? {
         image: `data:${mimeType};base64,${imageBase64}`,
         preserve_alpha: false,      // Solid edges for text
-        custom_threshold: 0.55      // Preserve fine details like taglines
+        custom_threshold: 0.05      // ULTRA LOW - preserves ALL text and fine details
       }
     : {
         image: `data:${mimeType};base64,${imageBase64}`,
@@ -162,7 +169,7 @@ async function tryBRIA(
   console.log(`[Replicate BG Removal] Logo mode: ${isLogoMode}`)
   console.log(`[Replicate BG Removal] preserve_alpha: ${inputParams.preserve_alpha}`)
   if (isLogoMode) {
-    console.log(`[Replicate BG Removal] custom_threshold: 0.55 (text preservation)`)
+    console.log(`[Replicate BG Removal] custom_threshold: 0.05 (ultra-aggressive text preservation)`)
   }
 
   const output = await replicate.run(

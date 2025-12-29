@@ -44,21 +44,20 @@ export const BG_REMOVAL_METHODS: Array<{
   badge?: string
 }> = [
   {
-    value: 'replicate',
-    label: 'BRIA AI',
-    description: 'Best for logos - 256 levels of transparency for clean text edges',
+    value: 'smart',
+    label: 'Smart (Local)',
+    description: 'BEST for logos with TEXT - preserves ALL content',
     badge: 'Recommended'
   },
   {
     value: '851-labs',
-    label: '851-labs',
-    description: 'Very cheap (~$0.0005/run), good for general use',
-    badge: 'Budget'
+    label: '851-labs AI',
+    description: 'Good for photos - may remove text from logos',
   },
   {
-    value: 'smart',
-    label: 'Smart (Local)',
-    description: 'Free, detects background color, keeps ALL logo content',
+    value: 'replicate',
+    label: 'BRIA AI',
+    description: 'Best for photos - smooth edges, may remove text',
   },
 ]
 

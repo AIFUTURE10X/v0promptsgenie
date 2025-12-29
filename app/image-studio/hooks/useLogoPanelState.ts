@@ -27,7 +27,7 @@ export function useLogoPanelState({
   const [selectedRenders, setSelectedRenders] = useState<RenderStyle[]>([])
 
   // Settings state
-  const [bgRemovalMethod, setBgRemovalMethod] = useState<BgRemovalMethod>('replicate')
+  const [bgRemovalMethod, setBgRemovalMethod] = useState<BgRemovalMethod>('smart')
   const [resolution, setResolution] = useState<LogoResolution>('1K')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [referenceImage, setReferenceImage] = useState<{ file: File; preview: string } | null>(null)
@@ -83,7 +83,7 @@ export function useLogoPanelState({
     setNegativePrompt('')
     setSelectedConcept(null)
     setSelectedRenders([])
-    setBgRemovalMethod('replicate')
+    setBgRemovalMethod('smart')
     setResolution('1K')
     setShowAdvanced(false)
     setReferenceImage(null)

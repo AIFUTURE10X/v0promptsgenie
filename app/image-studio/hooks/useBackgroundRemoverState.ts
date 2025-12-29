@@ -11,7 +11,7 @@ import { useState, useCallback } from 'react'
 
 // ============ Types ============
 
-export type BgRemovalMethod = 'replicate' | 'photoroom' | 'smart' | 'auto'
+export type BgRemovalMethod = 'smart' | '851-labs' | 'replicate'
 
 export interface QueueItem {
   id: string
@@ -59,7 +59,7 @@ async function fileToDataUrl(file: File): Promise<string> {
 export function useBackgroundRemoverState(): BackgroundRemoverState {
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [selectedMethod, setSelectedMethod] = useState<BgRemovalMethod>('replicate')
+  const [selectedMethod, setSelectedMethod] = useState<BgRemovalMethod>('smart')
   const [isProcessingAll, setIsProcessingAll] = useState(false)
 
   // Add files to queue
@@ -120,6 +120,7 @@ export function useBackgroundRemoverState(): BackgroundRemoverState {
       const formData = new FormData()
       formData.append('image', item.file)
       formData.append('bgRemovalMethod', selectedMethod)
+      formData.append('isLogoContext', 'true') // Always use text-preserving settings for logos
 
       const response = await fetch('/api/remove-background', {
         method: 'POST',
