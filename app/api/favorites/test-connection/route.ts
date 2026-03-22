@@ -1,12 +1,17 @@
 import { neon } from '@neondatabase/serverless'
 import { NextResponse } from 'next/server'
 
-const sql = neon(process.env.NEON_DATABASE_URL!)
+function getSQL() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error("No database connection string configured")
+  return neon(url)
+}
 
 export async function GET() {
   try {
     console.log('[v0] Testing Neon connection...')
     
+    const sql = getSQL()
     // Test basic query
     const result = await sql`SELECT NOW() as current_time, version() as pg_version`
     console.log('[v0] Connection successful:', result[0])

@@ -2,7 +2,11 @@ import { neon } from '@neondatabase/serverless'
 import { put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
 
-const sql = neon(process.env.NEON_DATABASE_URL!)
+function getSQL() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error("No database connection string configured")
+  return neon(url)
+}
 
 // GET /api/favorites?userId=xxx
 export async function GET(request: NextRequest) {
@@ -13,6 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     console.log('[v0] API: Loading favorites for user:', userId)
 
     const result = await sql`
@@ -59,6 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User ID and image URL required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     console.log('[v0] API: Adding favorite:', { userId, imageUrl })
 
     // Upload to Blob Storage first
@@ -171,6 +177,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     console.log('[v0] API: Removing favorite:', id)
 
     await sql`

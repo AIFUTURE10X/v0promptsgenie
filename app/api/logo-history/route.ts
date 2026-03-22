@@ -2,7 +2,11 @@ import { neon } from '@neondatabase/serverless'
 import { put } from '@vercel/blob'
 import { NextRequest, NextResponse } from 'next/server'
 
-const sql = neon(process.env.NEON_DATABASE_URL!)
+function getSQL() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error("No database connection string configured")
+  return neon(url)
+}
 
 // GET /api/logo-history?userId=xxx
 export async function GET(request: NextRequest) {
@@ -13,6 +17,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     console.log('[Logo History] Loading history for user:', userId)
 
     const result = await sql`
@@ -105,6 +110,7 @@ export async function POST(request: NextRequest) {
       // For regular URLs, continue with original URL as fallback
     }
 
+    const sql = getSQL()
     console.log('[Logo History] Inserting into Neon database...')
 
     // Truncate original imageUrl for database (data URLs are huge, just store a reference)
@@ -162,6 +168,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     console.log('[Logo History] Updating item:', id, { isFavorited, rating })
 
     if (isFavorited !== undefined) {
@@ -196,6 +203,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'ID required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     console.log('[Logo History] Deleting item:', id)
 
     await sql`

@@ -1,12 +1,17 @@
 import { neon } from "@neondatabase/serverless"
 import { NextResponse } from "next/server"
 
-const sql = neon(process.env.DATABASE_URL || process.env.NEON_DATABASE_URL!)
+function getSQL() {
+  const url = process.env.DATABASE_URL || process.env.NEON_DATABASE_URL
+  if (!url) throw new Error("No database connection string configured")
+  return neon(url)
+}
 
 export async function GET() {
   try {
+    const sql = getSQL()
     console.log("[v0 API] Fetching image analysis history")
-    
+
     const history = await sql`
       SELECT 
         id,
@@ -89,6 +94,7 @@ export async function POST(request: Request) {
       generated_images,  // Changed from 'generatedImages' to 'generated_images'
     } = body
 
+    const sql = getSQL()
     const [analysis] = await sql`
       INSERT INTO image_analysis_history (
         subject_image_url,
@@ -156,6 +162,7 @@ export async function DELETE(request: Request) {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get("id")
 
+    const sql = getSQL()
     if (id) {
       // Delete single item
       console.log("[v0 API] Deleting history item:", id)

@@ -1,7 +1,11 @@
 import { neon } from '@neondatabase/serverless'
 import { NextRequest, NextResponse } from 'next/server'
 
-const sql = neon(process.env.NEON_DATABASE_URL!)
+function getSQL() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error("No database connection string configured")
+  return neon(url)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +18,7 @@ export async function POST(req: NextRequest) {
       analysisResults
     } = body
 
+    const sql = getSQL()
     if (type === 'generated') {
       // Save generated image to database
       await sql`

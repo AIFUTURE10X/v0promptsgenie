@@ -1,11 +1,16 @@
 import { neon } from '@neondatabase/serverless'
 import { NextRequest, NextResponse } from 'next/server'
 
-const sql = neon(process.env.NEON_DATABASE_URL!)
+function getSQL() {
+  const url = process.env.NEON_DATABASE_URL
+  if (!url) throw new Error("No database connection string configured")
+  return neon(url)
+}
 
 // GET /api/logo-history/debug - List all logos with user counts
 export async function GET() {
   try {
+    const sql = getSQL()
     // Get count by user
     const userCounts = await sql`
       SELECT user_id, COUNT(*) as count, MAX(created_at) as last_created
@@ -56,6 +61,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'targetUserId required' }, { status: 400 })
     }
 
+    const sql = getSQL()
     // Get all distinct user IDs
     const users = await sql`
       SELECT DISTINCT user_id FROM public.logo_history WHERE user_id != ${targetUserId}
