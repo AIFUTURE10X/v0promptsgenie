@@ -40,7 +40,7 @@ export function LogoPromptSection({
 }: LogoPromptSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [textareaHeight, setTextareaHeight] = useState(64)
+  const [textareaHeight, setTextareaHeight] = useState(120)
   const [isDragging, setIsDragging] = useState(false)
   const [isEnhancing, setIsEnhancing] = useState(false)
   const dragStartY = useRef(0)
@@ -81,7 +81,7 @@ export function LogoPromptSection({
 
     const handleMouseMove = (e: MouseEvent) => {
       const deltaY = e.clientY - dragStartY.current
-      const newHeight = Math.min(Math.max(dragStartHeight.current + deltaY, 64), 400)
+      const newHeight = Math.min(Math.max(dragStartHeight.current + deltaY, 64), 600)
       setTextareaHeight(newHeight)
     }
 
