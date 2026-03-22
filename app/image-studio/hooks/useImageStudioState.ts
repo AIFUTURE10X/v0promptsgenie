@@ -83,8 +83,8 @@ export interface ImageStudioState {
   setSeed: (seed: number | null) => void
   imageSize: '1K' | '2K' | '4K'
   setImageSize: (size: '1K' | '2K' | '4K') => void
-  selectedModel: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
-  setSelectedModel: (model: 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview') => void
+  selectedModel: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'
+  setSelectedModel: (model: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview') => void
 
   // Camera settings
   selectedCameraAngle: string
@@ -153,7 +153,7 @@ export function useImageStudioState(): ImageStudioState {
 
   const [seed, setSeed] = useState<number | null>(null)
   const [imageSize, setImageSize] = useState<'1K' | '2K' | '4K'>('1K')
-  const [selectedModel, setSelectedModel] = useState<'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'>('gemini-2.5-flash-image')
+  const [selectedModel, setSelectedModel] = useState<'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview'>('gemini-3.1-flash-image-preview')
 
   // Debug: Log whenever mainPrompt changes
   useEffect(() => {

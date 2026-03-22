@@ -1,6 +1,6 @@
 "use client"
 
-export type GenerationModel = 'gemini-2.5-flash-image' | 'gemini-3-pro-image-preview'
+export type GenerationModel = 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview' | 'gemini-2.5-flash-image'
 export type ImageSize = '1K' | '2K' | '4K'
 
 interface ModelSelectorProps {
@@ -25,15 +25,15 @@ export function ModelSelector({
         </label>
         <div className="flex gap-2">
           <button
-            onClick={() => onModelChange('gemini-2.5-flash-image')}
+            onClick={() => onModelChange('gemini-3.1-flash-image-preview')}
             className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-              selectedModel === 'gemini-2.5-flash-image'
+              selectedModel === 'gemini-3.1-flash-image-preview'
                 ? 'bg-[#c99850] text-black'
                 : 'bg-zinc-900 text-white/70 hover:bg-zinc-700 border border-[#c99850]/30'
             }`}
           >
-            <div className="font-bold">Gemini 2.5 Flash</div>
-            <div className="text-[10px] opacity-70">Fast, production-ready</div>
+            <div className="font-bold">Gemini 3.1 Flash</div>
+            <div className="text-[10px] opacity-70">Fast, high quality</div>
           </button>
           <button
             onClick={() => onModelChange('gemini-3-pro-image-preview')}

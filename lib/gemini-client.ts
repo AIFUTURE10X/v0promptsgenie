@@ -19,7 +19,7 @@ function getClient() {
 }
 
 export type ImageSize = "1K" | "2K" | "4K"
-export type GenerationModel = "gemini-2.5-flash-image" | "gemini-3-pro-image-preview"
+export type GenerationModel = "gemini-3.1-flash-image-preview" | "gemini-3-pro-image-preview" | "gemini-2.5-flash-image"
 
 export interface GenerateImageOptions {
   prompt: string
@@ -45,7 +45,7 @@ export async function generateImageWithRetry({
   referenceImage,
   referenceMode = "inspire",
   seed,
-  model = "gemini-2.5-flash-image",
+  model = "gemini-3.1-flash-image-preview",
   imageSize = "1K",
   disableSearch = false,
 }: {
@@ -62,7 +62,7 @@ export async function generateImageWithRetry({
   const maxAttempts = Number(process.env.GEMINI_MAX_ATTEMPTS || 3)
   let delay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
 
-  // Force 1K for Gemini 2.5 Flash (doesn't support higher resolutions)
+  // Force 1K for older Gemini 2.5 Flash (doesn't support higher resolutions)
   const effectiveImageSize = model === "gemini-2.5-flash-image" ? "1K" : imageSize
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -110,8 +110,8 @@ export async function generateImageWithRetry({
         aspectRatio: aspectRatio,
       }
 
-      // Add imageSize for Gemini 3 Pro Image model
-      if (model === "gemini-3-pro-image-preview") {
+      // Add imageSize for models that support it
+      if (model !== "gemini-2.5-flash-image") {
         imageConfig.imageSize = effectiveImageSize
       }
 
@@ -125,9 +125,9 @@ export async function generateImageWithRetry({
         config.seed = seed
       }
 
-      // Add Google Search Grounding for Gemini 3 Pro (disabled for creative generation like logos)
+      // Add Google Search Grounding for newer models (disabled for creative generation like logos)
       // When disableSearch=true, model uses pure creative synthesis without web influence
-      const tools = (model === "gemini-3-pro-image-preview" && !disableSearch)
+      const tools = (model !== "gemini-2.5-flash-image" && !disableSearch)
         ? [{ googleSearch: {} }]
         : undefined
 

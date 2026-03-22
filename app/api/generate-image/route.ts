@@ -24,16 +24,17 @@ function normalizeImageSize(input: string | null): ImageSize {
 function normalizeModel(input: string | null): GenerationModel {
   // Support old model names for backwards compatibility with saved presets
   const migrations: Record<string, GenerationModel> = {
-    'gemini-2.5-flash-preview-image': 'gemini-2.5-flash-image',
+    'gemini-2.5-flash-preview-image': 'gemini-3.1-flash-image-preview',
+    'gemini-2.5-flash-image': 'gemini-3.1-flash-image-preview',
     'gemini-3-pro-image': 'gemini-3-pro-image-preview',
   }
   const migrated = input ? (migrations[input] || input) : null
 
-  const allowed: GenerationModel[] = ["gemini-2.5-flash-image", "gemini-3-pro-image-preview"]
+  const allowed: GenerationModel[] = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"]
   if (migrated && allowed.includes(migrated as GenerationModel)) {
     return migrated as GenerationModel
   }
-  return "gemini-2.5-flash-image"
+  return "gemini-3.1-flash-image-preview"
 }
 
 export async function POST(request: NextRequest) {

@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
 
     // Determine model - default to pro for quality, but allow override to flash for speed
     // Support old model names for backwards compatibility
-    const model: GenerationModel = (modelParam === 'gemini-2.5-flash-image' || modelParam === 'gemini-2.5-flash-preview-image')
-      ? 'gemini-2.5-flash-image'
-      : 'gemini-3-pro-image-preview'
+    const model: GenerationModel = (modelParam === 'gemini-3-pro-image-preview')
+      ? 'gemini-3-pro-image-preview'
+      : 'gemini-3.1-flash-image-preview'
 
     // Generate the logo image with Gemini
     // Gemini 3 Pro Image natively supports 1K, 2K, and 4K resolutions via image_size config

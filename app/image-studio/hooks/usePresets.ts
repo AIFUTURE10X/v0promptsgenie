@@ -10,9 +10,10 @@ import {
 
 // Migrate old model names to new ones
 const MODEL_MIGRATIONS: Record<string, string> = {
-  'gemini-2.5-flash-preview-image': 'gemini-2.5-flash-image',
-  'gemini-3-pro-image': 'gemini-2.0-flash-exp',
-  'gemini-3-pro-image-preview': 'gemini-2.0-flash-exp',
+  'gemini-2.5-flash-preview-image': 'gemini-3.1-flash-image-preview',
+  'gemini-2.5-flash-image': 'gemini-3.1-flash-image-preview',
+  'gemini-3-pro-image': 'gemini-3-pro-image-preview',
+  'gemini-2.0-flash-exp': 'gemini-3.1-flash-image-preview',
 }
 
 function migratePreset(preset: GeneratePreset): GeneratePreset {

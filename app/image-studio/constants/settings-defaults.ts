@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS: ImageStudioSettings = {
     showAdvancedOptions: true,  // Show advanced by default
   },
   api: {
-    defaultModel: 'gemini-2.5-flash-image',
+    defaultModel: 'gemini-3.1-flash-image-preview',
   },
 }
 
@@ -75,8 +75,8 @@ export const SETTING_DEFINITIONS = {
         description: 'Which model to use for image generation',
         type: 'select' as const,
         options: [
-          { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash (Fast)' },
-          { value: 'gemini-2.0-flash-exp', label: 'Gemini 2.0 Flash Exp' },
+          { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash (Fast)' },
+          { value: 'gemini-3-pro-image-preview', label: 'Gemini 3 Pro (Best Quality)' },
         ],
       },
     },
