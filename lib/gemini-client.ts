@@ -31,10 +31,75 @@ export interface GenerateImageOptions {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+/**
+ * Extract HTTP-like status code from a Gemini SDK error.
+ * The SDK sometimes stringifies the API response into err.message, so we
+ * fall back to parsing the message body when no .status / .code is present.
+ */
+function extractStatus(err: any): number | undefined {
+  if (!err) return undefined
+  if (typeof err.status === "number") return err.status
+  if (typeof err.code === "number") return err.code
+  if (typeof err?.error?.code === "number") return err.error.code
+
+  const msg: string = err.message || ""
+  try {
+    const parsed = JSON.parse(msg)
+    if (typeof parsed?.error?.code === "number") return parsed.error.code
+  } catch {
+    // not JSON — fall through to regex
+  }
+  const match = msg.match(/\b(408|425|429|500|502|503|504|529)\b/)
+  return match ? parseInt(match[1], 10) : undefined
+}
+
 function isQuotaOrRateError(err: any): boolean {
   if (!err) return false
   const msg = err.message?.toLowerCase?.() || ""
-  return msg.includes("quota") || msg.includes("rate") || msg.includes("resource exhausted") || err.status === 429
+  const status = extractStatus(err)
+  return (
+    status === 429 ||
+    msg.includes("quota") ||
+    msg.includes("rate limit") ||
+    msg.includes("resource_exhausted") ||
+    msg.includes("resource exhausted")
+  )
+}
+
+function isOverloadedError(err: any): boolean {
+  if (!err) return false
+  const msg = err.message?.toLowerCase?.() || ""
+  const status = extractStatus(err)
+  return (
+    status === 503 ||
+    status === 502 ||
+    status === 504 ||
+    status === 529 ||
+    msg.includes("unavailable") ||
+    msg.includes("high demand") ||
+    msg.includes("currently experiencing") ||
+    msg.includes("overloaded") ||
+    err.code === "UNAVAILABLE"
+  )
+}
+
+function isRetryableError(err: any): boolean {
+  if (!err) return false
+  if (isQuotaOrRateError(err) || isOverloadedError(err)) return true
+  const msg: string = err.message || ""
+  return /ECONNRESET|ETIMEDOUT|ENETUNREACH|ECONNREFUSED|EAI_AGAIN/i.test(msg)
+}
+
+function friendlyError(err: any, model: string, imageSize: string): string {
+  if (isOverloadedError(err)) {
+    return `Gemini ${model} is currently overloaded${
+      imageSize === "4K" ? " (4K generation is especially demand-sensitive)" : ""
+    }. Please try again in a moment, lower the image size to 2K, or switch to a different model.`
+  }
+  if (isQuotaOrRateError(err)) {
+    return "API quota exceeded for this Gemini model. Please wait a minute and try again, or check your quota at https://aistudio.google.com/app/apikey."
+  }
+  return err?.message || "Failed to generate image"
 }
 
 export type ReferenceMode = 'replicate' | 'inspire'
@@ -59,8 +124,11 @@ export async function generateImageWithRetry({
   /** Disable Google Search grounding for creative generation (logos, art) */
   disableSearch?: boolean
 }) {
-  const maxAttempts = Number(process.env.GEMINI_MAX_ATTEMPTS || 3)
-  let delay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
+  const maxAttempts = Number(process.env.GEMINI_MAX_ATTEMPTS || 4)
+  const baseDelay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
+  // Demand spikes typically clear in a few seconds — start higher than rate-limit retries
+  const overloadBaseDelay = Number(process.env.GEMINI_OVERLOAD_BASE_DELAY || 4000)
+  let delay = baseDelay
 
   // Force 1K for older Gemini 2.5 Flash (doesn't support higher resolutions)
   const effectiveImageSize = model === "gemini-2.5-flash-image" ? "1K" : imageSize
@@ -201,24 +269,30 @@ export async function generateImageWithRetry({
         console.error(`[v0 SERVER] Error response:`, JSON.stringify(err.response, null, 2).substring(0, 500))
       }
 
-      if (isQuotaOrRateError(err) && attempt < maxAttempts) {
-        console.warn(`[v0 SERVER] Quota/rate error, retrying after ${delay}ms`)
-        await sleep(delay)
-        delay *= 2
+      if (isRetryableError(err) && attempt < maxAttempts) {
+        // Overload (503/UNAVAILABLE) needs longer waits than rate limits — and grows with attempts
+        const isOverload = isOverloadedError(err)
+        const waitMs = isOverload
+          ? Math.max(delay, overloadBaseDelay * Math.pow(2, attempt - 1))
+          : delay
+        console.warn(
+          `[v0 SERVER] ${isOverload ? "Overloaded (503)" : "Retryable"} error, retrying after ${waitMs}ms`,
+        )
+        await sleep(waitMs)
+        delay = waitMs * 2
         continue
       }
 
-      if (attempt === maxAttempts) {
-        return {
-          success: false,
-          error: err.message || "Failed to generate image",
-        }
+      // Non-retryable, or out of attempts
+      return {
+        success: false,
+        error: friendlyError(err, model, effectiveImageSize),
       }
     }
   }
 
   return {
     success: false,
-    error: "Failed after max retry attempts",
+    error: "Failed after max retry attempts. Gemini may be overloaded — please try again.",
   }
 }
