@@ -128,6 +128,8 @@ export async function generateImageWithRetry({
   const baseDelay = Number(process.env.GEMINI_RETRY_BASE_DELAY || 1500)
   // Demand spikes typically clear in a few seconds — start higher than rate-limit retries
   const overloadBaseDelay = Number(process.env.GEMINI_OVERLOAD_BASE_DELAY || 4000)
+  // Cap any single backoff so retries don't compound into 30s+ waits on 4K overload
+  const maxBackoff = Number(process.env.GEMINI_MAX_BACKOFF || 8000)
   let delay = baseDelay
 
   // Force 1K for older Gemini 2.5 Flash (doesn't support higher resolutions)
@@ -273,13 +275,13 @@ export async function generateImageWithRetry({
         // Overload (503/UNAVAILABLE) needs longer waits than rate limits — and grows with attempts
         const isOverload = isOverloadedError(err)
         const waitMs = isOverload
-          ? Math.max(delay, overloadBaseDelay * Math.pow(2, attempt - 1))
-          : delay
+          ? Math.min(maxBackoff, overloadBaseDelay * Math.pow(2, attempt - 1))
+          : Math.min(maxBackoff, delay)
         console.warn(
           `[v0 SERVER] ${isOverload ? "Overloaded (503)" : "Retryable"} error, retrying after ${waitMs}ms`,
         )
         await sleep(waitMs)
-        delay = waitMs * 2
+        delay = Math.min(maxBackoff, delay * 2)
         continue
       }
 

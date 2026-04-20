@@ -74,35 +74,34 @@ export async function POST(request: NextRequest) {
     }
 
     const aspectRatio = normalizeAspectRatio(rawAspectRatio)
-    const images: string[] = []
 
-    for (let i = 0; i < count; i++) {
-      try {
-        console.log(`[v0 SERVER] Generating image ${i + 1}/${count}`)
-
-        const result = await generateImageWithRetry({
-          prompt,
-          aspectRatio,
-          referenceImage,
-          referenceMode: referenceMode as 'replicate' | 'inspire',
-          seed,
-          model,
-          imageSize,
-        })
-
+    const tasks = Array.from({ length: count }, (_, i) =>
+      generateImageWithRetry({
+        prompt,
+        aspectRatio,
+        referenceImage,
+        referenceMode: referenceMode as 'replicate' | 'inspire',
+        seed,
+        model,
+        imageSize,
+        disableSearch: true,
+      }).then((result) => {
         if (result.success && result.imageBase64) {
-          const dataUrl = `data:image/png;base64,${result.imageBase64}`
-          images.push(dataUrl)
-          console.log(`[v0 SERVER] Image ${i + 1} generated successfully`)
-        } else {
-          throw new Error(result.error || "Failed to generate image")
+          console.log(`[v0 SERVER] Image ${i + 1}/${count} generated successfully`)
+          return { ok: true as const, dataUrl: `data:image/png;base64,${result.imageBase64}` }
         }
-      } catch (error: any) {
-        console.error(`[v0 SERVER] Image ${i + 1} failed:`, error.message)
-        if (i === 0) {
-          return NextResponse.json({ error: error.message || "Failed to generate image" }, { status: 500 })
-        }
-      }
+        console.error(`[v0 SERVER] Image ${i + 1}/${count} failed:`, result.error)
+        return { ok: false as const, error: result.error || "Failed to generate image" }
+      }),
+    )
+
+    const settled = await Promise.all(tasks)
+    const images = settled.flatMap((r) => (r.ok ? [r.dataUrl] : []))
+
+    if (images.length === 0) {
+      const firstError = settled.find((r) => !r.ok)
+      const message = firstError && !firstError.ok ? firstError.error : "Failed to generate image"
+      return NextResponse.json({ error: message }, { status: 500 })
     }
 
     console.log(`[v0 SERVER] Success: ${images.length}/${count} images generated`)
