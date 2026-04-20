@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateImageWithRetry, type ImageSize, type GenerationModel } from "@/lib/gemini-client"
+import { upscaleWithRealESRGAN, isReplicateAvailable } from "@/lib/replicate-upscaler"
 
 export const runtime = "nodejs"
 export const maxDuration = 300
@@ -101,14 +102,53 @@ export async function POST(request: NextRequest) {
     const settled = await Promise.all(tasks)
     const images = settled.flatMap((r) => (r.ok ? [r.dataUrl] : []))
 
+    // Auto-fallback: Gemini 3 Pro at 4K is often overloaded. When every attempt
+    // failed due to overload, recover transparently via Flash 2K + Real-ESRGAN 2× upscale.
+    let fallback: { used: true; reason: string } | undefined
+    const allFailedWithOverload =
+      settled.length > 0 &&
+      settled.every((r) => !r.ok && /overload|high demand|unavailable|503/i.test(r.error))
+    if (
+      images.length === 0 &&
+      allFailedWithOverload &&
+      model === "gemini-3-pro-image-preview" &&
+      imageSize === "4K" &&
+      isReplicateAvailable()
+    ) {
+      console.log("[v0 SERVER] Pro 4K overloaded — falling back to Flash 2K + AI upscale")
+      try {
+        const flash = await generateImageWithRetry({
+          prompt,
+          aspectRatio,
+          referenceImage,
+          referenceMode: referenceMode as 'replicate' | 'inspire',
+          seed,
+          model: "gemini-3.1-flash-image-preview",
+          imageSize: "2K",
+          disableSearch: true,
+        })
+        if (flash.success && flash.imageBase64) {
+          const upscaled = await upscaleWithRealESRGAN(flash.imageBase64, 2)
+          images.push(`data:image/png;base64,${upscaled}`)
+          fallback = {
+            used: true,
+            reason: "Gemini 3 Pro was overloaded — used Flash 2K + AI upscale to deliver 4K.",
+          }
+          console.log("[v0 SERVER] Fallback succeeded")
+        }
+      } catch (fbErr) {
+        console.error("[v0 SERVER] Fallback failed:", fbErr)
+      }
+    }
+
     if (images.length === 0) {
       const firstError = settled.find((r) => !r.ok)
       const message = firstError && !firstError.ok ? firstError.error : "Failed to generate image"
       return NextResponse.json({ error: message }, { status: 500 })
     }
 
-    console.log(`[v0 SERVER] Success: ${images.length}/${count} images generated`)
-    return NextResponse.json({ images })
+    console.log(`[v0 SERVER] Success: ${images.length}/${count} images generated${fallback ? " (via fallback)" : ""}`)
+    return NextResponse.json({ images, fallback })
   } catch (error) {
     console.error("[v0 SERVER] Route error:", error)
     return NextResponse.json(

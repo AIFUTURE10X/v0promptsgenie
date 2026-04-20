@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo, forwardRef, useImperativeHandle, useEffect } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Sparkles, Loader2, ChevronDown } from 'lucide-react'
@@ -66,7 +67,10 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
     } = props
 
     const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)
-    const { isGenerating, error, generateImages, clearImages } = useImageGeneration(setGeneratedImages)
+    const { isGenerating, error, generateImages, clearImages, upscaleImage } = useImageGeneration(
+      setGeneratedImages,
+      (info) => toast.info(info.reason, { duration: 6000 }),
+    )
     const { saveToHistory } = useGenerationHistory()
 
     const [showAdvanced, setShowAdvanced] = useState(true)
@@ -124,6 +128,22 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
       const a = document.createElement('a'); a.href = url
       a.download = prompt ? `${prompt.substring(0, 50).replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${Date.now()}.png` : `generated-${i + 1}-${Date.now()}.png`
       document.body.appendChild(a); a.click(); document.body.removeChild(a)
+    }
+
+    const handleUpscale = async (i: number) => {
+      const original = generatedImages[i]
+      if (!original) return
+      try {
+        toast.loading('Upscaling to 4K…', { id: `upscale-${i}` })
+        const upscaledUrl = await upscaleImage(original.url, '4K')
+        const next = [...generatedImages]
+        next[i] = { ...original, url: upscaledUrl }
+        setGeneratedImages(next)
+        toast.success('Upscaled to 4K', { id: `upscale-${i}` })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Upscale failed'
+        toast.error(msg, { id: `upscale-${i}` })
+      }
     }
 
     useImperativeHandle(ref, () => ({ triggerGenerate: handleGenerate, isGenerating }), [isGenerating])
@@ -185,6 +205,7 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
                   isFavorite={isFavorite(img.url)}
                   onToggleFavorite={async () => { const m = await getImageMetadata(img.url); toggleFavorite(img.url, { ratio: aspectRatio, style: selectedStylePreset, ...m, prompt: img.prompt, timestamp: img.timestamp, parameters: { mainPrompt: img.prompt, aspectRatio, selectedStylePreset, imageCount, negativePrompt, selectedCameraAngle, selectedCameraLens, styleStrength } }) }}
                   onDownload={() => handleDownload(img.url, i, img.prompt)} onOpenLightbox={() => onOpenLightbox(i)} onRestoreParameters={onRestoreParameters}
+                  onUpscale={handleUpscale}
                 />
               ))}
             </div>

@@ -21,10 +21,39 @@ export interface GeneratedImage {
   timestamp: number
 }
 
-export function useImageGeneration(onImagesUpdate?: (images: GeneratedImage[]) => void) {
+export interface FallbackInfo {
+  used: true
+  reason: string
+}
+
+export function useImageGeneration(
+  onImagesUpdate?: (images: GeneratedImage[]) => void,
+  onFallback?: (info: FallbackInfo) => void,
+) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+  const [isUpscaling, setIsUpscaling] = useState(false)
+
+  const upscaleImage = async (imageUrl: string, target: '2K' | '4K' = '4K'): Promise<string> => {
+    setIsUpscaling(true)
+    try {
+      const formData = new FormData()
+      formData.append('imageBase64', imageUrl)
+      formData.append('targetResolution', target)
+      formData.append('method', 'ai')
+      const response = await fetch('/api/upscale-logo', { method: 'POST', body: formData })
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}))
+        throw new Error(data.error || `Upscale failed (${response.status})`)
+      }
+      const data = await response.json()
+      if (!data.image) throw new Error('No image returned from upscaler')
+      return data.image as string
+    } finally {
+      setIsUpscaling(false)
+    }
+  }
+
   const generateImages = async (options: GenerationOptions) => {
     setIsGenerating(true)
     setError(null)
@@ -73,17 +102,21 @@ export function useImageGeneration(onImagesUpdate?: (images: GeneratedImage[]) =
       if (!data.images || !Array.isArray(data.images) || data.images.length === 0) {
         throw new Error('No images returned from API')
       }
-      
+
       const newImages: GeneratedImage[] = data.images.map((img: any) => ({
         url: typeof img === 'string' ? img : img.url,
         prompt: options.prompt,
         timestamp: Date.now()
       }))
-      
+
       if (onImagesUpdate) {
         onImagesUpdate(newImages)
       }
-      
+
+      if (data.fallback?.used && onFallback) {
+        onFallback(data.fallback as FallbackInfo)
+      }
+
       return newImages
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate images'
@@ -104,6 +137,8 @@ export function useImageGeneration(onImagesUpdate?: (images: GeneratedImage[]) =
     isGenerating,
     error,
     generateImages,
-    clearImages
+    clearImages,
+    upscaleImage,
+    isUpscaling,
   }
 }

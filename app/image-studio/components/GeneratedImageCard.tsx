@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Download, RotateCcw, Maximize2, Eraser, Loader2 } from 'lucide-react'
+import { Download, RotateCcw, Maximize2, Eraser, Loader2, Expand } from 'lucide-react'
 import { FavoriteButton } from './SimpleFavorites'
 
 interface GeneratedImageCardProps {
@@ -23,6 +23,7 @@ interface GeneratedImageCardProps {
   onOpenLightbox: () => void
   onRestoreParameters?: (params: any) => void
   onRemoveBackground?: (index: number) => Promise<void>
+  onUpscale?: (index: number) => Promise<void>
 }
 
 export function GeneratedImageCard({
@@ -39,10 +40,12 @@ export function GeneratedImageCard({
   onDownload,
   onOpenLightbox,
   onRestoreParameters,
-  onRemoveBackground
+  onRemoveBackground,
+  onUpscale,
 }: GeneratedImageCardProps) {
   const [metadata, setMetadata] = useState<{ dimensions: string; fileSize?: string } | null>(imageMetadata || null)
   const [isRemovingBg, setIsRemovingBg] = useState(false)
+  const [isUpscaling, setIsUpscaling] = useState(false)
 
   const handleRemoveBackground = async () => {
     if (!onRemoveBackground || isRemovingBg) return
@@ -51,6 +54,16 @@ export function GeneratedImageCard({
       await onRemoveBackground(index)
     } finally {
       setIsRemovingBg(false)
+    }
+  }
+
+  const handleUpscale = async () => {
+    if (!onUpscale || isUpscaling) return
+    setIsUpscaling(true)
+    try {
+      await onUpscale(index)
+    } finally {
+      setIsUpscaling(false)
     }
   }
 
@@ -191,6 +204,27 @@ export function GeneratedImageCard({
               <>
                 <Eraser className="w-3 h-3 mr-1" />
                 Remove BG
+              </>
+            )}
+          </Button>
+        )}
+        {onUpscale && (
+          <Button
+            onClick={handleUpscale}
+            size="sm"
+            disabled={isUpscaling}
+            className="flex-1 bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-50"
+            title="AI-upscale this image to 4K via Real-ESRGAN"
+          >
+            {isUpscaling ? (
+              <>
+                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                Upscaling...
+              </>
+            ) : (
+              <>
+                <Expand className="w-3 h-3 mr-1" />
+                Upscale 4K
               </>
             )}
           </Button>

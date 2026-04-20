@@ -2,6 +2,9 @@ import { type NextRequest, NextResponse } from "next/server"
 import sharp from 'sharp'
 import { upscaleWithRealESRGAN, isReplicateAvailable } from "@/lib/replicate-upscaler"
 
+export const runtime = "nodejs"
+export const maxDuration = 120
+
 // Target resolutions
 const RESOLUTIONS = {
   '2K': 2048,
