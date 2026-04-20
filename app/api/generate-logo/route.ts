@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateImageWithRetry, type GenerationModel } from "@/lib/gemini-client"
 import { removeBackground, type BackgroundRemovalMethod } from "@/lib/background-removal"
+
+export const runtime = "nodejs"
+export const maxDuration = 300
 import { removeBackgroundCloud, removeBackgroundPixian } from "@/lib/cloud-bg-removal"
 import { removeBackgroundWithReplicate, type ReplicateBgModel } from "@/lib/replicate-bg-removal"
 import { removeBackgroundWithPixelcut } from "@/lib/pixelcut-bg-removal"

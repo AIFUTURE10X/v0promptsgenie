@@ -4,6 +4,9 @@ import { removeBackgroundWithReplicate } from "@/lib/replicate-bg-removal"
 import { writeFile, mkdir, access } from 'fs/promises'
 import path from 'path'
 
+export const runtime = "nodejs"
+export const maxDuration = 300
+
 /**
  * API to generate product mockup photos for realistic mockup rendering
  *

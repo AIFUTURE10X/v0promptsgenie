@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateImageWithRetry, type ImageSize, type GenerationModel } from "@/lib/gemini-client"
 
+export const runtime = "nodejs"
+export const maxDuration = 300
+
 type AllowedRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3" | "21:9" | "5:4" | "4:5"
 
 function normalizeAspectRatio(input: string): AllowedRatio {
