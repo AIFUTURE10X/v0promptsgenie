@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useMemo, forwardRef, useImperativeHandle, useEffect } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Sparkles, Loader2, ChevronDown } from 'lucide-react'
@@ -79,7 +80,10 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
     } = props
 
     const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)
-    const { isGenerating, error, generateImages, clearImages } = useImageGeneration(setGeneratedImages)
+    const { isGenerating, error, generateImages, clearImages, upscaleImage } = useImageGeneration(
+      setGeneratedImages,
+      (info) => toast.info(info.reason, { duration: 6000 }),
+    )
     const { saveToHistory } = useGenerationHistory()
 
     const [showAdvanced, setShowAdvanced] = useState(showAdvancedOptions)
@@ -166,6 +170,22 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
       try { await handleRemoveBackground(0) } finally { setIsRemovingBg(false) }
     }
 
+    const handleUpscale = async (i: number) => {
+      const original = generatedImages[i]
+      if (!original) return
+      try {
+        toast.loading('Upscaling to 4K…', { id: `upscale-${i}` })
+        const upscaledUrl = await upscaleImage(original.url, '4K')
+        const next = [...generatedImages]
+        next[i] = { ...original, url: upscaledUrl }
+        setGeneratedImages(next)
+        toast.success('Upscaled to 4K', { id: `upscale-${i}` })
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : 'Upscale failed'
+        toast.error(msg, { id: `upscale-${i}` })
+      }
+    }
+
     useImperativeHandle(ref, () => ({ triggerGenerate: handleGenerate, isGenerating }), [isGenerating])
 
     const toggleSection = () => setShowAdvanced(!showAdvanced)
@@ -245,6 +265,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
                   onToggleFavorite={async () => { const m = await getImageMetadata(img.url); toggleFavorite(img.url, { ratio: aspectRatio, style: selectedStylePreset, ...m, prompt: img.prompt, timestamp: img.timestamp, params: { mainPrompt: img.prompt, aspectRatio, selectedStylePreset, imageCount, negativePrompt, selectedCameraAngle, selectedCameraLens, styleStrength } }) }}
                   onDownload={() => handleDownload(img.url, i, img.prompt)} onOpenLightbox={() => onOpenLightbox(i)} onRestoreParameters={onRestoreParameters}
                   onRemoveBackground={handleRemoveBackground}
+                  onUpscale={handleUpscale}
                 />
               ))}
             </div>
