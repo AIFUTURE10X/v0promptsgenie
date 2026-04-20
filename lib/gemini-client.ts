@@ -135,6 +135,16 @@ export async function generateImageWithRetry({
   // Force 1K for older Gemini 2.5 Flash (doesn't support higher resolutions)
   const effectiveImageSize = model === "gemini-2.5-flash-image" ? "1K" : imageSize
 
+  // Gemini 3.1 Flash is speed-optimized and does not reliably deliver 4K — the API
+  // accepts the request but hangs or degrades. Fail fast with a clear message.
+  if (model === "gemini-3.1-flash-image-preview" && effectiveImageSize === "4K") {
+    return {
+      success: false as const,
+      error:
+        "Gemini 3.1 Flash does not support 4K generation. Switch the AI Model to Gemini 3 Pro for 4K, or keep Flash and drop to 2K.",
+    }
+  }
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
       console.log(`[v0 SERVER] Gemini attempt ${attempt}/${maxAttempts}`)
