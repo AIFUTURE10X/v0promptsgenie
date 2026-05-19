@@ -4,14 +4,15 @@
  */
 
 import { GoogleGenAI } from "@google/genai"
+import { getGeminiApiKey, getGeminiApiKeyNames } from "@/lib/gemini-api-key"
 
 let client: GoogleGenAI | null = null
 
 function getClient() {
   if (!client) {
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = getGeminiApiKey()
     if (!apiKey) {
-      throw new Error("GEMINI_API_KEY environment variable is not set")
+      throw new Error(`${getGeminiApiKeyNames()} environment variable is not set`)
     }
     client = new GoogleGenAI({ apiKey })
   }
@@ -132,18 +133,9 @@ export async function generateImageWithRetry({
   const maxBackoff = Number(process.env.GEMINI_MAX_BACKOFF || 8000)
   let delay = baseDelay
 
-  // Force 1K for older Gemini 2.5 Flash (doesn't support higher resolutions)
+  // Force 1K for older Gemini 2.5 Flash (doesn't support higher resolutions).
+  // Gemini 3.1 Flash and 3 Pro support imageSize.
   const effectiveImageSize = model === "gemini-2.5-flash-image" ? "1K" : imageSize
-
-  // Gemini 3.1 Flash is speed-optimized and does not reliably deliver 4K — the API
-  // accepts the request but hangs or degrades. Fail fast with a clear message.
-  if (model === "gemini-3.1-flash-image-preview" && effectiveImageSize === "4K") {
-    return {
-      success: false as const,
-      error:
-        "Gemini 3.1 Flash does not support 4K generation. Switch the AI Model to Gemini 3 Pro for 4K, or keep Flash and drop to 2K.",
-    }
-  }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {

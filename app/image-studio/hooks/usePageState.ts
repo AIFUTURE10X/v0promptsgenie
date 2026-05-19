@@ -30,8 +30,14 @@ const migrateModelName = (model: string): string => {
     'gemini-2.5-flash-image': 'gemini-3.1-flash-image-preview',
     'gemini-3-pro-image': 'gemini-3-pro-image-preview',
     'gemini-2.0-flash-exp': 'gemini-3.1-flash-image-preview',
+    'chatgpt-image-generator-2': 'gpt-image-2',
+    'chatgpt-image-latest': 'gpt-image-2',
   }
   return migrations[model] || model
+}
+
+const normalizeImageSizeForModel = (imageSize: string | undefined, model: string): '1K' | '2K' | '4K' => {
+  return imageSize === '2K' || imageSize === '4K' ? imageSize : '1K'
 }
 
 export function usePageState() {
@@ -59,8 +65,9 @@ export function usePageState() {
         if (savedParams.selectedCameraAngle) state.setSelectedCameraAngle(savedParams.selectedCameraAngle)
         if (savedParams.selectedCameraLens) state.setSelectedCameraLens(savedParams.selectedCameraLens)
         if (savedParams.styleStrength) state.setStyleStrength(savedParams.styleStrength)
-        if (savedParams.imageSize) state.setImageSize(savedParams.imageSize as '1K' | '2K' | '4K')
-        if (savedParams.selectedModel) state.setSelectedModel(migrateModelName(savedParams.selectedModel) as any)
+        const selectedModel = savedParams.selectedModel ? migrateModelName(savedParams.selectedModel) : state.selectedModel
+        state.setImageSize(normalizeImageSizeForModel(savedParams.imageSize, selectedModel))
+        if (savedParams.selectedModel) state.setSelectedModel(selectedModel as any)
       }
     } catch (e) {
       console.error('[Settings] Failed to restore saved params:', e)
@@ -152,8 +159,9 @@ export function usePageState() {
     if (p.selectedCameraAngle) state.setSelectedCameraAngle(p.selectedCameraAngle)
     if (p.selectedCameraLens) state.setSelectedCameraLens(p.selectedCameraLens)
     if (p.styleStrength) state.setStyleStrength(p.styleStrength)
-    if (p.imageSize) state.setImageSize(p.imageSize as '1K' | '2K' | '4K')
-    if (p.selectedModel) state.setSelectedModel(p.selectedModel as any)
+    const selectedModel = p.selectedModel ? migrateModelName(p.selectedModel) : state.selectedModel
+    state.setImageSize(normalizeImageSizeForModel(p.imageSize, selectedModel))
+    if (p.selectedModel) state.setSelectedModel(selectedModel as any)
     state.setActiveTab('generate')
   }
 

@@ -14,16 +14,19 @@ const MODEL_MIGRATIONS: Record<string, string> = {
   'gemini-2.5-flash-image': 'gemini-3.1-flash-image-preview',
   'gemini-3-pro-image': 'gemini-3-pro-image-preview',
   'gemini-2.0-flash-exp': 'gemini-3.1-flash-image-preview',
+  'chatgpt-image-generator-2': 'gpt-image-2',
+  'chatgpt-image-latest': 'gpt-image-2',
 }
 
 function migratePreset(preset: GeneratePreset): GeneratePreset {
   const model = preset.params?.selectedModel
   if (model && MODEL_MIGRATIONS[model]) {
+    const selectedModel = MODEL_MIGRATIONS[model]
     return {
       ...preset,
       params: {
         ...preset.params,
-        selectedModel: MODEL_MIGRATIONS[model],
+        selectedModel,
       },
     }
   }

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { buildLogoAnalysisPrompt } from "@/app/image-studio/constants/ai-logo-knowledge"
+import { getGeminiApiKey, getGeminiApiKeyNames } from "@/lib/gemini-api-key"
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for API key with detailed logging
-    const apiKey = process.env.GEMINI_API_KEY
+    const apiKey = getGeminiApiKey()
     console.log("[v0] Environment check:", {
       hasGeminiKey: !!apiKey,
       keyLength: apiKey?.length || 0,
@@ -35,11 +36,11 @@ export async function POST(request: NextRequest) {
     })
 
     if (!apiKey) {
-      console.error("[v0] CRITICAL ERROR: GEMINI_API_KEY not found in environment")
+      console.error(`[v0] CRITICAL ERROR: ${getGeminiApiKeyNames()} not found in environment`)
       return NextResponse.json(
         {
-          error: "GEMINI_API_KEY not configured",
-          details: "The GEMINI_API_KEY environment variable is missing. Please add it in the Vars section of v0.",
+          error: "Gemini API key not configured",
+          details: `The ${getGeminiApiKeyNames()} environment variable is missing. Please add one in the Vars section of v0.`,
         },
         { status: 500 },
       )
@@ -125,7 +126,7 @@ export async function POST(request: NextRequest) {
     // Provide helpful error messages
     let hint = "Check browser console for detailed error logs"
     if (errorMessage.toLowerCase().includes("api key")) {
-      hint = "GEMINI_API_KEY is invalid or missing. Please check your environment variables in the Vars section."
+      hint = `${getGeminiApiKeyNames()} is invalid or missing. Please check your environment variables in the Vars section.`
     } else if (errorMessage.toLowerCase().includes("quota") || errorMessage.toLowerCase().includes("limit")) {
       hint = "Gemini API quota exceeded. Please check your Google AI Studio quota at https://aistudio.google.com/"
     } else if (errorMessage.toLowerCase().includes("fetch")) {

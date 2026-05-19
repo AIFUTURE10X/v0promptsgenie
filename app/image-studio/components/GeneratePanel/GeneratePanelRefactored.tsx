@@ -63,7 +63,7 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
       isFavorite, toggleFavorite, onParametersSave, onClearPrompt, onRestoreParameters,
       generatedImages, setGeneratedImages, onOpenLightbox,
       seed: controlledSeed, setSeed: setControlledSeed,
-      imageSize = '1K', setImageSize, selectedModel = 'gemini-2.5-flash-preview-image', setSelectedModel,
+      imageSize = '1K', setImageSize, selectedModel = 'gemini-3.1-flash-image-preview', setSelectedModel,
     } = props
 
     const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)

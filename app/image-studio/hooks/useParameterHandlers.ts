@@ -16,7 +16,7 @@ interface UseParameterHandlersOptions {
   setAnalysisMode: (mode: 'fast' | 'quality') => void
   setSeed: (seed: number | null) => void
   setImageSize: (size: '1K' | '2K' | '4K') => void
-  setSelectedModel: (model: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview') => void
+  setSelectedModel: (model: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview' | 'gpt-image-2') => void
   setAnalysisResults: (results: AnalysisResultsState) => void
   setGeneratedImages: (images: any[]) => void
 }
@@ -24,6 +24,23 @@ interface UseParameterHandlersOptions {
 export interface ParameterHandlers {
   handleRestoreParameters: (params?: any) => void
   handleResetAll: () => void
+}
+
+const migrateModelName = (model: string): 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview' | 'gpt-image-2' => {
+  if (model === 'gemini-3-pro-image-preview' || model === 'gemini-3-pro-image') {
+    return 'gemini-3-pro-image-preview'
+  }
+  if (model === 'gpt-image-2' || model === 'chatgpt-image-generator-2' || model === 'chatgpt-image-latest') {
+    return 'gpt-image-2'
+  }
+  return 'gemini-3.1-flash-image-preview'
+}
+
+const normalizeImageSizeForModel = (
+  imageSize: string | undefined,
+  model: 'gemini-3.1-flash-image-preview' | 'gemini-3-pro-image-preview' | 'gpt-image-2',
+): '1K' | '2K' | '4K' => {
+  return imageSize === '2K' || imageSize === '4K' ? imageSize : '1K'
 }
 
 export function useParameterHandlers({
@@ -57,8 +74,11 @@ export function useParameterHandlers({
       if (paramsToRestore.styleStrength) setStyleStrength(paramsToRestore.styleStrength)
       if (paramsToRestore.analysisMode) setAnalysisMode(paramsToRestore.analysisMode)
       if (paramsToRestore.seed !== undefined) setSeed(paramsToRestore.seed)
-      if (paramsToRestore.imageSize) setImageSize(paramsToRestore.imageSize)
-      if (paramsToRestore.selectedModel) setSelectedModel(paramsToRestore.selectedModel)
+      const selectedModel = paramsToRestore.selectedModel
+        ? migrateModelName(paramsToRestore.selectedModel)
+        : 'gemini-3.1-flash-image-preview'
+      setImageSize(normalizeImageSizeForModel(paramsToRestore.imageSize, selectedModel))
+      if (paramsToRestore.selectedModel) setSelectedModel(selectedModel)
 
       console.log('[v0] Restored parameters:', paramsToRestore)
     }

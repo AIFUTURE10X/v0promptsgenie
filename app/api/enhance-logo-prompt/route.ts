@@ -1,8 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextResponse } from "next/server"
-
-// Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+import { getGeminiApiKey, getGeminiApiKeyNames } from "@/lib/gemini-api-key"
 
 const ENHANCE_SYSTEM_PROMPT = `You are a logo design expert. Take the user's basic description and expand it into a detailed, professional prompt for AI logo generation.
 
@@ -40,6 +38,15 @@ export async function POST(request: Request) {
 
     console.log("[Enhance Logo Prompt] Input:", prompt.substring(0, 50))
 
+    const apiKey = getGeminiApiKey()
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "AI service not configured", details: `${getGeminiApiKeyNames()} environment variable is not set` },
+        { status: 500 }
+      )
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
 
     const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}

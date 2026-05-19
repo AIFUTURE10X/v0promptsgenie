@@ -185,10 +185,10 @@ export function formatGeminiError(error: any): { message: string; statusCode: nu
     statusCode = 429
   } else if (error.message?.includes("404") || error.status === 404) {
     message =
-      "Model not found. The model (gemini-2.5-flash-preview-image) may not be available for your API key yet."
+      "Model not found. The model (gemini-3.1-flash-image-preview) may not be available for your API key yet."
     statusCode = 404
   } else if (error.message?.includes("401") || error.status === 401) {
-    message = "Invalid API key. Please check your GEMINI_API_KEY environment variable."
+    message = "Invalid API key. Please check your GEMINI_API_KEY or GOOGLE_AI_API_KEY environment variable."
     statusCode = 401
   } else if (error.message?.includes("403") || error.status === 403) {
     message = "Access forbidden. Your API key may not have permission to use this model."

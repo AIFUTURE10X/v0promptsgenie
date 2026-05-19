@@ -1,11 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateImageWithRetry, type ImageSize, type GenerationModel } from "@/lib/gemini-client"
+import { generateOpenAIImage } from "@/lib/openai-image-client"
 import { upscaleWithRealESRGAN, isReplicateAvailable } from "@/lib/replicate-upscaler"
 
 export const runtime = "nodejs"
 export const maxDuration = 300
 
 type AllowedRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3" | "21:9" | "5:4" | "4:5"
+type OpenAIImageModel = "gpt-image-2"
+type AppGenerationModel = GenerationModel | OpenAIImageModel
 
 function normalizeAspectRatio(input: string): AllowedRatio {
   const allowed = new Set<AllowedRatio>(["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9", "5:4", "4:5"])
@@ -25,20 +28,27 @@ function normalizeImageSize(input: string | null): ImageSize {
   return normalized
 }
 
-function normalizeModel(input: string | null): GenerationModel {
+function normalizeModel(input: string | null): AppGenerationModel {
   // Support old model names for backwards compatibility with saved presets
-  const migrations: Record<string, GenerationModel> = {
+  const migrations: Record<string, AppGenerationModel> = {
     'gemini-2.5-flash-preview-image': 'gemini-3.1-flash-image-preview',
     'gemini-2.5-flash-image': 'gemini-3.1-flash-image-preview',
+    'gemini-2.0-flash-exp': 'gemini-3.1-flash-image-preview',
     'gemini-3-pro-image': 'gemini-3-pro-image-preview',
+    'chatgpt-image-generator-2': 'gpt-image-2',
+    'chatgpt-image-latest': 'gpt-image-2',
   }
   const migrated = input ? (migrations[input] || input) : null
 
-  const allowed: GenerationModel[] = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image"]
-  if (migrated && allowed.includes(migrated as GenerationModel)) {
-    return migrated as GenerationModel
+  const allowed: AppGenerationModel[] = ["gemini-3.1-flash-image-preview", "gemini-3-pro-image-preview", "gemini-2.5-flash-image", "gpt-image-2"]
+  if (migrated && allowed.includes(migrated as AppGenerationModel)) {
+    return migrated as AppGenerationModel
   }
   return "gemini-3.1-flash-image-preview"
+}
+
+function isOpenAIImageModel(model: AppGenerationModel): model is OpenAIImageModel {
+  return model === "gpt-image-2"
 }
 
 export async function POST(request: NextRequest) {
@@ -51,8 +61,9 @@ export async function POST(request: NextRequest) {
     const referenceMode = (formData.get('referenceMode') as string) || 'inspire'
     const seedParam = formData.get('seed') as string | null
     const seed = seedParam ? parseInt(seedParam) : undefined
-    const imageSize = normalizeImageSize(formData.get('imageSize') as string | null)
     const model = normalizeModel(formData.get('model') as string | null)
+    const requestedImageSize = normalizeImageSize(formData.get('imageSize') as string | null)
+    const imageSize = model === "gemini-2.5-flash-image" ? "1K" : requestedImageSize
 
     // Convert File to base64 if present
     let referenceImage: string | undefined
@@ -79,8 +90,25 @@ export async function POST(request: NextRequest) {
 
     const aspectRatio = normalizeAspectRatio(rawAspectRatio)
 
-    const tasks = Array.from({ length: count }, (_, i) =>
-      generateImageWithRetry({
+    const tasks = Array.from({ length: count }, async (_, i) => {
+      if (isOpenAIImageModel(model)) {
+        try {
+          const result = await generateOpenAIImage({
+            prompt,
+            aspectRatio,
+            imageSize,
+            referenceImageFile,
+          })
+          console.log(`[v0 SERVER] OpenAI image ${i + 1}/${count} generated successfully`, { size: result.size })
+          return { ok: true as const, dataUrl: `data:image/png;base64,${result.imageBase64}` }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to generate image with OpenAI"
+          console.error(`[v0 SERVER] OpenAI image ${i + 1}/${count} failed:`, message)
+          return { ok: false as const, error: message }
+        }
+      }
+
+      return generateImageWithRetry({
         prompt,
         aspectRatio,
         referenceImage,
@@ -96,8 +124,8 @@ export async function POST(request: NextRequest) {
         }
         console.error(`[v0 SERVER] Image ${i + 1}/${count} failed:`, result.error)
         return { ok: false as const, error: result.error || "Failed to generate image" }
-      }),
-    )
+      })
+    })
 
     const settled = await Promise.all(tasks)
     const images = settled.flatMap((r) => (r.ok ? [r.dataUrl] : []))

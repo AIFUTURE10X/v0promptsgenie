@@ -1,11 +1,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { NextResponse } from "next/server"
 import { buildLogoSystemPrompt } from "@/app/image-studio/constants/ai-logo-knowledge"
+import { getGeminiApiKey, getGeminiApiKeyNames } from "@/lib/gemini-api-key"
 
 // Initialize Gemini with API key check
-const apiKey = process.env.GEMINI_API_KEY
+const apiKey = getGeminiApiKey()
 if (!apiKey) {
-  console.error("[v0 API] GEMINI_API_KEY is not set in environment variables")
+  console.error(`[v0 API] ${getGeminiApiKeyNames()} is not set in environment variables`)
 }
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null
 
@@ -35,9 +36,9 @@ export async function POST(request: Request) {
 
     // Check if Gemini is available
     if (!genAI) {
-      console.error("[v0 API] Gemini API not initialized - missing GEMINI_API_KEY")
+      console.error(`[v0 API] Gemini API not initialized - missing ${getGeminiApiKeyNames()}`)
       return NextResponse.json(
-        { error: "AI service not configured", details: "GEMINI_API_KEY environment variable is not set" },
+        { error: "AI service not configured", details: `${getGeminiApiKeyNames()} environment variable is not set` },
         { status: 500 }
       )
     }
@@ -183,7 +184,7 @@ Available style strengths: subtle, moderate, strong`
 
     if (isAuthError) {
       return NextResponse.json(
-        { error: "API authentication failed", details: "Check your GEMINI_API_KEY configuration" },
+        { error: "API authentication failed", details: `Check your ${getGeminiApiKeyNames()} configuration` },
         { status: 401 }
       )
     }
@@ -206,9 +207,9 @@ async function handleLogoMode(
   try {
     // Check if Gemini is available
     if (!genAI) {
-      console.error("[v0 API] Logo mode - Gemini API not initialized")
+      console.error(`[v0 API] Logo mode - Gemini API not initialized - missing ${getGeminiApiKeyNames()}`)
       return NextResponse.json(
-        { error: "AI service not configured", details: "GEMINI_API_KEY environment variable is not set" },
+        { error: "AI service not configured", details: `${getGeminiApiKeyNames()} environment variable is not set` },
         { status: 500 }
       )
     }
@@ -321,7 +322,7 @@ Remember to respond with a JSON object containing "message" and "logoConfig" as 
 
     if (isAuthError) {
       return NextResponse.json(
-        { error: "API authentication failed", details: "Check your GEMINI_API_KEY configuration" },
+        { error: "API authentication failed", details: `Check your ${getGeminiApiKeyNames()} configuration` },
         { status: 401 }
       )
     }
