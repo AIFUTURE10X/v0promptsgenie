@@ -831,8 +831,8 @@ const PreviewDesignOverlay = ({
       )}
       {designKey === 'offer' && (
         <>
-          <div className="absolute inset-x-0 top-0 h-24 opacity-90" style={{ background: palette.dark }} />
-          <div className="absolute right-6 top-14 h-20 w-20 rounded-full opacity-70" style={{ background: palette.accent }} />
+          <div className="absolute inset-x-0 top-0 h-20 opacity-90" style={{ background: palette.dark }} />
+          <div className="absolute right-6 top-10 h-20 w-20 rounded-full opacity-70" style={{ background: palette.accent }} />
           <div className="absolute inset-x-7 bottom-16 h-16 rounded-xl opacity-18" style={{ background: palette.accentAlt }} />
         </>
       )}
@@ -900,14 +900,12 @@ export function CreativeDirectionPreview({ creativeDirection }: CreativeDirectio
             />
 
             <div className="relative z-10 flex h-full flex-col justify-between p-7">
-              <div>
+              <div className={previewDesign === 'offer' ? 'pt-20' : ''}>
                 <div
-                  className={`mb-4 inline-flex rounded-full border px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ${
-                    previewDesign === 'offer' ? 'border-white/20' : ''
-                  }`}
+                  className="mb-4 inline-flex rounded-full border px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em]"
                   style={{
-                    borderColor: previewDesign === 'offer' ? 'rgba(255,255,255,0.24)' : palette.line,
-                    color: previewDesign === 'offer' ? palette.paper : palette.muted,
+                    borderColor: palette.line,
+                    color: palette.muted,
                     background: 'rgba(255,255,255,0.14)',
                   }}
                 >
@@ -920,7 +918,6 @@ export function CreativeDirectionPreview({ creativeDirection }: CreativeDirectio
                   }`}
                   style={{
                     ...headlineStyle,
-                    ...(previewDesign === 'offer' ? { color: palette.paper } : {}),
                   }}
                 >
                   {copy.headline}
@@ -929,7 +926,7 @@ export function CreativeDirectionPreview({ creativeDirection }: CreativeDirectio
                 {creativeDirection.informationLayout !== 'hero-headline-only' && (
                   <p
                     className={`mt-4 max-w-[19ch] text-sm leading-snug ${previewDesign === 'editorial' ? 'ml-[28%]' : ''}`}
-                    style={{ color: previewDesign === 'offer' ? palette.paper : palette.ink }}
+                    style={{ color: palette.ink }}
                   >
                     {copy.subtitle}
                   </p>
