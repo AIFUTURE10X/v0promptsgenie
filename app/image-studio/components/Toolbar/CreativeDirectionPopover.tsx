@@ -71,7 +71,7 @@ export function CreativeDirectionPopover({
           <span className="truncate">{summary ? `Creative: ${summary}` : 'Creative'}</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent side="bottom" align="center" sideOffset={12} className="w-[860px] max-h-[78vh] overflow-y-auto bg-zinc-950 border-zinc-800 p-4">
+      <PopoverContent side="bottom" align="center" sideOffset={12} className="w-[calc(100vw-24px)] sm:w-[760px] lg:w-[920px] max-h-[78vh] overflow-y-auto bg-zinc-950 border-zinc-800 p-4">
         <div className="flex items-center justify-between gap-3 mb-4">
           <div>
             <h3 className="text-sm font-bold text-[#c99850]">Creative Direction</h3>
@@ -93,7 +93,7 @@ export function CreativeDirectionPopover({
           {GROUP_SECTIONS.map((section) => (
             <section key={section.title}>
               <h4 className="text-xs font-bold uppercase tracking-wide text-zinc-500 mb-2">{section.title}</h4>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3">
                 {section.keys.map((key) => {
                   const group = CREATIVE_DIRECTION_SINGLE_GROUPS.find((item) => item.key === key)
                   if (!group) return null
@@ -104,7 +104,7 @@ export function CreativeDirectionPopover({
                       <select
                         value={creativeDirection[key]}
                         onChange={(event) => updateSingle(key, event.target.value)}
-                        className="w-full h-9 px-3 rounded-lg text-xs bg-zinc-900 text-white border border-[#c99850]/30 focus:outline-none focus:ring-2 focus:ring-[#c99850]/30"
+                        className="w-full h-10 px-3 rounded-lg text-xs bg-zinc-900 text-white border border-[#c99850]/30 focus:outline-none focus:ring-2 focus:ring-[#c99850]/30"
                       >
                         <option value="">None</option>
                         {group.options.map((option) => (
