@@ -16,8 +16,8 @@ interface GenerateTabProps {
   // Toolbar props
   showUploadSection: boolean
   onToggleUpload: () => void
-  analysisMode: 'basic' | 'detailed'
-  onAnalysisModeChange: (mode: 'basic' | 'detailed') => void
+  analysisMode: 'fast' | 'quality'
+  onAnalysisModeChange: (mode: 'fast' | 'quality') => void
   imageCount: number
   onImageCountChange: (count: number) => void
   aspectRatio: string
@@ -185,6 +185,7 @@ export function GenerateTab(props: GenerateTabProps) {
           setImageSize={setImageSize}
           selectedModel={selectedModel as any}
           setSelectedModel={setSelectedModel}
+          generationMode={analysisMode}
           setGeneratedImages={setGeneratedImages}
           onOpenLightbox={onOpenLightbox}
           seed={seed}

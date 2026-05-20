@@ -3,6 +3,7 @@ import { useState } from 'react'
 export type ImageSize = "1K" | "2K" | "4K"
 export type GenerationModel = "gemini-3.1-flash-image-preview" | "gemini-3-pro-image-preview" | "gemini-2.5-flash-image" | "gpt-image-2"
 export type ReferenceMode = "replicate" | "inspire"
+export type OpenAIImageQuality = "low" | "auto"
 
 export interface GenerationOptions {
   prompt: string
@@ -13,6 +14,7 @@ export interface GenerationOptions {
   referenceMode?: ReferenceMode
   imageSize?: ImageSize
   model?: GenerationModel
+  imageQuality?: OpenAIImageQuality
 }
 
 export interface GeneratedImage {
@@ -81,6 +83,10 @@ export function useImageGeneration(
 
       if (options.model) {
         formData.append('model', options.model)
+      }
+
+      if (options.imageQuality) {
+        formData.append('imageQuality', options.imageQuality)
       }
 
       const response = await fetch('/api/generate-image', {

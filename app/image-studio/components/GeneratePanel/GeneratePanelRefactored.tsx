@@ -53,6 +53,7 @@ export interface GeneratePanelProps {
   setImageSize?: (size: ImageSize) => void
   selectedModel?: GenerationModel
   setSelectedModel?: (model: GenerationModel) => void
+  generationMode?: 'fast' | 'quality'
 }
 
 export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void; isGenerating: boolean }, GeneratePanelProps>(
@@ -65,6 +66,7 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
       generatedImages, setGeneratedImages, onOpenLightbox,
       seed: controlledSeed, setSeed: setControlledSeed,
       imageSize = '1K', setImageSize, selectedModel = 'gemini-3.1-flash-image-preview', setSelectedModel,
+      generationMode = 'quality',
     } = props
 
     const { combinedPrompt, hasPrompt } = usePromptBuilder(subjectImages, analysisResults)
@@ -110,6 +112,7 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
 
     const handleGenerate = async () => {
       const finalPrompt = mainPrompt.trim() || combinedPrompt.trim() || 'a beautiful scene'
+      const imageQuality = generationMode === 'fast' ? 'low' : 'auto'
       onParametersSave?.({ mainPrompt: finalPrompt, aspectRatio, selectedStylePreset, imageCount, negativePrompt, selectedCameraAngle, selectedCameraLens, styleStrength, seed: activeSeed })
 
       let prompt = finalPrompt
@@ -120,7 +123,7 @@ export const GeneratePanelRefactored = forwardRef<{ triggerGenerate: () => void;
       if (negativePrompt.trim()) prompt += `\n\nIMPORTANT: Do NOT include: ${negativePrompt.trim()}`
 
       try {
-        const imgs = await generateImages({ prompt, count: imageCount, aspectRatio, seed: activeSeed, referenceImage: referenceImage?.file, model: selectedModel, imageSize })
+        const imgs = await generateImages({ prompt, count: imageCount, aspectRatio, seed: activeSeed, referenceImage: referenceImage?.file, model: selectedModel, imageSize, imageQuality })
         if (imgs?.length) { for (const img of imgs) { const m = await getImageMetadata(img.url); await saveToHistory(finalPrompt, aspectRatio, [img.url], { style: selectedStylePreset, dimensions: m.dimensions, fileSize: m.fileSize }) } }
       } catch (e) { console.error('[v0] Generation error:', e) }
     }

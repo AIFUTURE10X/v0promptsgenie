@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateImageWithRetry, type ImageSize, type GenerationModel } from "@/lib/gemini-client"
-import { generateOpenAIImage } from "@/lib/openai-image-client"
+import { generateOpenAIImage, type OpenAIImageQuality } from "@/lib/openai-image-client"
 import { upscaleWithRealESRGAN, isReplicateAvailable } from "@/lib/replicate-upscaler"
 
 export const runtime = "nodejs"
@@ -26,6 +26,10 @@ function normalizeImageSize(input: string | null): ImageSize {
     return "1K"
   }
   return normalized
+}
+
+function normalizeImageQuality(input: string | null): OpenAIImageQuality {
+  return input === "low" ? "low" : "auto"
 }
 
 function normalizeModel(input: string | null): AppGenerationModel {
@@ -64,6 +68,7 @@ export async function POST(request: NextRequest) {
     const model = normalizeModel(formData.get('model') as string | null)
     const requestedImageSize = normalizeImageSize(formData.get('imageSize') as string | null)
     const imageSize = model === "gemini-2.5-flash-image" ? "1K" : requestedImageSize
+    const imageQuality = normalizeImageQuality(formData.get('imageQuality') as string | null)
 
     // Convert File to base64 if present
     let referenceImage: string | undefined
@@ -79,6 +84,7 @@ export async function POST(request: NextRequest) {
       aspectRatio: rawAspectRatio,
       model,
       imageSize,
+      imageQuality,
       hasRef: !!referenceImage,
       referenceMode,
       seed,
@@ -97,6 +103,7 @@ export async function POST(request: NextRequest) {
             prompt,
             aspectRatio,
             imageSize,
+            imageQuality,
             referenceImageFile,
           })
           console.log(`[v0 SERVER] OpenAI image ${i + 1}/${count} generated successfully`, { size: result.size })

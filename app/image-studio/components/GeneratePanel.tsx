@@ -60,6 +60,7 @@ export interface GeneratePanelProps {
   setImageSize?: (size: ImageSize) => void
   selectedModel?: GenerationModel
   setSelectedModel?: (model: GenerationModel) => void
+  generationMode?: 'fast' | 'quality'
   showAdvancedOptions?: boolean
   onSaveGenerateParams?: (params: any) => void
   presets?: GeneratePreset[]
@@ -77,6 +78,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
       generatedImages, setGeneratedImages, onOpenLightbox,
       seed: controlledSeed, setSeed: setControlledSeed,
       imageSize = '1K', setImageSize, selectedModel = 'gemini-3.1-flash-image-preview', setSelectedModel,
+      generationMode = 'quality',
       showAdvancedOptions = true, onSaveGenerateParams, presets = [], onSavePreset, onLoadPreset,
     } = props
 
@@ -124,8 +126,9 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
 
     const handleGenerate = async () => {
       const finalPrompt = mainPrompt.trim() || combinedPrompt.trim() || 'a beautiful scene'
+      const imageQuality = generationMode === 'fast' ? 'low' : 'auto'
       onParametersSave?.({ mainPrompt: finalPrompt, aspectRatio, selectedStylePreset, imageCount, negativePrompt, selectedCameraAngle, selectedCameraLens, styleStrength, seed: activeSeed })
-      onSaveGenerateParams?.({ mainPrompt: finalPrompt, negativePrompt, aspectRatio, selectedStylePreset, selectedCameraAngle, selectedCameraLens, styleStrength, imageSize, selectedModel })
+      onSaveGenerateParams?.({ mainPrompt: finalPrompt, negativePrompt, aspectRatio, selectedStylePreset, selectedCameraAngle, selectedCameraLens, styleStrength, imageSize, selectedModel, generationMode })
 
       let prompt = finalPrompt
       if (selectedStylePreset !== 'Realistic') prompt += `. Style: ${selectedStylePreset}`
@@ -135,7 +138,7 @@ export const GeneratePanel = forwardRef<{ triggerGenerate: () => void; isGenerat
       if (negativePrompt.trim()) prompt += `\n\nIMPORTANT: Do NOT include: ${negativePrompt.trim()}`
 
       try {
-        const imgs = await generateImages({ prompt, count: imageCount, aspectRatio, seed: activeSeed, referenceImage: referenceImage?.file, referenceMode: referenceImage?.mode, model: selectedModel, imageSize })
+        const imgs = await generateImages({ prompt, count: imageCount, aspectRatio, seed: activeSeed, referenceImage: referenceImage?.file, referenceMode: referenceImage?.mode, model: selectedModel, imageSize, imageQuality })
         if (imgs?.length) { for (const img of imgs) { const m = await getImageMetadata(img.url); await saveToHistory(finalPrompt, aspectRatio, [img.url], { style: selectedStylePreset, dimensions: m.dimensions, fileSize: m.fileSize }) } }
       } catch (e) { console.error('[v0] Generation error:', e) }
     }

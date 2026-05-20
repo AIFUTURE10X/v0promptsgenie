@@ -1,6 +1,7 @@
 import type { ImageSize } from "@/lib/gemini-client"
 
 type AllowedRatio = "1:1" | "16:9" | "9:16" | "4:3" | "3:4" | "3:2" | "2:3" | "21:9" | "5:4" | "4:5"
+export type OpenAIImageQuality = "low" | "auto"
 
 const RATIO_VALUES: Record<AllowedRatio, readonly [number, number]> = {
   "1:1": [1, 1],
@@ -71,11 +72,13 @@ export async function generateOpenAIImage({
   prompt,
   aspectRatio,
   imageSize,
+  imageQuality,
   referenceImageFile,
 }: {
   prompt: string
   aspectRatio: AllowedRatio
   imageSize: ImageSize
+  imageQuality: OpenAIImageQuality
   referenceImageFile?: File | null
 }) {
   const size = getOpenAIImageSize(aspectRatio, imageSize)
@@ -86,7 +89,7 @@ export async function generateOpenAIImage({
     formData.append("model", "gpt-image-2")
     formData.append("prompt", prompt)
     formData.append("size", size)
-    formData.append("quality", "auto")
+    formData.append("quality", imageQuality)
     formData.append("image[]", referenceImageFile, referenceImageFile.name || "reference.png")
 
     const response = await fetch("https://api.openai.com/v1/images/edits", {
@@ -121,7 +124,7 @@ export async function generateOpenAIImage({
       prompt,
       n: 1,
       size,
-      quality: "auto",
+      quality: imageQuality,
       output_format: "png",
     }),
   })
