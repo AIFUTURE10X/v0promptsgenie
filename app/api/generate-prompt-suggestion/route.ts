@@ -151,7 +151,7 @@ IMPORTANT: The user has provided image analysis data above. You MUST:
 1. Extract ALL specific visual details from the "REFERENCE IMAGES ANALYSIS" section
 2. If the uploaded image is an ad, flyer, poster, social creative, landing graphic, or branded design, focus on design direction: ad type, typography, dimensional lettering, font fill/inlay, layout, CTA, background scenery, paper effects, texture, decorative elements, and color palette.
 3. If the uploaded image is a character/subject reference, create a detailed prompt that replicates the exact character/subject described, including features, clothing, accessories, pose, and expression.
-4. Recommend concrete Creative Direction settings by label when they match the uploaded ad/design or when they would help the requested iteration.
+4. Recommend concrete Creative Direction settings by label when they match the uploaded ad/design or when they would help the requested iteration, including Text Outline / Rim when the reference uses gold rims, keylines, inset strokes, or foil edges.
 5. Be extremely specific and detailed. Do NOT give generic advice - use the specific details from the analysis.
 
 Your response should acknowledge the image analysis and provide a detailed prompt based on it.

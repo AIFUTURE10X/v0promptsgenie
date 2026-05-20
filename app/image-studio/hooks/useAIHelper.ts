@@ -120,7 +120,7 @@ export function useAIHelper() {
 1. The user has uploaded ${successfulAnalyses.length} reference image(s).
 2. EXTRACT THE DETECTED STYLE from the analysis and recommend it in your suggestions.
 3. If the reference is an ad, flyer, poster, social creative, or branded design, identify the ad design direction: ad type, typography, dimensional lettering, font fill/inlay, layout, CTA treatment, background, texture, decorative elements, and palette.
-4. Recommend which Creative Direction controls would best match the reference or support the user's requested style change.
+4. Recommend which Creative Direction controls would best match the reference or support the user's requested style change, including Text Outline / Rim for gold rims, keylines, inset strokes, or foil edges.
 5. When they mention "this character", "the image", etc., replicate the exact character/subject from the analysis.
 6. Include the detected artistic or commercial style in your style recommendation.`
       }

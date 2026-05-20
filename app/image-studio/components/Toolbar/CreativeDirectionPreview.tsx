@@ -455,11 +455,65 @@ const getHeadlineStyle = (creativeDirection: CreativeDirectionState, palette: Pr
     skeuomorphic: { textShadow: '0 1px 0 rgba(255,255,255,0.5), 0 4px 8px rgba(0,0,0,0.28)' },
   }
 
+  const textOutlineStyles: Record<string, CSSProperties> = {
+    'thin-gold-outline': {
+      WebkitTextStrokeWidth: '0.7px',
+      WebkitTextStrokeColor: '#d8ad55',
+      filter: 'drop-shadow(0 3px 5px rgba(49, 28, 9, 0.22))',
+    },
+    'double-gold-outline': {
+      WebkitTextStrokeWidth: '0.85px',
+      WebkitTextStrokeColor: '#f0c66a',
+      filter: 'drop-shadow(1px 0 0 #7b4a1c) drop-shadow(-1px 0 0 #7b4a1c) drop-shadow(0 1px 0 #7b4a1c) drop-shadow(0 -1px 0 #7b4a1c) drop-shadow(0 5px 8px rgba(49, 28, 9, 0.28))',
+    },
+    'gold-rim-dark-keyline': {
+      WebkitTextStrokeWidth: '1.1px',
+      WebkitTextStrokeColor: '#c99850',
+      filter: 'drop-shadow(1px 0 0 #2a170e) drop-shadow(-1px 0 0 #2a170e) drop-shadow(0 1px 0 #2a170e) drop-shadow(0 6px 8px rgba(37, 18, 6, 0.32))',
+    },
+    'antique-brass-outline': {
+      WebkitTextStrokeWidth: '0.9px',
+      WebkitTextStrokeColor: '#a87835',
+      filter: 'drop-shadow(0 4px 7px rgba(52, 31, 12, 0.28))',
+    },
+    'copper-outline': {
+      WebkitTextStrokeWidth: '0.9px',
+      WebkitTextStrokeColor: '#c26a36',
+      filter: 'drop-shadow(0 4px 7px rgba(76, 31, 11, 0.26))',
+    },
+    'ivory-highlight-rim': {
+      WebkitTextStrokeWidth: '0.75px',
+      WebkitTextStrokeColor: '#f3e4bf',
+      filter: 'drop-shadow(0 4px 7px rgba(40, 23, 9, 0.22))',
+    },
+    'dark-engraved-outline': {
+      WebkitTextStrokeWidth: '0.85px',
+      WebkitTextStrokeColor: '#231408',
+      filter: 'drop-shadow(0 2px 0 rgba(255, 236, 196, 0.24))',
+    },
+    'raised-foil-edge': {
+      WebkitTextStrokeWidth: '1px',
+      WebkitTextStrokeColor: '#e3bd66',
+      filter: 'drop-shadow(0 -1px 0 rgba(255, 237, 182, 0.72)) drop-shadow(0 5px 8px rgba(54, 31, 8, 0.3))',
+    },
+    'shadowed-bevel-outline': {
+      WebkitTextStrokeWidth: '0.95px',
+      WebkitTextStrokeColor: '#b98a42',
+      filter: 'drop-shadow(-1px -1px 0 rgba(255, 236, 185, 0.52)) drop-shadow(2px 3px 0 rgba(45, 24, 7, 0.3)) drop-shadow(0 7px 10px rgba(45, 24, 7, 0.2))',
+    },
+    'inset-inner-stroke': {
+      WebkitTextStrokeWidth: '0.7px',
+      WebkitTextStrokeColor: '#4b2a12',
+      filter: 'drop-shadow(0 -1px 0 rgba(255, 232, 178, 0.5)) drop-shadow(0 4px 7px rgba(45, 24, 7, 0.22))',
+    },
+  }
+
   return {
     ...baseStyle,
     ...fillStyles[creativeDirection.fontFill],
     ...dimensionalStyles[creativeDirection.dimensionalStyle],
     ...visualStyles[creativeDirection.visualEffectStyle],
+    ...textOutlineStyles[creativeDirection.textOutlineStyle],
   }
 }
 

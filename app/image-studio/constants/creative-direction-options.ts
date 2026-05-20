@@ -13,6 +13,7 @@ export interface CreativeDirectionState {
   fontFill: string
   dimensionalStyle: string
   visualEffectStyle: string
+  textOutlineStyle: string
   backgroundScenery: string
   paperEffect: string
   textureStrength: string
@@ -31,6 +32,7 @@ export const DEFAULT_CREATIVE_DIRECTION: CreativeDirectionState = {
   fontFill: '',
   dimensionalStyle: '',
   visualEffectStyle: '',
+  textOutlineStyle: '',
   backgroundScenery: '',
   paperEffect: '',
   textureStrength: '',
@@ -143,6 +145,19 @@ export const VISUAL_EFFECT_STYLE_OPTIONS: CreativeDirectionOption[] = [
   { value: 'skeuomorphic', label: 'Skeuomorphic', promptText: 'skeuomorphic real-world material texture treatment' },
 ]
 
+export const TEXT_OUTLINE_STYLE_OPTIONS: CreativeDirectionOption[] = [
+  { value: 'thin-gold-outline', label: 'Thin gold outline', promptText: 'thin metallic gold outline around the lettering' },
+  { value: 'double-gold-outline', label: 'Double gold outline', promptText: 'double metallic gold outline around the lettering' },
+  { value: 'gold-rim-dark-keyline', label: 'Gold rim + dark keyline', promptText: 'dark espresso lettering with a metallic gold outer rim and dark inner keyline' },
+  { value: 'antique-brass-outline', label: 'Antique brass outline', promptText: 'antique brass outline around the lettering' },
+  { value: 'copper-outline', label: 'Copper outline', promptText: 'warm copper outline around the lettering' },
+  { value: 'ivory-highlight-rim', label: 'Ivory highlight rim', promptText: 'fine ivory highlight rim around the lettering' },
+  { value: 'dark-engraved-outline', label: 'Dark engraved outline', promptText: 'dark engraved outline defining the letter edges' },
+  { value: 'raised-foil-edge', label: 'Raised foil edge', promptText: 'raised metallic foil edge around the lettering' },
+  { value: 'shadowed-bevel-outline', label: 'Shadowed bevel outline', promptText: 'shadowed beveled outline around the lettering' },
+  { value: 'inset-inner-stroke', label: 'Inset inner stroke', promptText: 'fine inset inner stroke detail inside the lettering' },
+]
+
 export const BACKGROUND_SCENERY_OPTIONS: CreativeDirectionOption[] = [
   { value: 'torn-parchment-paper', label: 'Torn parchment paper', promptText: 'torn parchment paper background' },
   { value: 'layered-paper-cutout', label: 'Layered paper cutout', promptText: 'layered paper cutout background' },
@@ -219,6 +234,7 @@ export const CREATIVE_DIRECTION_SINGLE_GROUPS: Array<{
   { key: 'fontFill', label: 'Font Fill / Inlay', options: FONT_FILL_OPTIONS },
   { key: 'dimensionalStyle', label: 'Dimensional Style', options: DIMENSIONAL_STYLE_OPTIONS },
   { key: 'visualEffectStyle', label: 'Visual Effect', options: VISUAL_EFFECT_STYLE_OPTIONS },
+  { key: 'textOutlineStyle', label: 'Text Outline / Rim', options: TEXT_OUTLINE_STYLE_OPTIONS },
   { key: 'backgroundScenery', label: 'Background Scenery', options: BACKGROUND_SCENERY_OPTIONS },
   { key: 'paperEffect', label: 'Paper Effect', options: PAPER_EFFECT_OPTIONS },
   { key: 'textureStrength', label: 'Texture Strength', options: TEXTURE_STRENGTH_OPTIONS },
@@ -235,6 +251,7 @@ const OPTION_LOOKUP = new Map<string, CreativeDirectionOption>(
     ...FONT_FILL_OPTIONS,
     ...DIMENSIONAL_STYLE_OPTIONS,
     ...VISUAL_EFFECT_STYLE_OPTIONS,
+    ...TEXT_OUTLINE_STYLE_OPTIONS,
     ...BACKGROUND_SCENERY_OPTIONS,
     ...PAPER_EFFECT_OPTIONS,
     ...TEXTURE_STRENGTH_OPTIONS,
@@ -284,6 +301,7 @@ export function buildCreativeDirectionSummary(input: Partial<CreativeDirectionSt
     creativeDirection.fontFill,
     creativeDirection.dimensionalStyle,
     creativeDirection.visualEffectStyle,
+    creativeDirection.textOutlineStyle,
     creativeDirection.backgroundScenery,
     creativeDirection.adPreset,
     creativeDirection.typographyStyle,

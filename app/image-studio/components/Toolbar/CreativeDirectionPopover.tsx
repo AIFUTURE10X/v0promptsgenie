@@ -28,7 +28,7 @@ const GROUP_SECTIONS = [
   },
   {
     title: 'Visual Style',
-    keys: ['typographyStyle', 'fontFill', 'dimensionalStyle', 'visualEffectStyle', 'colorPalette'] as CreativeDirectionKey[],
+    keys: ['typographyStyle', 'fontFill', 'dimensionalStyle', 'visualEffectStyle', 'textOutlineStyle', 'colorPalette'] as CreativeDirectionKey[],
   },
   {
     title: 'Scene & Texture',
