@@ -39,25 +39,30 @@ export async function removeBackgroundCloud(
   try {
     console.log('[Cloud BG Removal] Starting remove.bg API call...')
 
-    // Use the remove.bg npm package
-    const { RemoveBgError, removeBackgroundFromImageBase64 } = await import('remove.bg')
+    const formData = new FormData()
+    formData.append('image_file_b64', imageBase64)
+    formData.append('size', size)
+    formData.append('type', type)
+    formData.append('format', format)
 
-    const result = await removeBackgroundFromImageBase64({
-      base64img: imageBase64,
-      apiKey,
-      size,
-      type,
-      format,
-      outputFile: undefined // We want the result in memory, not saved to file
+    const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': apiKey,
+      },
+      body: formData,
     })
 
-    // Result contains base64img property with the processed image
-    if (result.base64img) {
-      console.log('[Cloud BG Removal] Success! Image processed by remove.bg')
-      return result.base64img
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`remove.bg API error ${response.status}: ${errorText}`)
     }
 
-    throw new Error('No image data in response')
+    const resultBuffer = await response.arrayBuffer()
+    const resultBase64 = Buffer.from(resultBuffer).toString('base64')
+
+    console.log('[Cloud BG Removal] Success! Image processed by remove.bg')
+    return resultBase64
   } catch (error) {
     console.error('[Cloud BG Removal] API Error:', error)
 
